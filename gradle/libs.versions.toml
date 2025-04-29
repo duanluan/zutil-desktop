@@ -1,0 +1,25 @@
+[versions]
+kotlin = "2.1.20"
+compose-multiplatform = "1.7.3"
+hot-reload = "1.0.0-alpha08"
+junit = "4.13.2"
+androidx-lifecycle = "2.8.4"
+kotlinx-coroutines = "1.10.1"
+
+[libraries]
+kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
+kotlin-test-junit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
+junit = { group = "junit", name = "junit", version.ref = "junit" }
+androidx-lifecycle-viewmodel = { group = "org.jetbrains.androidx.lifecycle", name = "lifecycle-viewmodel", version.ref = "androidx-lifecycle" }
+androidx-lifecycle-runtime-compose = { group = "org.jetbrains.androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "androidx-lifecycle" }
+kotlinx-coroutines-swing = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-swing", version.ref = "kotlinx-coroutines" }
+
+[plugins]
+# Kotlin Multiplatform：跨平台
+kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
+# Compose 编译器插件
+composeCompiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+# Compose Multiplatform：UI 框架
+composeMultiplatform = { id = "org.jetbrains.compose", version.ref = "compose-multiplatform" }
+# Compose Hot Reload：Compose 热部署 https://github.com/JetBrains/compose-hot-reload
+composeHotReload = { id = "org.jetbrains.compose.hot-reload", version.ref = "hot-reload" }
