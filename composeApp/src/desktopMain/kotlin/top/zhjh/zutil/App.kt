@@ -1,35 +1,66 @@
 package top.zhjh.zutil
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material.Button
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Text
-import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
+import androidx.compose.foundation.layout.*
+import androidx.compose.material.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
+import top.zhjh.zutil.composable.MyTextField
 import zutil_desktop.composeapp.generated.resources.Res
-import zutil_desktop.composeapp.generated.resources.compose_multiplatform
+import zutil_desktop.composeapp.generated.resources.commonly_used
 
 @Composable
 @Preview
 fun App() {
   MaterialTheme {
-    var showContent by remember { mutableStateOf(false) }
-    Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-      Button(onClick = { showContent = !showContent }) {
-        Text("Click me!")
+    Row(modifier = Modifier.fillMaxWidth()) {
+      val selectedItem = remember { mutableStateOf(0) }
+      val searchText = remember { mutableStateOf("") }
+
+      // 导航栏
+      NavigationRail {
+        NavigationRailItem(
+          icon = {
+            Icon(
+              painter = painterResource(Res.drawable.commonly_used),
+              contentDescription = null,
+              modifier = Modifier.size(20.dp)
+            )
+          },
+          label = { Text("常用") },
+          selected = selectedItem.value == 0,
+          onClick = { selectedItem.value = 0 }
+        )
+        NavigationRailItem(
+          icon = { Icon(Icons.Filled.Settings, null) },
+          label = { Text("设置") },
+          selected = selectedItem.value == 1,
+          onClick = { selectedItem.value = 1 }
+        )
       }
-      AnimatedVisibility(showContent) {
-        val greeting = remember { Greeting().greet() }
-        Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-          Image(painterResource(Res.drawable.compose_multiplatform), null)
-          Text("Compose: $greeting")
-        }
+
+      // 搜索栏和工具列表
+      Column(
+        modifier = Modifier.padding(8.dp, 5.dp)
+      ) {
+        MyTextField(
+          value = searchText.value,
+          onValueChange = { searchText.value = it },
+          leadingIcon = {
+            Icon(
+              Icons.Filled.Search,
+              contentDescription = null
+            )
+          },
+          singleLine = true
+        )
       }
     }
   }
