@@ -34,6 +34,9 @@ kotlin {
     desktopMain.dependencies {
       implementation(compose.desktop.currentOs)
       implementation(libs.kotlinx.coroutines.swing)
+      implementation(libs.icons.feather)
+      implementation(libs.zutil.all)
+      implementation(libs.zutil.awt)
     }
   }
 }

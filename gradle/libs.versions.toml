@@ -5,6 +5,8 @@ hot-reload = "1.0.0-alpha08"
 junit = "4.13.2"
 androidx-lifecycle = "2.8.4"
 kotlinx-coroutines = "1.10.1"
+devsrsouza-compose-icons = "1.1.1"
+zutil = "2.0.0-beta1"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
@@ -13,6 +15,9 @@ junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-lifecycle-viewmodel = { group = "org.jetbrains.androidx.lifecycle", name = "lifecycle-viewmodel", version.ref = "androidx-lifecycle" }
 androidx-lifecycle-runtime-compose = { group = "org.jetbrains.androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "androidx-lifecycle" }
 kotlinx-coroutines-swing = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-swing", version.ref = "kotlinx-coroutines" }
+icons-feather = { module = "br.com.devsrsouza.compose.icons:feather", version.ref = "devsrsouza-compose-icons" }
+zutil-all = { module = "top.csaf:zutil-all", version.ref = "zutil" }
+zutil-awt = { module = "top.csaf:zutil-awt", version.ref = "zutil" }
 
 [plugins]
 # Kotlin Multiplatform：跨平台
