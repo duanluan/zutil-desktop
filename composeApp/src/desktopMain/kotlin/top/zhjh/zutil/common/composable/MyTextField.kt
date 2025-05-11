@@ -80,7 +80,7 @@ fun MyTextField(
     contentPadding.calculateEndPadding(LocalLayoutDirection.current)
   }
 
-  Box(modifier = modifier.height(24.dp)) {
+  Box(modifier = modifier.height(30.dp)) {
     @OptIn(ExperimentalMaterialApi::class)
     BasicTextField(
       value = value,
@@ -214,7 +214,7 @@ fun MyTextField(
     contentPadding.calculateEndPadding(LocalLayoutDirection.current)
   }
 
-  Box(modifier = modifier.height(24.dp)) {
+  Box(modifier = modifier.height(30.dp)) {
     @OptIn(ExperimentalMaterialApi::class)
     BasicTextField(
       value = value,

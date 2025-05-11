@@ -57,7 +57,6 @@ fun App() {
       Column(Modifier.padding(8.dp, 5.dp)) {
         // 搜索框
         MyTextField(
-          modifier = Modifier.height(30.dp),
           value = searchText.value,
           onValueChange = { searchText.value = it },
           leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
