@@ -1,10 +1,7 @@
-This is a Kotlin Multiplatform project targeting Desktop.
+# ZUtil Desktop
 
-* `/composeApp` is for code that will be shared across your Compose Multiplatform applications.
-  It contains several subfolders:
-    - `commonMain` is for code that’s common for all targets.
-    - Other folders are for Kotlin code that will be compiled for only the platform indicated in the folder name.
-      For example, if you want to use Apple’s CoreCrypto for the iOS part of your Kotlin app,
-      `iosMain` would be the right folder for such calls.
+基于 [ZUtil](https://github.com/duanluan/zutil) 的桌面工具箱。
 
-Learn more about [Kotlin Multiplatform](https://www.jetbrains.com/help/kotlin-multiplatform-dev/get-started.html)…
+## 功能
+
+- 时间戳：当前时间戳、时间戳转日期时间、日期时间转时间戳。
