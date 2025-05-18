@@ -2,6 +2,7 @@ package top.zhjh.zutil.composable
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.DropdownMenu
 import androidx.compose.material.DropdownMenuItem
@@ -14,6 +15,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.toSize
 import top.zhjh.zutil.common.composable.MyTextField
 import java.util.*
@@ -41,7 +45,10 @@ fun TimezoneDropdown(
       value = selectedTimezone,
       // 使用外部传入的回调
       onValueChange = { onTimezoneSelected(it) },
-      modifier = Modifier.clickable { expanded = true }
+      singleLine = true,
+      textStyle = TextStyle(fontSize = 15.sp),
+      modifier = Modifier.width(220.dp)
+        .clickable { expanded = true }
         .onGloballyPositioned { coordinates ->
           // 获取文本框尺寸
           textFieldSize = coordinates.size.toSize()
@@ -60,7 +67,8 @@ fun TimezoneDropdown(
     ) {
       timezones.forEach { timezone ->
         DropdownMenuItem(
-          content = { Text(text = timezone) },
+          modifier = Modifier.height(38.dp),
+          content = { Text(text = timezone, style = TextStyle(fontSize = 15.sp)) },
           onClick = {
             // 使用外部传入的回调
             onTimezoneSelected(timezone)

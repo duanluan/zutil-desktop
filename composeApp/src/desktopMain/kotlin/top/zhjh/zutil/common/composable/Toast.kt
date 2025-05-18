@@ -1,4 +1,4 @@
-package top.zhjh.zutil.composable
+package top.zhjh.zutil.common.composable
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.Card

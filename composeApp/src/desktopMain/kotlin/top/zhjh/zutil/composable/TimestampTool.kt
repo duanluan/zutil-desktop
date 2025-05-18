@@ -20,6 +20,8 @@ import kotlinx.coroutines.delay
 import top.csaf.awt.ClipboardUtil
 import top.csaf.date.DateUtil
 import top.zhjh.zutil.common.composable.MyTextField
+import top.zhjh.zutil.common.composable.ToastContainer
+import top.zhjh.zutil.common.composable.ToastManager
 import java.util.*
 
 @Composable
@@ -52,7 +54,7 @@ fun TimestampTool() {
 
         Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
           // 复制时间戳
-          Button(onClick = {
+          Button(modifier = Modifier.size(85.dp, 32.dp), onClick = {
             (if (ClipboardUtil.set(currentTimestamp)) {
               ToastManager.success("复制成功")
             } else {
@@ -61,16 +63,16 @@ fun TimestampTool() {
           }
           ) {
             val text = "复制时间戳"
-            Icon(modifier = Modifier.size(18.dp), imageVector = FeatherIcons.Clipboard, contentDescription = text)
+            Icon(modifier = Modifier.size(14.dp), imageVector = FeatherIcons.Clipboard, contentDescription = text)
             Spacer(modifier = Modifier.width(5.dp))
             Text(text)
           }
 
           // 切换秒和毫秒
-          Button(modifier = Modifier.width(148.dp), onClick = { isMilliByCurrent = !isMilliByCurrent }) {
+          Button(modifier = Modifier.size(145.dp, 32.dp), onClick = { isMilliByCurrent = !isMilliByCurrent }) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Start) {
               val text = if (isMilliByCurrent) "切换为秒级" else "切换为毫秒级"
-              Icon(modifier = Modifier.size(18.dp), imageVector = FeatherIcons.Shuffle, contentDescription = text)
+              Icon(modifier = Modifier.size(14.dp), imageVector = FeatherIcons.Shuffle, contentDescription = text)
               Spacer(modifier = Modifier.width(5.dp))
               Text(text)
             }
@@ -82,58 +84,121 @@ fun TimestampTool() {
     Box(modifier = Modifier.padding(10.dp).fillMaxWidth().border(1.dp, Color(0xffe5e7eb), RoundedCornerShape(10.dp))) {
       Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         // 需要转换的时间戳
-        val toDatetimeTimestamp = remember { mutableStateOf(currentTimestamp.toString()) }
+        val toDatetimeTimestamp = remember { mutableStateOf(currentTimestamp) }
+        // 当前时间戳是否为毫秒级
+        var isMilliToDatetime by remember { mutableStateOf(false) }
         // 转换后的日期时间
         val toDatetime = remember { mutableStateOf("") }
         // 选择的时区
         var selectedTimezone by remember { mutableStateOf(TimeZone.getDefault().id) }
 
+        fun convertTimestamp() {
+          // 转换时间戳
+          var timestamp = toDatetimeTimestamp.value
+          if (timestamp != null) {
+            if (!isMilliToDatetime) {
+              timestamp *= 1000
+            }
+            toDatetime.value = DateUtil.format(timestamp, TimeZone.getTimeZone(selectedTimezone).toZoneId())
+          } else {
+            ToastManager.error("时间戳格式错误")
+          }
+        }
+
         Text(text = "时间戳转日期时间", style = MaterialTheme.typography.h6)
         Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-          MyTextField(modifier = Modifier.width(180.dp), value = toDatetimeTimestamp.value, onValueChange = { toDatetimeTimestamp.value = it })
+          MyTextField(modifier = Modifier.width(180.dp), value = toDatetimeTimestamp.value.toString(), onValueChange = { toDatetimeTimestamp.value = it.toLongOrNull() ?: 0L })
           Icon(imageVector = FeatherIcons.ArrowRightCircle, contentDescription = "转换")
           MyTextField(modifier = Modifier.width(180.dp), value = toDatetime.value, onValueChange = { toDatetime.value = it })
           TimezoneDropdown(
             selectedTimezone = selectedTimezone,
             onTimezoneSelected = { newTimezone ->
               selectedTimezone = newTimezone
+              convertTimestamp()
             }
           )
         }
 
         Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-          // 当前时间戳是否为毫秒级
-          var isMilliToDatetime by remember { mutableStateOf(false) }
           // 切换秒和毫秒
-          Button(modifier = Modifier.width(148.dp), onClick = {
+          Button(modifier = Modifier.size(145.dp, 32.dp), onClick = {
             isMilliToDatetime = !isMilliToDatetime
             if (isMilliToDatetime) {
-              toDatetimeTimestamp.value = toDatetimeTimestamp.value + "000"
+              toDatetimeTimestamp.value *= 1000
             } else {
-              toDatetimeTimestamp.value = toDatetimeTimestamp.value.substring(0, 10)
+              toDatetimeTimestamp.value /= 1000
             }
           }) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Start) {
               val text = if (isMilliToDatetime) "切换为秒级" else "切换为毫秒级"
-              Icon(modifier = Modifier.size(18.dp), imageVector = FeatherIcons.Shuffle, contentDescription = text)
+              Icon(modifier = Modifier.size(14.dp), imageVector = FeatherIcons.Shuffle, contentDescription = text)
               Spacer(modifier = Modifier.width(5.dp))
               Text(text)
             }
           }
 
-          Button(onClick = {
-            // 转换时间戳
-            var timestamp = toDatetimeTimestamp.value.toLongOrNull()
-            if (timestamp != null) {
-              if (!isMilliToDatetime) {
-                timestamp *= 1000
-              }
-              toDatetime.value = DateUtil.format(timestamp, TimeZone.getTimeZone(selectedTimezone).toZoneId())
-            } else {
-              ToastManager.error("时间戳格式错误")
-            }
+          Button(modifier = Modifier.size(85.dp, 32.dp), onClick = {
+            convertTimestamp()
           }) {
-            Icon(modifier = Modifier.size(18.dp), imageVector = FeatherIcons.RefreshCw, contentDescription = "转换")
+            Icon(modifier = Modifier.size(14.dp), imageVector = FeatherIcons.RefreshCw, contentDescription = "转换")
+            Spacer(modifier = Modifier.width(5.dp))
+            Text("转换")
+          }
+        }
+      }
+    }
+
+    Box(modifier = Modifier.padding(10.dp).fillMaxWidth().border(1.dp, Color(0xffe5e7eb), RoundedCornerShape(10.dp))) {
+      Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        // 转换后的时间戳
+        val toTimestamp = remember { mutableStateOf("") }
+        // 当前时间戳是否为毫秒级
+        var isMilliToDatetime by remember { mutableStateOf(false) }
+        // 需要转换的日期时间
+        val toTimestampDatetime = remember { mutableStateOf("") }
+        // 选择的时区
+        var selectedTimezone by remember { mutableStateOf(TimeZone.getDefault().id) }
+
+        fun convertDatetime() {
+          if (isMilliToDatetime) {
+            toTimestamp.value = DateUtil.toEpochMilli(toTimestampDatetime.value, TimeZone.getTimeZone(selectedTimezone).toZoneId()).toString()
+          } else {
+            toTimestamp.value = DateUtil.toEpochSecond(toTimestampDatetime.value, TimeZone.getTimeZone(selectedTimezone).toZoneId()).toString()
+          }
+        }
+
+        Text(text = "日期时间转时间戳", style = MaterialTheme.typography.h6)
+        Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+          TimezoneDropdown(
+            selectedTimezone = selectedTimezone,
+            onTimezoneSelected = { newTimezone ->
+              selectedTimezone = newTimezone
+              convertDatetime()
+            }
+          )
+          MyTextField(modifier = Modifier.width(180.dp), value = toTimestampDatetime.value, onValueChange = { toTimestampDatetime.value = it })
+          Icon(imageVector = FeatherIcons.ArrowRightCircle, contentDescription = "转换")
+          MyTextField(modifier = Modifier.width(180.dp), value = toTimestamp.value, onValueChange = { toTimestamp.value = it })
+        }
+
+        Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+          // 切换秒和毫秒
+          Button(modifier = Modifier.size(145.dp, 32.dp), onClick = {
+            isMilliToDatetime = !isMilliToDatetime
+            convertDatetime()
+          }) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Start) {
+              val text = if (isMilliToDatetime) "切换为秒级" else "切换为毫秒级"
+              Icon(modifier = Modifier.size(14.dp), imageVector = FeatherIcons.Shuffle, contentDescription = text)
+              Spacer(modifier = Modifier.width(5.dp))
+              Text(text)
+            }
+          }
+
+          Button(modifier = Modifier.size(85.dp, 32.dp), onClick = {
+            convertDatetime()
+          }) {
+            Icon(modifier = Modifier.size(14.dp), imageVector = FeatherIcons.RefreshCw, contentDescription = "转换")
             Spacer(modifier = Modifier.width(5.dp))
             Text("转换")
           }
