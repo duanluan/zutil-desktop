@@ -20,7 +20,7 @@ import compose.icons.feathericons.Shuffle
 import kotlinx.coroutines.delay
 import top.csaf.awt.ClipboardUtil
 import top.csaf.date.DateUtil
-import top.zhjh.zutil.common.composable.MyTextField
+import top.csaf.lang.StrUtil
 import top.zhjh.zutil.common.composable.ToastContainer
 import top.zhjh.zutil.common.composable.ToastManager
 import top.zhjh.zutil.common.composable.ZTextField
@@ -161,11 +161,21 @@ fun TimestampTool() {
         // 选择的时区
         var selectedTimezone by remember { mutableStateOf(TimeZone.getDefault().id) }
 
-        fun convertDatetime() {
-          if (isMilliToDatetime) {
-            toTimestamp.value = DateUtil.toEpochMilli(toTimestampDatetime.value, TimeZone.getTimeZone(selectedTimezone).toZoneId()).toString()
-          } else {
-            toTimestamp.value = DateUtil.toEpochSecond(toTimestampDatetime.value, TimeZone.getTimeZone(selectedTimezone).toZoneId()).toString()
+        fun convertDatetime(): Boolean {
+          if (StrUtil.isBlank(toTimestampDatetime.value)) {
+            return false
+          }
+          try {
+            if (isMilliToDatetime) {
+              toTimestamp.value = DateUtil.toEpochMilli(toTimestampDatetime.value, TimeZone.getTimeZone(selectedTimezone).toZoneId()).toString()
+            } else {
+              toTimestamp.value = DateUtil.toEpochSecond(toTimestampDatetime.value, TimeZone.getTimeZone(selectedTimezone).toZoneId()).toString()
+            }
+            return true
+          } catch (e: Exception) {
+            ToastManager.error("日期时间转换错误")
+            toTimestamp.value = ""
+            return false
           }
         }
 
@@ -186,8 +196,9 @@ fun TimestampTool() {
         Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
           // 切换秒和毫秒
           Button(modifier = Modifier.size(145.dp, 32.dp), onClick = {
-            isMilliToDatetime = !isMilliToDatetime
-            convertDatetime()
+            if (convertDatetime()) {
+              isMilliToDatetime = !isMilliToDatetime
+            }
           }) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Start) {
               val text = if (isMilliToDatetime) "切换为秒级" else "切换为毫秒级"
