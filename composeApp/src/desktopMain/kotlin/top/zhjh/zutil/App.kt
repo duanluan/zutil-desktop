@@ -16,7 +16,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
-import top.zhjh.zutil.common.composable.MyTextField
+import top.zhjh.zutil.common.composable.ZTextField
 import top.zhjh.zutil.composable.ToolContent
 import top.zhjh.zutil.enums.ToolItem
 import top.zhjh.zutil.theme.GrayTheme
@@ -56,11 +56,10 @@ fun App() {
 
       Column(Modifier.padding(8.dp, 5.dp)) {
         // 搜索框
-        MyTextField(
+        ZTextField(
           value = searchText.value,
           onValueChange = { searchText.value = it },
-          leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
-          singleLine = true
+          leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) }
         )
 
         // 平铺布局

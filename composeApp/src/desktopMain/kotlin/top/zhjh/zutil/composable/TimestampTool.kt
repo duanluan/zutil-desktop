@@ -8,6 +8,7 @@ import androidx.compose.material.Icon
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
@@ -22,6 +23,7 @@ import top.csaf.date.DateUtil
 import top.zhjh.zutil.common.composable.MyTextField
 import top.zhjh.zutil.common.composable.ToastContainer
 import top.zhjh.zutil.common.composable.ToastManager
+import top.zhjh.zutil.common.composable.ZTextField
 import java.util.*
 
 @Composable
@@ -106,10 +108,10 @@ fun TimestampTool() {
         }
 
         Text(text = "时间戳转日期时间", style = MaterialTheme.typography.h6)
-        Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-          MyTextField(modifier = Modifier.width(180.dp), value = toDatetimeTimestamp.value.toString(), onValueChange = { toDatetimeTimestamp.value = it.toLongOrNull() ?: 0L })
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+          ZTextField(modifier = Modifier.width(180.dp), value = toDatetimeTimestamp.value.toString(), onValueChange = { toDatetimeTimestamp.value = it.toLongOrNull() ?: 0L })
           Icon(imageVector = FeatherIcons.ArrowRightCircle, contentDescription = "转换")
-          MyTextField(modifier = Modifier.width(180.dp), value = toDatetime.value, onValueChange = { toDatetime.value = it })
+          ZTextField(modifier = Modifier.width(180.dp), value = toDatetime.value, onValueChange = { toDatetime.value = it })
           TimezoneDropdown(
             selectedTimezone = selectedTimezone,
             onTimezoneSelected = { newTimezone ->
@@ -168,7 +170,7 @@ fun TimestampTool() {
         }
 
         Text(text = "日期时间转时间戳", style = MaterialTheme.typography.h6)
-        Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
           TimezoneDropdown(
             selectedTimezone = selectedTimezone,
             onTimezoneSelected = { newTimezone ->
@@ -176,9 +178,9 @@ fun TimestampTool() {
               convertDatetime()
             }
           )
-          MyTextField(modifier = Modifier.width(180.dp), value = toTimestampDatetime.value, onValueChange = { toTimestampDatetime.value = it })
+          ZTextField(modifier = Modifier.width(180.dp), value = toTimestampDatetime.value, onValueChange = { toTimestampDatetime.value = it })
           Icon(imageVector = FeatherIcons.ArrowRightCircle, contentDescription = "转换")
-          MyTextField(modifier = Modifier.width(180.dp), value = toTimestamp.value, onValueChange = { toTimestamp.value = it })
+          ZTextField(modifier = Modifier.width(180.dp), value = toTimestamp.value, onValueChange = { toTimestamp.value = it })
         }
 
         Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {

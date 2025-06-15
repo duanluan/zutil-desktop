@@ -1,5 +1,6 @@
 package top.zhjh.zutil
 
+import TestApp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 
@@ -9,5 +10,6 @@ fun main() = application {
     title = "zutil-desktop",
   ) {
     App()
+    // TestApp()
   }
 }
