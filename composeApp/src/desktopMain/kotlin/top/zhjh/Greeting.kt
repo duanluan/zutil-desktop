@@ -1,4 +1,4 @@
-package top.zhjh.zutil
+package top.zhjh
 
 class Greeting {
   private val platform = getPlatform()

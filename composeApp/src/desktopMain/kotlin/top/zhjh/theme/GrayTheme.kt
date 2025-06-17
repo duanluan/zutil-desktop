@@ -1,4 +1,4 @@
-package top.zhjh.zutil.theme
+package top.zhjh.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material.MaterialTheme

@@ -1,6 +1,5 @@
-package top.zhjh.zutil
+package top.zhjh
 
-import TestApp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 

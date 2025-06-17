@@ -1,4 +1,4 @@
-package top.zhjh.zutil
+package top.zhjh
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -11,15 +11,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
-import top.zhjh.zutil.common.composable.ZTextField
-import top.zhjh.zutil.composable.ToolContent
-import top.zhjh.zutil.enums.ToolItem
-import top.zhjh.zutil.theme.GrayTheme
+import top.zhjh.zui.composable.ZTextField
+import top.zhjh.composable.ToolContent
+import top.zhjh.enums.ToolItem
+import top.zhjh.theme.GrayTheme
 import zutil_desktop.composeapp.generated.resources.Res
 import zutil_desktop.composeapp.generated.resources.commonly_used
 
@@ -78,7 +79,7 @@ fun App() {
               onClick = { openWindows.add(tool) },
             ) {
               Row(
-                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth()
               ) {
                 // 左侧图标
