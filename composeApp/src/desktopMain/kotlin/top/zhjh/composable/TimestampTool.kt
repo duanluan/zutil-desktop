@@ -23,7 +23,9 @@ import top.csaf.date.DateUtil
 import top.csaf.lang.StrUtil
 import top.zhjh.common.composable.ToastContainer
 import top.zhjh.common.composable.ToastManager
+import top.zhjh.zui.composable.ZButton
 import top.zhjh.zui.composable.ZTextField
+import top.zhjh.zui.enums.ZColorType
 import java.util.*
 
 @Composable
@@ -56,7 +58,7 @@ fun TimestampTool() {
 
         Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
           // 复制时间戳
-          Button(modifier = Modifier.size(85.dp, 32.dp), onClick = {
+          ZButton(type = ZColorType.PRIMARY, onClick = {
             (if (ClipboardUtil.set(currentTimestamp)) {
               ToastManager.success("复制成功")
             } else {
@@ -71,13 +73,11 @@ fun TimestampTool() {
           }
 
           // 切换秒和毫秒
-          Button(modifier = Modifier.size(145.dp, 32.dp), onClick = { isMilliByCurrent = !isMilliByCurrent }) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Start) {
-              val text = if (isMilliByCurrent) "切换为秒级" else "切换为毫秒级"
-              Icon(modifier = Modifier.size(14.dp), imageVector = FeatherIcons.Shuffle, contentDescription = text)
-              Spacer(modifier = Modifier.width(5.dp))
-              Text(text)
-            }
+          ZButton(type = ZColorType.PRIMARY, onClick = { isMilliByCurrent = !isMilliByCurrent }) {
+            val text = if (isMilliByCurrent) "切换为秒级" else "切换为毫秒级"
+            Icon(modifier = Modifier.size(14.dp), imageVector = FeatherIcons.Shuffle, contentDescription = text)
+            Spacer(modifier = Modifier.width(5.dp))
+            Text(text)
           }
         }
       }
@@ -123,7 +123,7 @@ fun TimestampTool() {
 
         Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
           // 切换秒和毫秒
-          Button(modifier = Modifier.size(145.dp, 32.dp), onClick = {
+          ZButton(type = ZColorType.PRIMARY, onClick = {
             isMilliToDatetime = !isMilliToDatetime
             if (isMilliToDatetime) {
               toDatetimeTimestamp.value *= 1000
@@ -131,15 +131,13 @@ fun TimestampTool() {
               toDatetimeTimestamp.value /= 1000
             }
           }) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Start) {
-              val text = if (isMilliToDatetime) "切换为秒级" else "切换为毫秒级"
-              Icon(modifier = Modifier.size(14.dp), imageVector = FeatherIcons.Shuffle, contentDescription = text)
-              Spacer(modifier = Modifier.width(5.dp))
-              Text(text)
-            }
+            val text = if (isMilliToDatetime) "切换为秒级" else "切换为毫秒级"
+            Icon(modifier = Modifier.size(14.dp), imageVector = FeatherIcons.Shuffle, contentDescription = text)
+            Spacer(modifier = Modifier.width(5.dp))
+            Text(text)
           }
 
-          Button(modifier = Modifier.size(85.dp, 32.dp), onClick = {
+          ZButton(type = ZColorType.PRIMARY, onClick = {
             convertTimestamp()
           }) {
             Icon(modifier = Modifier.size(14.dp), imageVector = FeatherIcons.RefreshCw, contentDescription = "转换")
@@ -195,20 +193,18 @@ fun TimestampTool() {
 
         Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
           // 切换秒和毫秒
-          Button(modifier = Modifier.size(145.dp, 32.dp), onClick = {
+          ZButton(type = ZColorType.PRIMARY, onClick = {
             if (convertDatetime()) {
               isMilliToDatetime = !isMilliToDatetime
             }
           }) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Start) {
-              val text = if (isMilliToDatetime) "切换为秒级" else "切换为毫秒级"
-              Icon(modifier = Modifier.size(14.dp), imageVector = FeatherIcons.Shuffle, contentDescription = text)
-              Spacer(modifier = Modifier.width(5.dp))
-              Text(text)
-            }
+            val text = if (isMilliToDatetime) "切换为秒级" else "切换为毫秒级"
+            Icon(modifier = Modifier.size(14.dp), imageVector = FeatherIcons.Shuffle, contentDescription = text)
+            Spacer(modifier = Modifier.width(5.dp))
+            Text(text)
           }
 
-          Button(modifier = Modifier.size(85.dp, 32.dp), onClick = {
+          ZButton(type = ZColorType.PRIMARY, onClick = {
             convertDatetime()
           }) {
             Icon(modifier = Modifier.size(14.dp), imageVector = FeatherIcons.RefreshCw, contentDescription = "转换")

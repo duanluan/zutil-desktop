@@ -3,7 +3,10 @@ package top.zhjh
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.material.*
+import androidx.compose.material.Icon
+import androidx.compose.material.NavigationRail
+import androidx.compose.material.NavigationRailItem
+import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
@@ -11,23 +14,24 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
-import top.zhjh.zui.composable.ZTextField
 import top.zhjh.composable.ToolContent
 import top.zhjh.enums.ToolItem
-import top.zhjh.theme.GrayTheme
+import top.zhjh.zui.composable.ZButton
+import top.zhjh.zui.composable.ZTextField
+import top.zhjh.zui.enums.ZColorType
+import top.zhjh.zui.theme.ZTheme
 import zutil_desktop.composeapp.generated.resources.Res
 import zutil_desktop.composeapp.generated.resources.commonly_used
 
 @Composable
 @Preview
 fun App() {
-  GrayTheme {
+  ZTheme {
     Row(modifier = Modifier.fillMaxWidth()) {
       val selectedItem = remember { mutableStateOf(0) }
       val searchText = remember { mutableStateOf("") }
@@ -75,22 +79,15 @@ fun App() {
             if (searchText.value.isNotEmpty() && !tool.toolName.contains(searchText.value)) {
               return@items
             }
-            Button(
-              onClick = { openWindows.add(tool) },
-            ) {
-              Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
-              ) {
-                // 左侧图标
-                Icon(
-                  painter = painterResource(Res.drawable.commonly_used),
-                  contentDescription = null,
-                  modifier = Modifier.size(30.dp).padding(end = 8.dp) // 图标与文字间距
-                )
-                // 右侧文字
-                Text(tool.toolName)
-              }
+            ZButton(type = ZColorType.PRIMARY, contentPadding = PaddingValues(start = 15.dp, end = 15.dp, top = 8.dp, bottom = 8.dp), onClick = { openWindows.add(tool) }) {
+              // 左侧图标
+              Icon(
+                painter = painterResource(Res.drawable.commonly_used),
+                contentDescription = null,
+                modifier = Modifier.size(30.dp).padding(end = 8.dp) // 图标与文字间距
+              )
+              // 右侧文字
+              Text(tool.toolName)
             }
           }
         }
