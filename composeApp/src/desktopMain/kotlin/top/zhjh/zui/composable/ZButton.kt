@@ -27,23 +27,24 @@ import top.zhjh.zui.theme.isAppInDarkTheme
 /**
  * 自定义按钮组件 ZButton
  *
- * @param onClick 点击按钮时触发的回调函数
- * @param modifier 应用于按钮的修饰符，默认为空
- * @param contentPadding 按钮内容区域的内边距，默认为 8.dp
- * @param enabled 按钮是否启用，默认为 true（启用）
- * @param icon 按钮内显示的图标，可选参数
- * @param iconDescription 图标的描述文本，用于无障碍功能，可选参数
- * @param content 按钮内容区域的可组合函数，可选参数
+ * @param onClick 点击事件
+ * @param modifier 修饰符，默认为空
+ * @param type 类型，默认 [ZColorType.INFO]
+ * @param enabled 是否启用，默认为 true
+ * @param icon 按钮内图标
+ * @param iconDescription 按钮内图标描述文本，用于无障碍功能
+ * @param contentPadding 内边距，默认 [ZButtonDefaults.ContentPadding]
+ * @param content 按钮内容区域的可组合函数
  */
 @Composable
 fun ZButton(
   onClick: () -> Unit,
   modifier: Modifier = Modifier,
-  contentPadding: PaddingValues = PaddingValues(8.dp),
   type: ZColorType = ZColorType.DEFAULT,
   enabled: Boolean = true,
   icon: ImageVector? = null,
   iconDescription: String? = null,
+  contentPadding: PaddingValues = ZButtonDefaults.ContentPadding,
   content: (@Composable RowScope.() -> Unit)? = null
 ) {
   // 圆角半径
@@ -73,25 +74,24 @@ fun ZButton(
           enabled = enabled,
           onClick = onClick
         ) else Modifier
-      ),
-
-    ) {
-
+      )
+      .defaultMinSize(minHeight = ZButtonDefaults.MinHeight)
+  ) {
     // 提供内容颜色的上下文，使所有子组件继承此颜色
     CompositionLocalProvider(LocalContentColor provides buttonStyle.textColor) {
       Row(
-        modifier = Modifier.defaultMinSize(minHeight = 32.dp).padding(contentPadding),
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center,
+        modifier = Modifier.padding(contentPadding)
       ) {
         if (icon != null) {
           Icon(
             modifier = Modifier
               .then(
                 // 有内容时添加右边距
-                if (content != null) Modifier.padding(end = 2.dp)
+                if (content != null) Modifier.padding(end = ZButtonDefaults.IconSpacing)
                 else Modifier
               )
-              .size(14.dp),
+              .size(ZButtonDefaults.IconSize),
             imageVector = icon,
             contentDescription = iconDescription
           )
@@ -293,3 +293,25 @@ private fun getButtonStyle(type: ZColorType, isHovered: Boolean, isPressed: Bool
     }
   }
 }
+
+/**
+ * ZButton 默认值，参考 [androidx.compose.material.ButtonDefaults]
+ */
+object ZButtonDefaults {
+  private val ButtonHorizontalPadding = 8.dp
+  private val ButtonVerticalPadding = 8.dp
+
+  val ContentPadding = PaddingValues(
+    start = ButtonHorizontalPadding,
+    top = ButtonVerticalPadding,
+    end = ButtonHorizontalPadding,
+    bottom = ButtonVerticalPadding
+  )
+
+  val MinHeight = 32.dp
+
+  val IconSize = 14.dp
+
+  val IconSpacing = 2.dp
+}
+

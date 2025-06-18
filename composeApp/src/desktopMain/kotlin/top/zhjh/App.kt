@@ -3,10 +3,7 @@ package top.zhjh
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.material.Icon
-import androidx.compose.material.NavigationRail
-import androidx.compose.material.NavigationRailItem
-import androidx.compose.material.Text
+import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
@@ -79,7 +76,11 @@ fun App() {
             if (searchText.value.isNotEmpty() && !tool.toolName.contains(searchText.value)) {
               return@items
             }
-            ZButton(type = ZColorType.PRIMARY, contentPadding = PaddingValues(start = 15.dp, end = 15.dp, top = 8.dp, bottom = 8.dp), onClick = { openWindows.add(tool) }) {
+            ZButton(
+              type = ZColorType.PRIMARY,
+              contentPadding = PaddingValues(start = 15.dp, end = 15.dp, top = 8.dp, bottom = 8.dp),
+              onClick = { openWindows.add(tool) }
+            ) {
               // 左侧图标
               Icon(
                 painter = painterResource(Res.drawable.commonly_used),
