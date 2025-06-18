@@ -39,6 +39,7 @@ fun TestApp() {
         }
 
         Row(horizontalArrangement = Arrangement.spacedBy(5.dp), modifier = Modifier.padding(top = 5.dp, bottom = 5.dp)) {
+          ZButton(onClick = { }) { }
           ZButton(onClick = { ToastManager.success("Default") }) { Text("Default") }
           ZButton(type = ZColorType.PRIMARY, onClick = { ToastManager.success("Primary") }) { Text("Primary") }
           ZButton(type = ZColorType.SUCCESS, onClick = { ToastManager.success("Success") }) { Text("Success") }
@@ -47,17 +48,30 @@ fun TestApp() {
           ZButton(type = ZColorType.DANGER, onClick = { ToastManager.success("Danger") }) { Text("Danger") }
         }
 
-        ZTextField(
-          value = text,
-          onValueChange = { text = it },
-          placeholder = "请输入内容",
-          leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
-          trailingIcon = { Icon(Icons.Filled.ArrowDropDown, contentDescription = null) }, singleLine = false
-        )
+        Row(horizontalArrangement = Arrangement.spacedBy(5.dp), modifier = Modifier.padding(top = 5.dp, bottom = 5.dp)) {
+          ZButton(plain = true, onClick = { ToastManager.success("Plain") }) { Text("Plain") }
+          ZButton(type = ZColorType.PRIMARY, plain = true, onClick = { ToastManager.success("Primary") }) { Text("Primary") }
+          ZButton(type = ZColorType.SUCCESS, plain = true, onClick = { ToastManager.success("Success") }) { Text("Success") }
+          ZButton(type = ZColorType.INFO, plain = true, onClick = { ToastManager.success("Info") }) { Text("Info") }
+          ZButton(type = ZColorType.WARNING, plain = true, onClick = { ToastManager.success("Warning") }) { Text("Warning") }
+          ZButton(type = ZColorType.DANGER, plain = true, onClick = { ToastManager.success("Danger") }) { Text("Danger") }
+        }
 
-        ZDropdownMenu(
-          options = listOf("选项1", "选项2", "选项3")
-        )
+        Row(horizontalArrangement = Arrangement.spacedBy(5.dp), modifier = Modifier.padding(top = 5.dp, bottom = 5.dp)) {
+          ZTextField(
+            value = text,
+            onValueChange = { text = it },
+            placeholder = "请输入内容",
+            leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+            trailingIcon = { Icon(Icons.Filled.ArrowDropDown, contentDescription = null) }, singleLine = false
+          )
+        }
+
+        Row(horizontalArrangement = Arrangement.spacedBy(5.dp), modifier = Modifier.padding(top = 5.dp, bottom = 5.dp)) {
+          ZDropdownMenu(
+            options = listOf("选项1", "选项2", "选项3")
+          )
+        }
       }
     }
   }
