@@ -17,7 +17,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
-import org.jetbrains.skia.impl.Stats.enabled
 import top.zhjh.zui.enums.ZColorType
 import top.zhjh.zui.enums.ZColorType.*
 import top.zhjh.zui.theme.isAppInDarkTheme
@@ -182,41 +181,101 @@ private data class ZButtonStyle(
 private fun getButtonStyle(type: ZColorType, isDarkTheme: Boolean, isPlain: Boolean, isHovered: Boolean, isPressed: Boolean, disabled: Boolean): ZButtonStyle {
   if (disabled) {
     return when (type) {
-      DEFAULT -> ZButtonStyle(
-        backgroundColor = Color.Transparent,
-        borderColor = Color(0xfff2f2f6),
-        textColor = Color(0xffbcbec4)
-      )
+      DEFAULT -> {
+        if (isDarkTheme) {
+          ZButtonStyle(
+            backgroundColor = Color.Transparent,
+            borderColor = Color(0xff414243),
+            textColor = Color(0xff888888)
+          )
+        } else {
+          ZButtonStyle(
+            backgroundColor = Color.Transparent,
+            borderColor = Color(0xfff2f2f6),
+            textColor = Color(0xffbcbec4)
+          )
+        }
+      }
 
-      PRIMARY -> ZButtonStyle(
-        backgroundColor = if (isPlain) Color(0xffecf4fe) else Color(0xffa0cefe),
-        borderColor = if (isPlain) Color(0xffd8ecfe) else Color(0xffa0cefe),
-        textColor = if (isPlain) Color(0xffa0cfff) else Color.White
-      )
+      PRIMARY -> {
+        if (isDarkTheme) {
+          ZButtonStyle(
+            backgroundColor = if (isPlain) Color(0xff18222c) else Color(0xff2a598a),
+            borderColor = if (isPlain) Color(0xff1d3043) else Color(0xff2a598a),
+            textColor = if (isPlain) Color(0xff2a598a) else Color(0xff8fa7c1)
+          )
+        } else {
+          ZButtonStyle(
+            backgroundColor = if (isPlain) Color(0xffecf4fe) else Color(0xffa0cefe),
+            borderColor = if (isPlain) Color(0xffd8ecfe) else Color(0xffa0cefe),
+            textColor = if (isPlain) Color(0xffa0cfff) else Color.White
+          )
+        }
+      }
 
-      SUCCESS -> ZButtonStyle(
-        backgroundColor = if (isPlain) Color(0xfff0f8ea) else Color(0xffb2e09c),
-        borderColor = if (isPlain) Color(0xffe0f2d8) else Color(0xffb2e09c),
-        textColor = if (isPlain) Color(0xffb3e19d) else Color.White
-      )
+      SUCCESS -> {
+        if (isDarkTheme) {
+          ZButtonStyle(
+            backgroundColor = if (isPlain) Color(0xff1c2518) else Color(0xff3e6b27),
+            borderColor = if (isPlain) Color(0xff25371c) else Color(0xff3e6b27),
+            textColor = if (isPlain) Color(0xff3e6b27) else Color(0xff99b18d)
+          )
+        } else {
+          ZButtonStyle(
+            backgroundColor = if (isPlain) Color(0xfff0f8ea) else Color(0xffb2e09c),
+            borderColor = if (isPlain) Color(0xffe0f2d8) else Color(0xffb2e09c),
+            textColor = if (isPlain) Color(0xffb3e19d) else Color.White
+          )
+        }
+      }
 
-      INFO -> ZButtonStyle(
-        backgroundColor = if (isPlain) Color(0xfff4f4f4) else Color(0xffc8c8cc),
-        borderColor = if (isPlain) Color(0xffe9e9eb) else Color(0xffc8c8cc),
-        textColor = if (isPlain) Color(0xffc8c8cc) else Color.White
-      )
+      INFO -> {
+        if (isDarkTheme) {
+          ZButtonStyle(
+            backgroundColor = if (isPlain) Color(0xff202121) else Color(0xff525457),
+            borderColor = if (isPlain) Color(0xff2d2d2f) else Color(0xff525457),
+            textColor = if (isPlain) Color(0xff4f5153) else Color(0xffa6a7a9)
+          )
+        } else {
+          ZButtonStyle(
+            backgroundColor = if (isPlain) Color(0xfff4f4f4) else Color(0xffc8c8cc),
+            borderColor = if (isPlain) Color(0xffe9e9eb) else Color(0xffc8c8cc),
+            textColor = if (isPlain) Color(0xffc8c8cc) else Color.White
+          )
+        }
+      }
 
-      WARNING -> ZButtonStyle(
-        backgroundColor = if (isPlain) Color(0xfffcf6ec) else Color(0xfff2d09e),
-        borderColor = if (isPlain) Color(0xfffaecd8) else Color(0xfff2d09e),
-        textColor = if (isPlain) Color(0xfff3d19e) else Color.White
-      )
+      WARNING -> {
+        if (isDarkTheme) {
+          ZButtonStyle(
+            backgroundColor = if (isPlain) Color(0xff292218) else Color(0xff7d5b28),
+            borderColor = if (isPlain) Color(0xff3e301c) else Color(0xff7d5b28),
+            textColor = if (isPlain) Color(0xff7d5b28) else Color(0xffbaa88e)
+          )
+        } else {
+          ZButtonStyle(
+            backgroundColor = if (isPlain) Color(0xfffcf6ec) else Color(0xfff2d09e),
+            borderColor = if (isPlain) Color(0xfffaecd8) else Color(0xfff2d09e),
+            textColor = if (isPlain) Color(0xfff3d19e) else Color.White
+          )
+        }
+      }
 
-      DANGER -> ZButtonStyle(
-        backgroundColor = if (isPlain) Color(0xfffef0f0) else Color(0xfffab6b6),
-        borderColor = if (isPlain) Color(0xfffde2e2) else Color(0xfffab6b6),
-        textColor = if (isPlain) Color(0xfffab6b6) else Color.White
-      )
+      DANGER -> {
+        if (isDarkTheme) {
+          ZButtonStyle(
+            backgroundColor = if (isPlain) Color(0xff2b1d1d) else Color(0xff854040),
+            borderColor = if (isPlain) Color(0xff412626) else Color(0xff854040),
+            textColor = if (isPlain) Color(0xff854040) else Color(0xffbf9a9a)
+          )
+        } else {
+          ZButtonStyle(
+            backgroundColor = if (isPlain) Color(0xfffef0f0) else Color(0xfffab6b6),
+            borderColor = if (isPlain) Color(0xfffde2e2) else Color(0xfffab6b6),
+            textColor = if (isPlain) Color(0xfffab6b6) else Color.White
+          )
+        }
+      }
     }
   }
   return when (type) {
@@ -608,4 +667,3 @@ object ZButtonDefaults {
    */
   val Shape = RoundedCornerShape(4.dp)
 }
-
