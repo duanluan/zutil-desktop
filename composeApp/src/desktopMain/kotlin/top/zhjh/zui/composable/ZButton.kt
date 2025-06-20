@@ -17,7 +17,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
+import org.jetbrains.skia.impl.Stats.enabled
 import top.zhjh.zui.enums.ZColorType
+import top.zhjh.zui.enums.ZColorType.*
 import top.zhjh.zui.theme.isAppInDarkTheme
 
 /**
@@ -26,25 +28,25 @@ import top.zhjh.zui.theme.isAppInDarkTheme
  * @param onClick 点击事件
  * @param modifier 修饰符
  * @param type 类型，默认 [ZColorType.INFO]
- * @param enabled 是否启用，默认为 true
  * @param icon 按钮内图标组件
  * @param contentPadding 内边距，默认 [ZButtonDefaults.ContentPadding]
  * @param content 按钮内容区域的可组合函数
  * @param plain 是否为无装饰按钮，默认为 false
  * @param round 两边是否为半圆角，默认为 false
  * @param circle 是否为圆形按钮，默认为 false
+ * @param disabled 是否禁用按钮，默认为 false
  */
 @Composable
 fun ZButton(
   onClick: () -> Unit,
   modifier: Modifier = Modifier,
-  type: ZColorType = ZColorType.DEFAULT,
-  enabled: Boolean = true,
+  type: ZColorType = DEFAULT,
   icon: (@Composable (() -> Unit))? = null,
   contentPadding: PaddingValues = ZButtonDefaults.ContentPadding,
   plain: Boolean = false,
   round: Boolean = false,
   circle: Boolean = false,
+  disabled: Boolean = false,
   content: (@Composable RowScope.() -> Unit)? = null,
 ) {
   // 圆角半径
@@ -62,7 +64,7 @@ fun ZButton(
   val isDarkTheme = isAppInDarkTheme()
 
   // 获取按钮样式
-  val buttonStyle = getButtonStyle(type, isDarkTheme, plain, isHovered, isPressed)
+  val buttonStyle = getButtonStyle(type, isDarkTheme, plain, isHovered, isPressed, disabled)
 
   // 非圆形
   if (!circle) {
@@ -74,12 +76,7 @@ fun ZButton(
         .border(BorderStroke(1.dp, buttonStyle.borderColor), shape)
         .then(
           // 按钮启用时添加点击事件
-          if (enabled) Modifier.clickable(
-            interactionSource = interactionSource,
-            indication = null,
-            enabled = enabled,
-            onClick = onClick
-          ) else Modifier
+          if (!disabled) Modifier.clickable(onClick = onClick) else Modifier
         )
         .defaultMinSize(minHeight = ZButtonDefaults.MinHeight)
     ) {
@@ -88,7 +85,7 @@ fun ZButton(
         contentPadding = contentPadding,
         icon = icon,
         content = content,
-        circle = circle
+        circle = false
       )
     }
   } else {
@@ -97,18 +94,13 @@ fun ZButton(
       modifier = modifier
         .then(
           // 按钮启用时添加点击事件
-          if (enabled) Modifier.clickable(
-            interactionSource = interactionSource,
-            indication = null,
-            enabled = enabled,
-            onClick = onClick
-          ) else Modifier
+          if (!disabled) Modifier.clickable(onClick = onClick) else Modifier
         )
         .defaultMinSize(minHeight = ZButtonDefaults.MinHeight)
     ) {
       // 使用Canvas绘制圆形
       Canvas(modifier = Modifier.matchParentSize()) {
-        if (type == ZColorType.DEFAULT) {
+        if (type == DEFAULT) {
           // DEFAULT类型只绘制边框圆形
           drawCircle(
             color = buttonStyle.borderColor,
@@ -135,7 +127,7 @@ fun ZButton(
         contentPadding = contentPadding,
         icon = icon,
         content = content,
-        circle = circle
+        circle = true
       )
     }
   }
@@ -187,9 +179,48 @@ private data class ZButtonStyle(
 /**
  * 根据按钮类型、悬停状态和主题模式获取按钮样式
  */
-private fun getButtonStyle(type: ZColorType, isDarkTheme: Boolean, isPlain: Boolean, isHovered: Boolean, isPressed: Boolean): ZButtonStyle {
+private fun getButtonStyle(type: ZColorType, isDarkTheme: Boolean, isPlain: Boolean, isHovered: Boolean, isPressed: Boolean, disabled: Boolean): ZButtonStyle {
+  if (disabled) {
+    return when (type) {
+      DEFAULT -> ZButtonStyle(
+        backgroundColor = Color.Transparent,
+        borderColor = Color(0xfff2f2f6),
+        textColor = Color(0xffbcbec4)
+      )
+
+      PRIMARY -> ZButtonStyle(
+        backgroundColor = if (isPlain) Color(0xffecf4fe) else Color(0xffa0cefe),
+        borderColor = if (isPlain) Color(0xffd8ecfe) else Color(0xffa0cefe),
+        textColor = if (isPlain) Color(0xffa0cfff) else Color.White
+      )
+
+      SUCCESS -> ZButtonStyle(
+        backgroundColor = if (isPlain) Color(0xfff0f8ea) else Color(0xffb2e09c),
+        borderColor = if (isPlain) Color(0xffe0f2d8) else Color(0xffb2e09c),
+        textColor = if (isPlain) Color(0xffb3e19d) else Color.White
+      )
+
+      INFO -> ZButtonStyle(
+        backgroundColor = if (isPlain) Color(0xfff4f4f4) else Color(0xffc8c8cc),
+        borderColor = if (isPlain) Color(0xffe9e9eb) else Color(0xffc8c8cc),
+        textColor = if (isPlain) Color(0xffc8c8cc) else Color.White
+      )
+
+      WARNING -> ZButtonStyle(
+        backgroundColor = if (isPlain) Color(0xfffcf6ec) else Color(0xfff2d09e),
+        borderColor = if (isPlain) Color(0xfffaecd8) else Color(0xfff2d09e),
+        textColor = if (isPlain) Color(0xfff3d19e) else Color.White
+      )
+
+      DANGER -> ZButtonStyle(
+        backgroundColor = if (isPlain) Color(0xfffef0f0) else Color(0xfffab6b6),
+        borderColor = if (isPlain) Color(0xfffde2e2) else Color(0xfffab6b6),
+        textColor = if (isPlain) Color(0xfffab6b6) else Color.White
+      )
+    }
+  }
   return when (type) {
-    ZColorType.DEFAULT -> {
+    DEFAULT -> {
       if (isPlain) {
         when {
           // 暗黑模式下悬停状态
@@ -247,7 +278,7 @@ private fun getButtonStyle(type: ZColorType, isDarkTheme: Boolean, isPlain: Bool
       }
     }
 
-    ZColorType.PRIMARY -> {
+    PRIMARY -> {
       if (isPlain) {
         when {
           // 暗黑模式下悬停状态
@@ -305,7 +336,7 @@ private fun getButtonStyle(type: ZColorType, isDarkTheme: Boolean, isPlain: Bool
       }
     }
 
-    ZColorType.SUCCESS -> {
+    SUCCESS -> {
       if (isPlain) {
         when {
           // 暗黑模式下悬停状态
@@ -363,7 +394,7 @@ private fun getButtonStyle(type: ZColorType, isDarkTheme: Boolean, isPlain: Bool
       }
     }
 
-    ZColorType.INFO -> {
+    INFO -> {
       if (isPlain) {
         when {
           // 暗黑模式下悬停状态
@@ -422,7 +453,7 @@ private fun getButtonStyle(type: ZColorType, isDarkTheme: Boolean, isPlain: Bool
       }
     }
 
-    ZColorType.WARNING -> {
+    WARNING -> {
       if (isPlain) {
         when {
           // 暗黑模式下悬停状态
@@ -480,7 +511,7 @@ private fun getButtonStyle(type: ZColorType, isDarkTheme: Boolean, isPlain: Bool
       }
     }
 
-    ZColorType.DANGER -> {
+    DANGER -> {
       if (isPlain) {
         when {
           // 暗黑模式下悬停状态
