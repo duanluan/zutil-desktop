@@ -29,8 +29,6 @@ fun TestApp() {
       // 添加通知宿主
       ToastContainer()
 
-      var text by remember { mutableStateOf("") }
-
       Column(modifier = Modifier.padding(5.dp)) {
         // 添加夜间模式切换按钮
         ZButton(onClick = { isDarkTheme = !isDarkTheme }) {
@@ -93,6 +91,16 @@ fun TestApp() {
         }
 
         Row(horizontalArrangement = Arrangement.spacedBy(5.dp), modifier = Modifier.padding(top = 5.dp, bottom = 5.dp)) {
+          var text by remember { mutableStateOf("") }
+          ZTextField(
+            value = text,
+            onValueChange = { text = it },
+            placeholder = "Please input",
+          )
+        }
+
+        Row(horizontalArrangement = Arrangement.spacedBy(5.dp), modifier = Modifier.padding(top = 5.dp, bottom = 5.dp)) {
+          var text by remember { mutableStateOf("") }
           ZTextField(
             value = text,
             onValueChange = { text = it },
