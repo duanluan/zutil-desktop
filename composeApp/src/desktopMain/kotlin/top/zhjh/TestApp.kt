@@ -5,8 +5,7 @@ import androidx.compose.material.Icon
 import androidx.compose.material.Surface
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -55,6 +54,24 @@ fun TestApp() {
           ZButton(type = ZColorType.INFO, plain = true, onClick = { ToastManager.success("Info") }) { Text("Info") }
           ZButton(type = ZColorType.WARNING, plain = true, onClick = { ToastManager.success("Warning") }) { Text("Warning") }
           ZButton(type = ZColorType.DANGER, plain = true, onClick = { ToastManager.success("Danger") }) { Text("Danger") }
+        }
+
+        Row(horizontalArrangement = Arrangement.spacedBy(5.dp), modifier = Modifier.padding(top = 5.dp, bottom = 5.dp)) {
+          ZButton(round = true, onClick = { ToastManager.success("Round") }) { Text("Round") }
+          ZButton(type = ZColorType.PRIMARY, round = true, onClick = { ToastManager.success("Primary") }) { Text("Primary") }
+          ZButton(type = ZColorType.SUCCESS, round = true, onClick = { ToastManager.success("Success") }) { Text("Success") }
+          ZButton(type = ZColorType.INFO, round = true, onClick = { ToastManager.success("Info") }) { Text("Info") }
+          ZButton(type = ZColorType.WARNING, round = true, onClick = { ToastManager.success("Warning") }) { Text("Warning") }
+          ZButton(type = ZColorType.DANGER, round = true, onClick = { ToastManager.success("Danger") }) { Text("Danger") }
+        }
+
+        Row(horizontalArrangement = Arrangement.spacedBy(5.dp), modifier = Modifier.padding(top = 5.dp, bottom = 5.dp)) {
+          ZButton(circle = true, icon = { Icon(Icons.Filled.Search, contentDescription = null) }, onClick = { ToastManager.success("Circle") }) { }
+          ZButton(type = ZColorType.PRIMARY, circle = true, icon = { Icon(Icons.Filled.Search, contentDescription = null) }, onClick = { ToastManager.success("Primary") }) {}
+          ZButton(type = ZColorType.SUCCESS, circle = true, icon = { Icon(Icons.Filled.Edit, contentDescription = null) }, onClick = { ToastManager.success("Success") }) { }
+          ZButton(type = ZColorType.INFO, circle = true, icon = { Icon(Icons.Filled.Check, contentDescription = null) }, onClick = { ToastManager.success("Info") }) { }
+          ZButton(type = ZColorType.WARNING, circle = true, icon = { Icon(Icons.Filled.Email, contentDescription = null) }, onClick = { ToastManager.success("Warning") }) { }
+          ZButton(type = ZColorType.DANGER, circle = true, icon = { Icon(Icons.Filled.Delete, contentDescription = null) }, onClick = { ToastManager.success("Danger") }) { }
         }
 
         Row(horizontalArrangement = Arrangement.spacedBy(5.dp), modifier = Modifier.padding(top = 5.dp, bottom = 5.dp)) {
