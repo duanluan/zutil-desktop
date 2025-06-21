@@ -20,6 +20,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
+import top.zhjh.common.theme.mapleMonoFontFamily
+import top.zhjh.common.theme.mapleMonoTypography
 import top.zhjh.composable.ToolContent
 import top.zhjh.enums.ToolItem
 import top.zhjh.zui.composable.ZButton
@@ -32,7 +34,10 @@ import zutil_desktop.composeapp.generated.resources.commonly_used
 @Composable
 @Preview
 fun App() {
-  ZTheme {
+  ZTheme(
+    typography = mapleMonoTypography(),
+    defaultFontFamily = mapleMonoFontFamily()
+  ) {
     Row(modifier = Modifier.fillMaxWidth()) {
       val selectedItem = remember { mutableStateOf(0) }
       val searchText = remember { mutableStateOf("") }
