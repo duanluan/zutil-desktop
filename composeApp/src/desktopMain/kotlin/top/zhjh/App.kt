@@ -3,7 +3,10 @@ package top.zhjh
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.material.*
+import androidx.compose.material.Icon
+import androidx.compose.material.NavigationRail
+import androidx.compose.material.NavigationRailItem
+import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
@@ -11,6 +14,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
@@ -61,6 +65,7 @@ fun App() {
         ZTextField(
           value = searchText.value,
           onValueChange = { searchText.value = it },
+          placeholder = "输入工具名称搜索",
           leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) }
         )
 
@@ -79,6 +84,7 @@ fun App() {
             ZButton(
               type = ZColorType.PRIMARY,
               contentPadding = PaddingValues(start = 15.dp, end = 15.dp, top = 8.dp, bottom = 8.dp),
+              contentAlignment = Alignment.CenterStart,
               onClick = { openWindows.add(tool) }
             ) {
               // 左侧图标

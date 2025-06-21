@@ -29,6 +29,7 @@ import top.zhjh.zui.theme.isAppInDarkTheme
  * @param type 类型，默认 [ZColorType.INFO]
  * @param icon 按钮内图标组件
  * @param contentPadding 内边距，默认 [ZButtonDefaults.ContentPadding]
+ * @param contentAlignment 内容水平对齐方式，默认 [Alignment.Center]
  * @param content 内容区域的可组合函数
  * @param plain 是否为无装饰，默认 false
  * @param round 两边是否为半圆角，默认 false
@@ -40,13 +41,14 @@ fun ZButton(
   onClick: () -> Unit,
   modifier: Modifier = Modifier,
   type: ZColorType = DEFAULT,
-  icon: (@Composable (() -> Unit))? = null,
+  icon: @Composable (() -> Unit)? = null,
   contentPadding: PaddingValues = ZButtonDefaults.ContentPadding,
+  contentAlignment: Alignment = Alignment.Center,
   plain: Boolean = false,
   round: Boolean = false,
   circle: Boolean = false,
   enabled: Boolean = true,
-  content: (@Composable RowScope.() -> Unit)? = null,
+  content: @Composable (RowScope.() -> Unit)? = null,
 ) {
   // 圆角半径
   val shape = when {
@@ -68,7 +70,7 @@ fun ZButton(
   // 非圆形
   if (!circle) {
     Box(
-      contentAlignment = Alignment.Center,
+      contentAlignment = contentAlignment,
       modifier = modifier
         .clip(shape)
         .background(buttonStyle.backgroundColor)
@@ -89,7 +91,7 @@ fun ZButton(
     }
   } else {
     Box(
-      contentAlignment = Alignment.Center,
+      contentAlignment = contentAlignment,
       modifier = modifier
         .then(
           // 按钮启用时添加点击事件
