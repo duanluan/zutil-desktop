@@ -71,15 +71,14 @@ fun ZButton(
   if (!circle) {
     Box(
       contentAlignment = contentAlignment,
-      modifier = modifier
+      modifier = Modifier
         .clip(shape)
         .background(buttonStyle.backgroundColor)
         .border(BorderStroke(1.dp, buttonStyle.borderColor), shape)
-        .then(
           // 按钮启用时添加点击事件
-          if (enabled) Modifier.clickable(onClick = onClick) else Modifier
-        )
+        .then(if (enabled) Modifier.clickable(onClick = onClick) else Modifier)
         .defaultMinSize(minHeight = ZButtonDefaults.MinHeight)
+        .then(modifier)
     ) {
       ZButtonContent(
         buttonStyle = buttonStyle,
@@ -92,12 +91,11 @@ fun ZButton(
   } else {
     Box(
       contentAlignment = contentAlignment,
-      modifier = modifier
-        .then(
+      modifier = Modifier
           // 按钮启用时添加点击事件
-          if (enabled) Modifier.clickable(onClick = onClick) else Modifier
-        )
+        .then(if (enabled) Modifier.clickable(onClick = onClick) else Modifier)
         .defaultMinSize(minHeight = ZButtonDefaults.MinHeight)
+        .then(modifier)
     ) {
       // 使用Canvas绘制圆形
       Canvas(modifier = Modifier.matchParentSize()) {

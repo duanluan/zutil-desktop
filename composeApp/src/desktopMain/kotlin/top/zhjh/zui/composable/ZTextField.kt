@@ -77,7 +77,7 @@ fun ZTextField(
     value = value,
     onValueChange = onValueChange,
     interactionSource = interactionSource,
-    modifier = modifier
+    modifier = Modifier
       // 悬停检测
       .hoverable(interactionSource)
       .clip(shape)
@@ -86,7 +86,8 @@ fun ZTextField(
       .border(width = 1.dp, color = textFieldStyle.borderColor, shape = shape)
       // 默认全宽
       .fillMaxWidth()
-      .defaultMinSize(minHeight = ZTextFieldDefaults.MinHeight),
+      .defaultMinSize(minHeight = ZTextFieldDefaults.MinHeight)
+      .then(modifier),
     enabled = enabled,
     readOnly = readOnly,
     textStyle = finalTextStyle,
