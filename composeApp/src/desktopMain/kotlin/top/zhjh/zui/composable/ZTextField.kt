@@ -19,6 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -93,6 +94,8 @@ fun ZTextField(
     keyboardActions = keyboardActions,
     maxLines = maxLines,
     minLines = minLines,
+    // 光标
+    cursorBrush = textFieldStyle.cursorColor?.let { SolidColor(it) } ?: SolidColor(LocalContentColor.current),  // 当 cursorColor 为空时使用默认颜色
     decorationBox = { innerTextField ->
       Row(
         // 内容垂直居中
@@ -147,7 +150,8 @@ fun ZTextField(
 private data class ZTextFieldStyle(
   var backgroundColor: Color,
   var borderColor: Color,
-  var textColor: Color
+  var textColor: Color,
+  var cursorColor: Color? = null
 )
 
 /**
@@ -163,7 +167,7 @@ private fun getZTextFieldStyle(isDarkTheme: Boolean, isHovered: Boolean, isFocus
     return ZTextFieldStyle(
       backgroundColor = if (isDarkTheme) Color(0xff262727) else Color(0xfff5f7fa),
       borderColor = if (isDarkTheme) Color(0xff414243) else Color(0xffe4e7ed),
-      textColor = if (isDarkTheme) Color(0xff8d9095) else Color(0xffa8abb2)
+      textColor = if (isDarkTheme) Color(0xff8d9095) else Color(0xffa8abb2),
     )
   }
   // 聚焦时
@@ -171,7 +175,8 @@ private fun getZTextFieldStyle(isDarkTheme: Boolean, isHovered: Boolean, isFocus
     return ZTextFieldStyle(
       backgroundColor = Color.Transparent,
       borderColor = if (isDarkTheme) Color(0xff409eff) else Color(0xff409eff),
-      textColor = if (isDarkTheme) Color(0xffcfd3dc) else Color(0xff606266)
+      textColor = if (isDarkTheme) Color(0xffcfd3dc) else Color(0xff606266),
+      cursorColor = if (isDarkTheme) Color(0xffcfd3dc) else Color(0xff606266)
     )
   }
   // 悬停时
