@@ -103,6 +103,16 @@ fun TestApp() {
           var text by remember { mutableStateOf("") }
           ZTextField(
             value = text,
+            enabled = false,
+            onValueChange = { text = it },
+            placeholder = "Please input",
+          )
+        }
+
+        Row(horizontalArrangement = Arrangement.spacedBy(5.dp), modifier = Modifier.padding(top = 5.dp, bottom = 5.dp)) {
+          var text by remember { mutableStateOf("") }
+          ZTextField(
+            value = text,
             onValueChange = { text = it },
             placeholder = "请输入内容",
             leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
