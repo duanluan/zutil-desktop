@@ -29,11 +29,11 @@ import top.zhjh.zui.theme.isAppInDarkTheme
  * @param type 类型，默认 [ZColorType.INFO]
  * @param icon 按钮内图标组件
  * @param contentPadding 内边距，默认 [ZButtonDefaults.ContentPadding]
- * @param content 按钮内容区域的可组合函数
- * @param plain 是否为无装饰按钮，默认为 false
- * @param round 两边是否为半圆角，默认为 false
- * @param circle 是否为圆形按钮，默认为 false
- * @param disabled 是否禁用按钮，默认为 false
+ * @param content 内容区域的可组合函数
+ * @param plain 是否为无装饰，默认 false
+ * @param round 两边是否为半圆角，默认 false
+ * @param circle 是否为圆形，默认 false
+ * @param enabled 是否启用，默认 true
  */
 @Composable
 fun ZButton(
@@ -45,7 +45,7 @@ fun ZButton(
   plain: Boolean = false,
   round: Boolean = false,
   circle: Boolean = false,
-  disabled: Boolean = false,
+  enabled: Boolean = true,
   content: (@Composable RowScope.() -> Unit)? = null,
 ) {
   // 圆角半径
@@ -53,17 +53,17 @@ fun ZButton(
     round -> RoundedCornerShape(50) // 圆角按钮（左右两端为半圆）
     else -> ZButtonDefaults.Shape // 默认形状
   }
-  // 可交换源，监听鼠标悬停状态
-  val interactionSource = remember { MutableInteractionSource() }
-  // 是否悬停状态
-  val isHovered by interactionSource.collectIsHoveredAsState()
-  // 是否点击状态
-  val isPressed by interactionSource.collectIsPressedAsState()
-  // 判断是否为暗黑模式
+  // 是否为暗黑模式
   val isDarkTheme = isAppInDarkTheme()
+  // 交互源，跟踪组件的交互状态
+  val interactionSource = remember { MutableInteractionSource() }
+  // 是否悬停
+  val isHovered by interactionSource.collectIsHoveredAsState()
+  // 是否点击
+  val isPressed by interactionSource.collectIsPressedAsState()
 
-  // 获取按钮样式
-  val buttonStyle = getButtonStyle(type, isDarkTheme, plain, isHovered, isPressed, disabled)
+  // 获取样式
+  val buttonStyle = getZButtonStyle(type, isDarkTheme, plain, isHovered, isPressed, enabled)
 
   // 非圆形
   if (!circle) {
@@ -75,7 +75,7 @@ fun ZButton(
         .border(BorderStroke(1.dp, buttonStyle.borderColor), shape)
         .then(
           // 按钮启用时添加点击事件
-          if (!disabled) Modifier.clickable(onClick = onClick) else Modifier
+          if (enabled) Modifier.clickable(onClick = onClick) else Modifier
         )
         .defaultMinSize(minHeight = ZButtonDefaults.MinHeight)
     ) {
@@ -93,7 +93,7 @@ fun ZButton(
       modifier = modifier
         .then(
           // 按钮启用时添加点击事件
-          if (!disabled) Modifier.clickable(onClick = onClick) else Modifier
+          if (enabled) Modifier.clickable(onClick = onClick) else Modifier
         )
         .defaultMinSize(minHeight = ZButtonDefaults.MinHeight)
     ) {
@@ -167,7 +167,7 @@ private fun ZButtonContent(
 }
 
 /**
- * 按钮样式数据类
+ * ZButton 样式类
  */
 private data class ZButtonStyle(
   var backgroundColor: Color,
@@ -178,8 +178,8 @@ private data class ZButtonStyle(
 /**
  * 根据按钮类型、悬停状态和主题模式获取按钮样式
  */
-private fun getButtonStyle(type: ZColorType, isDarkTheme: Boolean, isPlain: Boolean, isHovered: Boolean, isPressed: Boolean, disabled: Boolean): ZButtonStyle {
-  if (disabled) {
+private fun getZButtonStyle(type: ZColorType, isDarkTheme: Boolean, isPlain: Boolean, isHovered: Boolean, isPressed: Boolean, enabled: Boolean): ZButtonStyle {
+  if (!enabled) {
     return when (type) {
       DEFAULT -> {
         if (isDarkTheme) {
