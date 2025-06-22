@@ -84,8 +84,6 @@ fun ZTextField(
       .background(color = textFieldStyle.backgroundColor)
       // 边框，聚焦时修改边框颜色
       .border(width = 1.dp, color = textFieldStyle.borderColor, shape = shape)
-      // 默认全宽
-      .fillMaxWidth()
       .defaultMinSize(minHeight = ZTextFieldDefaults.MinHeight)
       .then(modifier),
     enabled = enabled,
