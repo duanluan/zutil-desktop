@@ -44,11 +44,11 @@ kotlin {
 
 compose.desktop {
   application {
-    mainClass = "top.zhjh.zutil.MainKt"
+    mainClass = "top.zhjh.MainKt"
 
     nativeDistributions {
       targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
-      packageName = "top.zhjh.zutil"
+      packageName = "top.zhjh"
       packageVersion = "1.0.0"
     }
   }
@@ -56,5 +56,5 @@ compose.desktop {
 
 // https://github.com/JetBrains/compose-hot-reload?tab=readme-ov-file#launch-from-gradle-task
 tasks.withType<ComposeHotRun>().configureEach {
-  mainClass.set("top.zhjh.zutil.MainKt")
+  mainClass.set("top.zhjh.MainKt")
 }
