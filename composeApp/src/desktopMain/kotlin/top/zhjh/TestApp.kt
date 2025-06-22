@@ -76,21 +76,21 @@ fun TestApp() {
           }
 
           Row(horizontalArrangement = Arrangement.spacedBy(5.dp), modifier = Modifier.padding(top = 5.dp, bottom = 5.dp)) {
-            ZButton(enabled = true, onClick = { ToastManager.success("Default") }) { Text("Default") }
-            ZButton(type = ZColorType.PRIMARY, enabled = true, onClick = { ToastManager.success("Primary") }) { Text("Primary") }
-            ZButton(type = ZColorType.SUCCESS, enabled = true, onClick = { ToastManager.success("Success") }) { Text("Success") }
-            ZButton(type = ZColorType.INFO, enabled = true, onClick = { ToastManager.success("Info") }) { Text("Info") }
-            ZButton(type = ZColorType.WARNING, enabled = true, onClick = { ToastManager.success("Warning") }) { Text("Warning") }
-            ZButton(type = ZColorType.DANGER, enabled = true, onClick = { ToastManager.success("Danger") }) { Text("Danger") }
+            ZButton(enabled = false, onClick = { ToastManager.success("Default") }) { Text("Default") }
+            ZButton(type = ZColorType.PRIMARY, enabled = false, onClick = { ToastManager.success("Primary") }) { Text("Primary") }
+            ZButton(type = ZColorType.SUCCESS, enabled = false, onClick = { ToastManager.success("Success") }) { Text("Success") }
+            ZButton(type = ZColorType.INFO, enabled = false, onClick = { ToastManager.success("Info") }) { Text("Info") }
+            ZButton(type = ZColorType.WARNING, enabled = false, onClick = { ToastManager.success("Warning") }) { Text("Warning") }
+            ZButton(type = ZColorType.DANGER, enabled = false, onClick = { ToastManager.success("Danger") }) { Text("Danger") }
           }
 
           Row(horizontalArrangement = Arrangement.spacedBy(5.dp), modifier = Modifier.padding(top = 5.dp, bottom = 5.dp)) {
-            ZButton(enabled = true, plain = true, onClick = { ToastManager.success("Plain") }) { Text("Plain") }
-            ZButton(type = ZColorType.PRIMARY, enabled = true, plain = true, onClick = { ToastManager.success("Primary") }) { Text("Primary") }
-            ZButton(type = ZColorType.SUCCESS, enabled = true, plain = true, onClick = { ToastManager.success("Success") }) { Text("Success") }
-            ZButton(type = ZColorType.INFO, enabled = true, plain = true, onClick = { ToastManager.success("Info") }) { Text("Info") }
-            ZButton(type = ZColorType.WARNING, enabled = true, plain = true, onClick = { ToastManager.success("Warning") }) { Text("Warning") }
-            ZButton(type = ZColorType.DANGER, enabled = true, plain = true, onClick = { ToastManager.success("Danger") }) { Text("Danger") }
+            ZButton(enabled = false, plain = true, onClick = { ToastManager.success("Plain") }) { Text("Plain") }
+            ZButton(type = ZColorType.PRIMARY, enabled = false, plain = true, onClick = { ToastManager.success("Primary") }) { Text("Primary") }
+            ZButton(type = ZColorType.SUCCESS, enabled = false, plain = true, onClick = { ToastManager.success("Success") }) { Text("Success") }
+            ZButton(type = ZColorType.INFO, enabled = false, plain = true, onClick = { ToastManager.success("Info") }) { Text("Info") }
+            ZButton(type = ZColorType.WARNING, enabled = false, plain = true, onClick = { ToastManager.success("Warning") }) { Text("Warning") }
+            ZButton(type = ZColorType.DANGER, enabled = false, plain = true, onClick = { ToastManager.success("Danger") }) { Text("Danger") }
           }
         }
 
