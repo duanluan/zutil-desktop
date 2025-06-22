@@ -1,6 +1,8 @@
 package top.zhjh
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Icon
 import androidx.compose.material.Surface
 import androidx.compose.material.Text
@@ -31,7 +33,7 @@ fun TestApp() {
       // 添加通知宿主
       ToastContainer()
 
-      Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+      Column(modifier = Modifier.padding(10.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         // 添加夜间模式切换按钮
         ZButton(onClick = { isDarkTheme = !isDarkTheme }) {
           Text(if (isDarkTheme) "切换到日间模式" else "切换到夜间模式")

@@ -1,6 +1,8 @@
 package top.zhjh.composable
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Icon
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
@@ -31,7 +33,7 @@ fun TimestampTool() {
   // 添加通知宿主
   ToastContainer()
 
-  Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+  Column(modifier = Modifier.padding(10.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
     // 当前时间戳是否为毫秒级
     var isMilliByCurrent by remember { mutableStateOf(false) }
     // 当前时间戳
