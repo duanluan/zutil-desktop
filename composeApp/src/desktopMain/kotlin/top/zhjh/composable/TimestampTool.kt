@@ -1,16 +1,12 @@
 package top.zhjh.composable
 
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.Button
 import androidx.compose.material.Icon
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import compose.icons.FeatherIcons
 import compose.icons.feathericons.ArrowRightCircle
@@ -24,7 +20,9 @@ import top.csaf.lang.StrUtil
 import top.zhjh.common.composable.ToastContainer
 import top.zhjh.common.composable.ToastManager
 import top.zhjh.zui.composable.ZButton
+import top.zhjh.zui.composable.ZCard
 import top.zhjh.zui.composable.ZTextField
+import top.zhjh.zui.enums.ZCardShadow
 import top.zhjh.zui.enums.ZColorType
 import java.util.*
 
@@ -33,7 +31,7 @@ fun TimestampTool() {
   // 添加通知宿主
   ToastContainer()
 
-  Column {
+  Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
     // 当前时间戳是否为毫秒级
     var isMilliByCurrent by remember { mutableStateOf(false) }
     // 当前时间戳
@@ -52,9 +50,9 @@ fun TimestampTool() {
       }
     }
 
-    Box(modifier = Modifier.padding(10.dp).fillMaxWidth().border(1.dp, Color(0xffe5e7eb), RoundedCornerShape(10.dp))) {
-      Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(text = "当前时间戳：${currentTimestamp}", style = MaterialTheme.typography.h6)
+    ZCard(shadow = ZCardShadow.NEVER, modifier = Modifier.fillMaxWidth()) {
+      Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(text = "当前时间戳：${currentTimestamp} ${if (isMilliByCurrent) "毫秒" else "秒"}", style = MaterialTheme.typography.h6)
 
         Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
           // 复制时间戳
@@ -83,8 +81,8 @@ fun TimestampTool() {
       }
     }
 
-    Box(modifier = Modifier.padding(10.dp).fillMaxWidth().border(1.dp, Color(0xffe5e7eb), RoundedCornerShape(10.dp))) {
-      Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    ZCard(shadow = ZCardShadow.NEVER, modifier = Modifier.fillMaxWidth()) {
+      Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         // 需要转换的时间戳
         val toDatetimeTimestamp = remember { mutableStateOf(currentTimestamp) }
         // 当前时间戳是否为毫秒级
@@ -148,8 +146,8 @@ fun TimestampTool() {
       }
     }
 
-    Box(modifier = Modifier.padding(10.dp).fillMaxWidth().border(1.dp, Color(0xffe5e7eb), RoundedCornerShape(10.dp))) {
-      Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    ZCard(shadow = ZCardShadow.NEVER, modifier = Modifier.fillMaxWidth()) {
+      Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         // 转换后的时间戳
         val toTimestamp = remember { mutableStateOf("") }
         // 当前时间戳是否为毫秒级
