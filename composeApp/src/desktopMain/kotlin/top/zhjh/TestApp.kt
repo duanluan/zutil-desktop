@@ -1,23 +1,23 @@
 package top.zhjh
 
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Icon
+import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Surface
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import top.zhjh.common.composable.ToastContainer
 import top.zhjh.common.composable.ToastManager
-import top.zhjh.zui.composable.ZButton
-import top.zhjh.zui.composable.ZCard
-import top.zhjh.zui.composable.ZDropdownMenu
-import top.zhjh.zui.composable.ZTextField
+import top.zhjh.zui.composable.*
 import top.zhjh.zui.enums.ZCardShadow
 import top.zhjh.zui.enums.ZColorType
 import top.zhjh.zui.theme.ZTheme
@@ -37,6 +37,17 @@ fun TestApp() {
         // 添加夜间模式切换按钮
         ZButton(onClick = { isDarkTheme = !isDarkTheme }) {
           Text(if (isDarkTheme) "切换到日间模式" else "切换到夜间模式")
+        }
+
+        ZCard(shadow = ZCardShadow.NEVER) {
+          Row(verticalAlignment = Alignment.CenterVertically) {
+            ZText("H1", style = MaterialTheme.typography.h1, modifier = Modifier.border(1.dp, MaterialTheme.colors.primary))
+            ZText("H2", style = MaterialTheme.typography.h2, modifier = Modifier.border(1.dp, MaterialTheme.colors.primary))
+            ZText("H3", style = MaterialTheme.typography.h3, modifier = Modifier.border(1.dp, MaterialTheme.colors.primary))
+            ZText("H4", style = MaterialTheme.typography.h4, modifier = Modifier.border(1.dp, MaterialTheme.colors.primary))
+            ZText("H5", style = MaterialTheme.typography.h5, modifier = Modifier.border(1.dp, MaterialTheme.colors.primary))
+            ZText("H6", style = MaterialTheme.typography.h6, modifier = Modifier.border(1.dp, MaterialTheme.colors.primary))
+          }
         }
 
         ZCard(shadow = ZCardShadow.NEVER) {
