@@ -1,5 +1,6 @@
 package top.zhjh
 
+import ZLink
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -156,6 +157,13 @@ fun TestApp() {
           }
           ZCard(shadow = ZCardShadow.NEVER) {
 
+          }
+        }
+
+        ZCard(shadow = ZCardShadow.NEVER) {
+          Row(verticalAlignment = Alignment.CenterVertically) {
+            ZLink("人民网", "http://www.people.com.cn/")
+            ZText("_网上的人民日报")
           }
         }
       }
