@@ -1,17 +1,11 @@
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
-import org.jetbrains.compose.reload.ComposeHotRun
-import org.jetbrains.kotlin.compose.compiler.gradle.ComposeFeatureFlag
+import org.jetbrains.compose.reload.gradle.ComposeHotRun
 
 plugins {
   alias(libs.plugins.kotlinMultiplatform)
   alias(libs.plugins.composeCompiler)
   alias(libs.plugins.composeMultiplatform)
   alias(libs.plugins.composeHotReload)
-}
-
-// 启用 OptimizeNonSkippingGroups 优化，该功能未来版本会默认启用：https://github.com/JetBrains/compose-hot-reload/tree/master?tab=readme-ov-file#launch-from-gradle-task
-composeCompiler {
-  featureFlags.add(ComposeFeatureFlag.OptimizeNonSkippingGroups)
 }
 
 kotlin {
@@ -21,13 +15,14 @@ kotlin {
     val desktopMain by getting
 
     commonMain.dependencies {
-      implementation(compose.runtime)
-      implementation(compose.foundation)
-      implementation(compose.material)
-      implementation(compose.ui)
+      implementation(libs.compose.runtime)
+      implementation(libs.compose.foundation)
+      implementation(libs.compose.material)
+      implementation(libs.compose.material.icons.extended)
+      implementation(libs.compose.ui)
       // commonMain 资源依赖：https://www.jetbrains.com/help/kotlin-multiplatform-dev/compose-multiplatform-resources-setup.html#build-script-and-directory-setup
-      implementation(compose.components.resources)
-      implementation(compose.components.uiToolingPreview)
+      implementation(libs.compose.components.resources)
+      implementation(libs.compose.components.uiToolingPreview)
       implementation(libs.androidx.lifecycle.viewmodel)
       implementation(libs.androidx.lifecycle.runtime.compose)
     }
@@ -54,7 +49,7 @@ compose.desktop {
   }
 }
 
-// https://github.com/JetBrains/compose-hot-reload?tab=readme-ov-file#launch-from-gradle-task
+// https://github.com/JetBrains/compose-hot-reload?tab=readme-ov-file#configure-the-main-class
 tasks.withType<ComposeHotRun>().configureEach {
   mainClass.set("top.zhjh.MainKt")
 }

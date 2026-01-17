@@ -31,14 +31,10 @@ dependencyResolutionManagement {
 
 plugins {
   /**
-   * 使用 Foojay Disco API 配置 Gradle 工具链，此处用于下载 JetBrains Runtime（JBR）
-   *
-   * https://github.com/JetBrains/compose-hot-reload?tab=readme-ov-file#set-up-automatic-provisioning-of-the-jetbrains-runtime-jbr-via-gradle
-   * https://plugins.gradle.org/plugin/org.gradle.toolchains.foojay-resolver-convention
-   *
-   * 因为 libs 版本目录在 settings 后初始化，所以此处不能用 alias(libs.plugins.xxx) 的写法
+   * An installation of the JetBrains Runtime is required: Launching Compose Hot Reload with the Kotlin Multiplatform IDE plugin will re-use IntelliJ's installation of the JetBrains Runtime.
+   * If you want Gradle to automatically download the JetBrains Runtime, add the following code to your settings.gradle.kts file
    */
-  id("org.gradle.toolchains.foojay-resolver-convention") version "0.10.0"
+  id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
 }
 
 include(":composeApp")

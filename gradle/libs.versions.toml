@@ -1,14 +1,23 @@
 [versions]
-kotlin = "2.1.20"
-compose-multiplatform = "1.7.3"
-hot-reload = "1.0.0-alpha08"
+kotlin = "2.3.0"
+compose-multiplatform = "1.10.0"
+material-icons-extended = "1.7.3"
+hot-reload = "1.0.0"
 junit = "4.13.2"
-androidx-lifecycle = "2.8.4"
+androidx-lifecycle = "2.9.0"
 kotlinx-coroutines = "1.10.1"
 devsrsouza-compose-icons = "1.1.1"
 zutil = "2.0.0-beta1"
 
 [libraries]
+compose-runtime = { module = "org.jetbrains.compose.runtime:runtime", version.ref = "compose-multiplatform" }
+compose-foundation = { module = "org.jetbrains.compose.foundation:foundation", version.ref = "compose-multiplatform" }
+compose-material = { module = "org.jetbrains.compose.material:material", version.ref = "compose-multiplatform" }
+compose-material-icons-extended = { module = "org.jetbrains.compose.material:material-icons-extended", version.ref = "material-icons-extended" }
+compose-ui = { module = "org.jetbrains.compose.ui:ui", version.ref = "compose-multiplatform" }
+compose-components-resources = { module = "org.jetbrains.compose.components:components-resources", version.ref = "compose-multiplatform" }
+compose-components-uiToolingPreview = { module = "org.jetbrains.compose.components:components-ui-tooling-preview", version.ref = "compose-multiplatform" }
+
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 kotlin-test-junit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
@@ -26,5 +35,5 @@ kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref =
 composeCompiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 # Compose Multiplatform：UI 框架
 composeMultiplatform = { id = "org.jetbrains.compose", version.ref = "compose-multiplatform" }
-# Compose Hot Reload：Compose 热部署 https://github.com/JetBrains/compose-hot-reload
+# Compose Hot Reload：Compose 热部署 https://github.com/JetBrains/compose-hot-reload?tab=readme-ov-file#apply-the-gradle-plugin-to-your-project
 composeHotReload = { id = "org.jetbrains.compose.hot-reload", version.ref = "hot-reload" }
