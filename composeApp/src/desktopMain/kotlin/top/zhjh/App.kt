@@ -16,10 +16,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
+import androidx.compose.ui.window.rememberWindowState
 import org.jetbrains.compose.resources.painterResource
-import androidx.compose.ui.tooling.preview.Preview
 import top.zhjh.common.theme.mapleMonoFontFamily
 import top.zhjh.common.theme.mapleMonoTypography
 import top.zhjh.composable.ToolContent
@@ -106,9 +107,17 @@ fun App() {
 
         // 动态创建新窗口
         for (tool in openWindows) {
+          // 针对不同工具设置不同的窗口大小
+          val windowState = if (tool == ToolItem.TIMESTAMP) {
+            rememberWindowState(width = 800.dp, height = 720.dp)
+          } else {
+            rememberWindowState(width = 800.dp, height = 600.dp)
+          }
+
           Window(
             onCloseRequest = { openWindows.remove(tool) },
-            title = tool.toolName
+            title = tool.toolName,
+            state = windowState
           ) {
             ToolContent(tool)
           }
