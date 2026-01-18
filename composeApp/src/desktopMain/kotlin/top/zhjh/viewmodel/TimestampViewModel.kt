@@ -126,11 +126,12 @@ class TimestampViewModel : ViewModel() {
 
   // 切换秒/毫秒
   fun toggleDatetimeToTimestampMilli() {
-    // 逻辑复刻原代码：先尝试转换，如果成功则切换单位
-    if (convertDatetimeToTimestamp()) {
-      isMilliToTimestamp = !isMilliToTimestamp
-      // 可选：切换后是否立即按新单位重新转换？
-      // convertDatetimeToTimestamp()
+    // 1. 先切换状态
+    isMilliToTimestamp = !isMilliToTimestamp
+
+    // 2. 如果输入框有内容，立即根据【新状态】重新计算结果
+    if (StrUtil.isNotBlank(toTimestampDatetimeInput)) {
+      convertDatetimeToTimestamp()
     }
   }
 }
