@@ -91,6 +91,7 @@ fun ZTextField(
     textStyle = finalTextStyle,
     keyboardOptions = keyboardOptions,
     keyboardActions = keyboardActions,
+    singleLine = singleLine,
     maxLines = maxLines,
     minLines = minLines,
     // 光标
