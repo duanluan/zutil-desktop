@@ -171,3 +171,20 @@ fun ZText(
     style = style
   )
 }
+
+@Composable
+fun ZParagraph(
+  text: String,
+  modifier: Modifier = Modifier,
+  indent: Boolean = true // 是否首行缩进
+) {
+  // 处理缩进：如果开启缩进，则在开头添加两个全角空格
+  val finalText = if (indent) "\u3000\u3000$text" else text
+
+  ZText(
+    text = finalText,
+    modifier = modifier.padding(bottom = 8.dp), // 默认段后距
+    style = MaterialTheme.typography.body1,     // 确保使用正文样式
+    lineHeight = 24.sp                          // 增加行高，提升阅读体验
+  )
+}
