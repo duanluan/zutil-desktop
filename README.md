@@ -34,5 +34,5 @@
 
 ```bash
 # https://gradle.org/releases/
-./gradlew wrapper --gradle-version 8.10.2
+./gradlew wrapper --gradle-version 8.14.3
 ```
