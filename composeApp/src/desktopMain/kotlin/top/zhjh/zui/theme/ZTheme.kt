@@ -40,9 +40,16 @@ fun ZTheme(
     // 使用确定的主题值设置 MaterialTheme
     MaterialTheme(
       colors = if (isDark) {
-        darkColors(background = Color(0xff141414))
+        darkColors(
+          background = Color(0xff141414),
+          primary = Color(0xff414243)
+
+        )
       } else {
-        lightColors(background = Color.White)
+        lightColors(
+          background = Color.White,
+          primary = Color(0xffe4e7ed)
+        )
       },
       typography = finalTypography,
       content = content

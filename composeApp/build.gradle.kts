@@ -33,6 +33,16 @@ kotlin {
       implementation(libs.icons.feather)
       implementation(libs.zutil.all)
       implementation(libs.zutil.awt)
+
+      implementation(libs.commons.compress)
+      // 1. 核心 API (替换掉了之前的 maven 依赖)
+      implementation(files("libs/sherpa-onnx-v1.12.23.jar"))
+      // 2. Windows 原生库
+      implementation(files("libs/sherpa-onnx-native-lib-win-x64-v1.12.23.jar"))
+      // 3. Linux 原生库
+      implementation(files("libs/sherpa-onnx-native-lib-linux-x64-v1.12.23.jar"))
+      // 4. Mac 原生库 (如果你能下载到 jar 就加这一行，否则先注释掉)
+      // implementation(files("libs/sherpa-onnx-native-lib-osx-aarch64-v1.12.23.jar"))
     }
   }
 }
