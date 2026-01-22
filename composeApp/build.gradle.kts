@@ -52,11 +52,45 @@ compose.desktop {
     mainClass = "top.zhjh.MainKt"
 
     nativeDistributions {
-      targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
-      packageName = "top.zhjh"
+      targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb, TargetFormat.Rpm)
+      packageName = "ZUtil"
       packageVersion = "1.0.0"
-      description = "ZUtil 桌面工具箱"
+      vendor = "duanluan"
+      description = "ZUtil Desktop Toolkit"
       copyright = "© 2026 duanluan. All rights reserved."
+
+      windows {
+        // 开启开始菜单图标
+        menu = true
+        // 开启桌面快捷方式
+        shortcut = true
+        // 指定开始菜单的文件夹名称 (可选)
+        menuGroup = "ZUtil"
+        // 是否仅为当前用户安装 (true=不需要管理员权限安装到 AppData, false=安装到 Program Files)
+        // perUserInstall = true
+        iconFile.set(project.file("src/desktopMain/resources/icon.ico"))
+
+        // 设置一个固定的升级 UUID，如果不设置，每次打包生成的 UUID 都不同，导致新版本无法覆盖旧版本，而是会变成两个程序
+        upgradeUuid = "29329738-2032-4752-9599-234277218322"
+      }
+
+      linux {
+        // 开启桌面快捷方式 (取决于桌面环境，如 GNOME 默认禁用桌面图标，KDE 会显示)
+        shortcut = true
+        // 指定菜单分类 (例如 Utility, Development 等)
+        appCategory = "Utility"
+        // 菜单组名称
+        menuGroup = "ZUtil"
+        iconFile.set(project.file("src/desktopMain/resources/icon.png"))
+      }
+
+      macOS {
+        // 设置 Dock 栏显示的名称
+        dockName = "ZUtil"
+        // 设置 Bundle ID (防止与同名应用冲突)
+        bundleID = "top.zhjh.zutil-desktop"
+        iconFile.set(project.file("src/desktopMain/resources/icon.icns"))
+      }
     }
   }
 }

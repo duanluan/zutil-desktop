@@ -1,0 +1,98 @@
+name: Build App (No Release)
+
+# 触发条件：
+# 1. 推送到 main 分支时
+# 2. 手动点击 "Run workflow" 按钮时
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  package:
+    strategy:
+      matrix:
+        os: [ windows-latest, ubuntu-latest, macos-latest ]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Windows Dependencies
+        if: runner.os == 'Windows'
+        run: choco install zip --no-progress
+
+      - name: Setup Linux Dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y fakeroot rpm
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      # 同时生成安装包和绿色版
+      - name: Build Package & Distributable
+        shell: bash
+        run: |
+          ./gradlew packageDistributionForCurrentOS createDistributable --info
+
+      # # 整理产物：创建一个 release 文件夹，把所有生成的包都复制进去，避免压缩包里层级太深
+      - name: Prepare Release Files
+        shell: bash
+        run: |
+          mkdir -p build/release
+          
+          # 1. 制作绿色版 Zip (直接生成到 release 目录)
+          PORTABLE_ZIP="ZUtil-${{ runner.os }}-Portable.zip"
+          
+          # 进入生成目录
+          cd composeApp/build/compose/binaries/main/app
+          
+          if [ "${{ runner.os }}" == "macOS" ]; then
+            # Mac 下压缩 .app 包
+            zip -r "../../../../../../build/release/$PORTABLE_ZIP" ZUtil.app
+          else
+            # Windows/Linux 下压缩 ZUtil 文件夹
+            zip -r "../../../../../../build/release/$PORTABLE_ZIP" ZUtil
+          fi
+          
+          # 回到项目根目录
+          cd -
+          
+          # 2. 收集安装包 (MSI, EXE, DEB, RPM, DMG)
+          # 使用 find 命令查找深层目录下的文件，并复制到 build/release/
+          echo "Collecting installers..."
+          find composeApp/build/compose/binaries/main -name "*.msi" -exec cp {} build/release/ \;
+          find composeApp/build/compose/binaries/main -name "*.deb" -exec cp {} build/release/ \;
+          find composeApp/build/compose/binaries/main -name "*.rpm" -exec cp {} build/release/ \;
+          find composeApp/build/compose/binaries/main -name "*.dmg" -exec cp {} build/release/ \;
+          
+          echo "Files ready for upload:"
+          ls -R build/release
+
+      # 在打包失败时查看 Windows 的报错详情
+      - name: Print Windows jpackage logs on failure
+        if: failure() && runner.os == 'Windows'
+        shell: bash
+        run: |
+          echo "Finding jpackage error logs..."
+          find composeApp/build/compose/logs -name "jpackage-*-err.txt" -print -exec cat {} \;
+
+      # 上传产物，不会发布到 Release
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          # 使用 runner.os (Linux/Windows/macOS) 区分名称
+          name: zutil-${{ runner.os }}
+          # 设置过期时间，避免占用空间
+          retention-days: 5
+          # 只上传整理好的 release 文件夹，不带深层路径
+          path: build/release/*
