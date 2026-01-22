@@ -1,0 +1,48 @@
+name: Publish Release
+
+# 只有打 tag 时触发（支持 v1.0.0、v1.0.0-alpha1 等）
+on:
+  push:
+    tags:
+      - "v*"
+
+# 必须赋予写权限
+permissions:
+  contents: write
+
+jobs:
+  # 1. 调用 build.yml 进行构建（复用）
+  call-build:
+    uses: ./.github/workflows/build.yml
+
+  # 2. 发布任务
+  create-release:
+    needs: call-build
+    runs-on: ubuntu-latest
+
+    steps:
+      # 下载并“平铺”所有文件
+      - name: Download All Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          # 不指定 name，默认下载所有 artifacts
+          path: release_files
+          # 全部解压并混合到同一个文件夹根目录下，不再有子文件夹
+          merge-multiple: true
+
+      - name: List Files (Check Flat Structure)
+        run: ls -R release_files
+
+      # 创建 Release 并上传
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          # 自动使用 git tag 作为标题
+          name: Release ${{ github.ref_name }}
+          draft: false
+          # 如果 tag 包含“-”（如 v1.0.0-alpha1），标记为 Pre-release
+          prerelease: ${{ contains(github.ref, '-') }}
+          # 直接上传 release_files 下的所有文件
+          files: release_files/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
