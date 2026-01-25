@@ -33,7 +33,8 @@ fun TestApp() {
       val scrollState = rememberScrollState()
 
       Box(modifier = Modifier.fillMaxSize()) {
-        Column(modifier = Modifier.fillMaxSize().padding(start = 10.dp, end = 20.dp).verticalScroll(scrollState)
+        Column(
+          modifier = Modifier.fillMaxSize().padding(start = 10.dp, end = 20.dp).verticalScroll(scrollState)
           // 每个子元素都插入间距
           , verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
@@ -125,7 +126,7 @@ fun TestApp() {
             Row(horizontalArrangement = Arrangement.spacedBy(5.dp), modifier = Modifier.padding(top = 5.dp, bottom = 5.dp)) {
               var text by remember { mutableStateOf("") }
               ZTextField(
-                value = text, onValueChange = { text = it }, placeholder = "请输入内容",
+                value = text, onValueChange = { text = it }, placeholder = "Please input",
                 leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
                 trailingIcon = { Icon(Icons.Filled.ArrowDropDown, contentDescription = null) }, singleLine = false
               )
@@ -133,7 +134,24 @@ fun TestApp() {
 
             Row(horizontalArrangement = Arrangement.spacedBy(5.dp), modifier = Modifier.padding(top = 5.dp, bottom = 5.dp)) {
               var text by remember { mutableStateOf("") }
-              ZTextField(value = text, onValueChange = { text = it }, type = ZTextFieldType.PASSWORD, placeholder = "请输入密码", showPassword = true)
+              ZTextField(value = text, onValueChange = { text = it }, type = ZTextFieldType.PASSWORD, placeholder = "Please input password", showPassword = true)
+            }
+
+            Row(horizontalArrangement = Arrangement.spacedBy(5.dp), modifier = Modifier.padding(top = 5.dp, bottom = 5.dp)) {
+              var text by remember { mutableStateOf("") }
+              ZTextField(
+                value = text, onValueChange = { text = it }, placeholder = "Please input", type = ZTextFieldType.TEXTAREA,
+                leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+                trailingIcon = { Icon(Icons.Filled.ArrowDropDown, contentDescription = null) }
+              )
+            }
+
+            Row(horizontalArrangement = Arrangement.spacedBy(5.dp), modifier = Modifier.padding(top = 5.dp, bottom = 5.dp)) {
+              var text by remember { mutableStateOf("") }
+              ZTextField(
+                value = text, onValueChange = { text = it }, placeholder = "Please input",
+                type = ZTextFieldType.TEXTAREA, resize = false, minLines = 3, maxLines = 3
+              )
             }
           }
 

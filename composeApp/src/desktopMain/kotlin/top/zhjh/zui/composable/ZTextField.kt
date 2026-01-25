@@ -3,6 +3,7 @@ package top.zhjh.zui.composable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.hoverable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
@@ -25,14 +26,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.pointerHoverIcon
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import top.zhjh.zui.theme.isAppInDarkTheme
+import java.awt.Cursor
 
 /**
  * 输入框类型
@@ -64,6 +71,7 @@ enum class ZTextFieldType {
  * @param enabled 是否可用，默认 true
  * @param readOnly 是否只读，默认 false
  * @param showPassword 是否显示密码切换图标 [ZTextFieldType.PASSWORD] 时生效，默认 false
+ * @param resize 是否允许手动调整高度（仅在 [ZTextFieldType.TEXTAREA] 时生效），默认 true
  * @param singleLine 是否单行，默认 true
  * @param maxLines 最大行数，单行时为 1，否则为 [Int.MAX_VALUE]
  * @param minLines 最小行数，默认 1
@@ -80,6 +88,7 @@ fun ZTextField(
   enabled: Boolean = true,
   readOnly: Boolean = false,
   showPassword: Boolean = false,
+  resize: Boolean = true,
   textStyle: TextStyle = LocalTextStyle.current.copy(fontSize = ZTextFieldDefaults.FontSize),
   keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
   keyboardActions: KeyboardActions = KeyboardActions.Default,
@@ -144,7 +153,14 @@ fun ZTextField(
   val isTextarea = type == ZTextFieldType.TEXTAREA
   val finalSingleLine = if (isTextarea) false else singleLine
   val finalMinLines = if (type == ZTextFieldType.TEXTAREA && minLines == 1) 2 else minLines
-  val finalMaxLines = if (type == ZTextFieldType.TEXTAREA) Int.MAX_VALUE else maxLines
+  val finalMaxLines = if (type == ZTextFieldType.TEXTAREA && maxLines == 1) Int.MAX_VALUE else maxLines
+
+  // 处理拖拽高度的逻辑
+  val density = LocalDensity.current
+  // 用户手动拖拽后的高度，如果为 null 则使用默认高度逻辑
+  var dragHeight by remember { mutableStateOf<Dp?>(null) }
+  // 组件当前的实际像素高度（用于在拖拽开始时计算基准）
+  var currentHeightPx by remember { mutableStateOf(0f) }
 
   BasicTextField(
     value = value,
@@ -159,6 +175,14 @@ fun ZTextField(
       .border(width = 1.dp, color = textFieldStyle.borderColor, shape = shape)
       // 最小高度
       .defaultMinSize(minHeight = ZTextFieldDefaults.MinHeight)
+      .onGloballyPositioned { coordinates ->
+        currentHeightPx = coordinates.size.height.toFloat()
+      }
+      .then(
+        // 必须是 TEXTAREA 且 开启了 resize，且 dragHeight 有值时才应用高度
+        if (isTextarea && resize && dragHeight != null) Modifier.height(dragHeight!!)
+        else Modifier.defaultMinSize(minHeight = ZTextFieldDefaults.MinHeight)
+      )
       .then(modifier),
     enabled = enabled,
     readOnly = readOnly,
@@ -172,62 +196,119 @@ fun ZTextField(
     // 光标
     cursorBrush = textFieldStyle.cursorColor?.let { SolidColor(it) } ?: SolidColor(LocalContentColor.current),  // 当 cursorColor 为空时使用默认颜色
     decorationBox = { innerTextField ->
-      Row(
-        // Textarea 顶部对齐，Text 垂直居中
-        verticalAlignment = if (isTextarea) Alignment.Top else Alignment.CenterVertically,
-        modifier = Modifier
-          .padding(ZTextFieldDefaults.ContentPadding)
-          // 针对 TEXTAREA 增加垂直内边距
-          .then(if (isTextarea) Modifier.padding(vertical = 5.dp) else Modifier)
+      // 使用 Box 包裹，以便在右下角叠加图标
+      Box(
+        modifier = Modifier.fillMaxWidth(),
+        contentAlignment = if (isTextarea) Alignment.TopStart else Alignment.CenterStart
       ) {
-        // 左侧图标
-        if (leadingIcon != null) {
-          // 使用 ZIconWrapper 包裹图标以处理颜色和悬停逻辑
-          ZIconWrapper(
-            icon = leadingIcon,
-            iconColor = textFieldStyle.iconColor,
-            iconHoverColor = textFieldStyle.iconHoverColor,
-            modifier = Modifier
-              // 图标右边距
-              .padding(end = ZTextFieldDefaults.IconSpacing)
-              // 图标大小
-              .size(ZTextFieldDefaults.IconSize)
-              // 针对 TEXTAREA 增加图标顶部偏移
-              .then(if (isTextarea) Modifier.offset(y = 2.dp) else Modifier)
-          )
-        }
+        Row(
+          // Textarea 顶部对齐，Text 垂直居中
+          verticalAlignment = if (isTextarea) Alignment.Top else Alignment.CenterVertically,
+          modifier = Modifier
+            .padding(ZTextFieldDefaults.ContentPadding)
+            // 仅针对 TEXTAREA 增加垂直内边距，保持单行样式不变
+            .then(if (isTextarea) Modifier.padding(vertical = 5.dp) else Modifier)
+        ) {
+          // 左侧图标
+          if (leadingIcon != null) {
+            // 使用 ZIconWrapper 包裹图标以处理颜色和悬停逻辑
+            ZIconWrapper(
+              icon = leadingIcon,
+              iconColor = textFieldStyle.iconColor,
+              iconHoverColor = textFieldStyle.iconHoverColor,
+              modifier = Modifier
+                // 图标右边距
+                .padding(end = ZTextFieldDefaults.IconSpacing)
+                // 图标大小
+                .size(ZTextFieldDefaults.IconSize)
+                // 针对 TEXTAREA 增加图标顶部偏移，使用 offset 避免挤压
+                .then(if (isTextarea) Modifier.offset(y = 2.dp) else Modifier)
+            )
+          }
 
-        // 输入内容
-        Box(modifier = Modifier.weight(1f)) {
-          // 提供内容颜色的上下文，使所有子组件继承此颜色
-          CompositionLocalProvider(LocalContentColor provides textFieldStyle.textColor) {
-            // 输入内容
-            innerTextField()
-            // 输入为空时显示占位符
-            if (value.isEmpty() && placeholder != null) {
-              Text(
-                text = placeholder,
-                style = finalTextStyle,
-                color = textFieldStyle.placeholderColor
-              )
+          // 输入内容
+          Box(modifier = Modifier.weight(1f)) {
+            // 提供内容颜色的上下文，使所有子组件继承此颜色
+            CompositionLocalProvider(LocalContentColor provides textFieldStyle.textColor) {
+              // 输入内容
+              innerTextField()
+              // 输入为空时显示占位符
+              if (value.isEmpty() && placeholder != null) {
+                Text(
+                  text = placeholder,
+                  style = finalTextStyle,
+                  color = textFieldStyle.placeholderColor
+                )
+              }
             }
+          }
+
+          // 右侧图标
+          if (finalTrailingIcon != null) {
+            ZIconWrapper(
+              icon = finalTrailingIcon,
+              iconColor = textFieldStyle.iconColor,
+              iconHoverColor = textFieldStyle.iconHoverColor,
+              modifier = Modifier
+                // 图标左边距
+                .padding(start = ZTextFieldDefaults.IconSpacing)
+                // 图标大小
+                .size(ZTextFieldDefaults.IconSize)
+                // 针对 TEXTAREA 增加图标顶部偏移
+                .then(if (isTextarea) Modifier.offset(y = 2.dp) else Modifier)
+            )
           }
         }
 
-        // 右侧图标
-        if (finalTrailingIcon != null) {
-          ZIconWrapper(
-            icon = finalTrailingIcon,
-            iconColor = textFieldStyle.iconColor,
-            iconHoverColor = textFieldStyle.iconHoverColor,
+        // 如果是 TEXTAREA，在右下角绘制拖拽标识
+        if (isTextarea && resize) {
+          val iconColor = textFieldStyle.iconColor
+          androidx.compose.foundation.Canvas(
             modifier = Modifier
-              // 图标左边距
-              .padding(start = ZTextFieldDefaults.IconSpacing)
-              // 图标大小
-              .size(ZTextFieldDefaults.IconSize)
-              // 针对 TEXTAREA 增加图标顶部偏移
-              .then(if (isTextarea) Modifier.offset(y = 2.dp) else Modifier)
-          )
+              .align(Alignment.BottomEnd)
+              // 距离右下角稍微留点空隙
+              .padding(bottom = 2.dp, end = 2.dp)
+              .size(10.dp)
+              // 鼠标悬停时显示 ↘ 箭头
+              .pointerHoverIcon(PointerIcon(Cursor(Cursor.SE_RESIZE_CURSOR)))
+              // 监听拖拽手势
+              .pointerInput(Unit) {
+                detectDragGestures(
+                  onDragStart = {
+                    // 开始拖拽时，如果还没设置过高度，先用当前实际高度初始化
+                    if (dragHeight == null) {
+                      dragHeight = with(density) { currentHeightPx.toDp() }
+                    }
+                  },
+                  onDrag = { change, dragAmount ->
+                    change.consume()
+                    // 计算新高度 = 当前高度 + 拖拽垂直距离
+                    val currentDp = dragHeight ?: with(density) { currentHeightPx.toDp() }
+                    val deltaDp = with(density) { dragAmount.y.toDp() }
+                    val newHeight = (currentDp + deltaDp).coerceAtLeast(ZTextFieldDefaults.MinHeight)
+
+                    dragHeight = newHeight
+                  }
+                )
+              }
+          ) {
+            // 绘制第一条线（较短）
+            drawLine(
+              color = iconColor,
+              start = androidx.compose.ui.geometry.Offset(size.width, size.height * 0.5f),
+              end = androidx.compose.ui.geometry.Offset(size.width * 0.5f, size.height),
+              strokeWidth = 1.dp.toPx(),
+              cap = StrokeCap.Round
+            )
+            // 绘制第二条线（较长，在左上方）
+            drawLine(
+              color = iconColor,
+              start = androidx.compose.ui.geometry.Offset(size.width, 0f),
+              end = androidx.compose.ui.geometry.Offset(0f, size.height),
+              strokeWidth = 1.dp.toPx(),
+              cap = StrokeCap.Round
+            )
+          }
         }
       }
     }
