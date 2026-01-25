@@ -46,7 +46,12 @@ enum class ZTextFieldType {
   /**
    * 密码
    */
-  PASSWORD
+  PASSWORD,
+
+  /**
+   * 多行文本
+   */
+  TEXTAREA
 }
 
 /**
@@ -135,6 +140,12 @@ fun ZTextField(
     null
   }
 
+  // 是否为多行文本
+  val isTextarea = type == ZTextFieldType.TEXTAREA
+  val finalSingleLine = if (isTextarea) false else singleLine
+  val finalMinLines = if (type == ZTextFieldType.TEXTAREA && minLines == 1) 2 else minLines
+  val finalMaxLines = if (type == ZTextFieldType.TEXTAREA) Int.MAX_VALUE else maxLines
+
   BasicTextField(
     value = value,
     onValueChange = onValueChange,
@@ -154,14 +165,20 @@ fun ZTextField(
     textStyle = finalTextStyle,
     keyboardOptions = keyboardOptions,
     keyboardActions = keyboardActions,
+    singleLine = finalSingleLine,
+    minLines = finalMinLines,
+    maxLines = finalMaxLines,
     visualTransformation = visualTransformation,
     // 光标
     cursorBrush = textFieldStyle.cursorColor?.let { SolidColor(it) } ?: SolidColor(LocalContentColor.current),  // 当 cursorColor 为空时使用默认颜色
     decorationBox = { innerTextField ->
       Row(
-        // 内容垂直居中
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.padding(ZTextFieldDefaults.ContentPadding)
+        // Textarea 顶部对齐，Text 垂直居中
+        verticalAlignment = if (isTextarea) Alignment.Top else Alignment.CenterVertically,
+        modifier = Modifier
+          .padding(ZTextFieldDefaults.ContentPadding)
+          // 针对 TEXTAREA 增加垂直内边距
+          .then(if (isTextarea) Modifier.padding(vertical = 5.dp) else Modifier)
       ) {
         // 左侧图标
         if (leadingIcon != null) {
@@ -175,6 +192,8 @@ fun ZTextField(
               .padding(end = ZTextFieldDefaults.IconSpacing)
               // 图标大小
               .size(ZTextFieldDefaults.IconSize)
+              // 针对 TEXTAREA 增加图标顶部偏移
+              .then(if (isTextarea) Modifier.offset(y = 2.dp) else Modifier)
           )
         }
 
@@ -206,6 +225,8 @@ fun ZTextField(
               .padding(start = ZTextFieldDefaults.IconSpacing)
               // 图标大小
               .size(ZTextFieldDefaults.IconSize)
+              // 针对 TEXTAREA 增加图标顶部偏移
+              .then(if (isTextarea) Modifier.offset(y = 2.dp) else Modifier)
           )
         }
       }
@@ -325,8 +346,6 @@ object ZTextFieldDefaults {
   val ContentPadding = PaddingValues(
     start = TextFieldHorizontalPadding,
     end = TextFieldHorizontalPadding,
-    // top = 8.dp, // 稍微增加上下内边距，适应多行文本
-    // bottom = 8.dp
   )
 
   /**
