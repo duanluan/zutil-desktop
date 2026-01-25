@@ -2,6 +2,7 @@ package top.zhjh.zui.composable
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.hoverable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
@@ -11,19 +12,42 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.Icon
 import androidx.compose.material.LocalContentColor
 import androidx.compose.material.LocalTextStyle
 import androidx.compose.material.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.input.pointer.PointerIcon
+import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import top.zhjh.zui.theme.isAppInDarkTheme
+
+/**
+ * 输入框类型
+ */
+enum class ZTextFieldType {
+  /**
+   * 单行文本
+   */
+  TEXT,
+
+  /**
+   * 密码
+   */
+  PASSWORD
+}
 
 /**
  * 输入框
@@ -31,8 +55,10 @@ import top.zhjh.zui.theme.isAppInDarkTheme
  * @param value 值
  * @param onValueChange 值变化事件
  * @param modifier 修饰符
+ * @param type 输入框类型，默认 [ZTextFieldType.TEXT]
  * @param enabled 是否可用，默认 true
  * @param readOnly 是否只读，默认 false
+ * @param showPassword 是否显示密码切换图标 [ZTextFieldType.PASSWORD] 时生效，默认 false
  * @param singleLine 是否单行，默认 true
  * @param maxLines 最大行数，单行时为 1，否则为 [Int.MAX_VALUE]
  * @param minLines 最小行数，默认 1
@@ -45,14 +71,16 @@ fun ZTextField(
   value: String,
   onValueChange: (String) -> Unit,
   modifier: Modifier = Modifier,
+  type: ZTextFieldType = ZTextFieldType.TEXT,
   enabled: Boolean = true,
   readOnly: Boolean = false,
+  showPassword: Boolean = false,
   textStyle: TextStyle = LocalTextStyle.current.copy(fontSize = ZTextFieldDefaults.FontSize),
   keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
   keyboardActions: KeyboardActions = KeyboardActions.Default,
   singleLine: Boolean = true,
-  maxLines: Int = if (singleLine) 1 else Int.MAX_VALUE,
   minLines: Int = 1,
+  maxLines: Int = if (singleLine) 1 else Int.MAX_VALUE,
   leadingIcon: (@Composable () -> Unit)? = null,
   trailingIcon: (@Composable () -> Unit)? = null,
   placeholder: String? = null,
@@ -73,6 +101,41 @@ fun ZTextField(
   // 应用字体颜色
   val finalTextStyle = textStyle.copy(color = textFieldStyle.textColor)
 
+  // 控制密码显隐的状态
+  var isPasswordVisible by remember { mutableStateOf(false) }
+  // 可视化转换，密码类型时隐藏文本
+  val visualTransformation = if (type == ZTextFieldType.PASSWORD && !isPasswordVisible) {
+    PasswordVisualTransformation()
+  } else {
+    VisualTransformation.None
+  }
+
+  // 决定最终的右侧图标
+  val finalTrailingIcon: (@Composable () -> Unit)? = if (trailingIcon != null) {
+    trailingIcon
+  } else if (type == ZTextFieldType.PASSWORD && showPassword) {
+    {
+      // 根据状态切换图标
+      val icon = if (isPasswordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
+      Icon(
+        imageVector = icon,
+        contentDescription = "Toggle Password Visibility",
+        tint = if (isDarkTheme) Color(0xffa8abb2) else Color(0xffc0c4cc), // 使用较浅的灰色，类似 Element Plus 风格
+        modifier = Modifier
+          .size(ZTextFieldDefaults.IconSize)
+          .pointerHoverIcon(PointerIcon.Hand)
+          .clickable(
+            interactionSource = remember { MutableInteractionSource() },
+            indication = null // 移除点击涟漪，保持简洁
+          ) {
+            isPasswordVisible = !isPasswordVisible
+          }
+      )
+    }
+  } else {
+    null
+  }
+
   BasicTextField(
     value = value,
     onValueChange = onValueChange,
@@ -84,6 +147,7 @@ fun ZTextField(
       .background(color = textFieldStyle.backgroundColor)
       // 边框，聚焦时修改边框颜色
       .border(width = 1.dp, color = textFieldStyle.borderColor, shape = shape)
+      // 最小高度
       .defaultMinSize(minHeight = ZTextFieldDefaults.MinHeight)
       .then(modifier),
     enabled = enabled,
@@ -91,9 +155,7 @@ fun ZTextField(
     textStyle = finalTextStyle,
     keyboardOptions = keyboardOptions,
     keyboardActions = keyboardActions,
-    singleLine = singleLine,
-    maxLines = maxLines,
-    minLines = minLines,
+    visualTransformation = visualTransformation,
     // 光标
     cursorBrush = textFieldStyle.cursorColor?.let { SolidColor(it) } ?: SolidColor(LocalContentColor.current),  // 当 cursorColor 为空时使用默认颜色
     decorationBox = { innerTextField ->
@@ -112,7 +174,6 @@ fun ZTextField(
                 .padding(end = ZTextFieldDefaults.IconSpacing)
                 // 图标大小
                 .size(ZTextFieldDefaults.IconSize)
-
             ) {
               leadingIcon()
             }
@@ -127,7 +188,7 @@ fun ZTextField(
             }
           }
           // 右侧图标
-          if (trailingIcon != null) {
+          if (finalTrailingIcon != null) {
             Box(
               modifier = Modifier
                 // 图标左边距
@@ -135,7 +196,7 @@ fun ZTextField(
                 // 图标大小
                 .size(ZTextFieldDefaults.IconSize)
             ) {
-              trailingIcon()
+              finalTrailingIcon()
             }
           }
         }
@@ -208,8 +269,8 @@ object ZTextFieldDefaults {
   val ContentPadding = PaddingValues(
     start = TextFieldHorizontalPadding,
     end = TextFieldHorizontalPadding,
-    top = 0.dp,
-    bottom = 0.dp
+    // top = 8.dp, // 稍微增加上下内边距，适应多行文本
+    // bottom = 8.dp
   )
 
   /**
