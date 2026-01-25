@@ -120,7 +120,6 @@ fun ZTextField(
       Icon(
         imageVector = icon,
         contentDescription = "Toggle Password Visibility",
-        tint = if (isDarkTheme) Color(0xffa8abb2) else Color(0xffc0c4cc), // 使用较浅的灰色，类似 Element Plus 风格
         modifier = Modifier
           .size(ZTextFieldDefaults.IconSize)
           .pointerHoverIcon(PointerIcon.Hand)
@@ -164,45 +163,79 @@ fun ZTextField(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.padding(ZTextFieldDefaults.ContentPadding)
       ) {
-        // 提供内容颜色的上下文，使所有子组件继承此颜色
-        CompositionLocalProvider(LocalContentColor provides textFieldStyle.textColor) {
-          // 左侧图标
-          if (leadingIcon != null) {
-            Box(
-              modifier = Modifier
-                // 图标右边距
-                .padding(end = ZTextFieldDefaults.IconSpacing)
-                // 图标大小
-                .size(ZTextFieldDefaults.IconSize)
-            ) {
-              leadingIcon()
-            }
-          }
-          // 输入内容
-          Box(modifier = Modifier.weight(1f)) {
+        // 左侧图标
+        if (leadingIcon != null) {
+          // 使用 ZIconWrapper 包裹图标以处理颜色和悬停逻辑
+          ZIconWrapper(
+            icon = leadingIcon,
+            iconColor = textFieldStyle.iconColor,
+            iconHoverColor = textFieldStyle.iconHoverColor,
+            modifier = Modifier
+              // 图标右边距
+              .padding(end = ZTextFieldDefaults.IconSpacing)
+              // 图标大小
+              .size(ZTextFieldDefaults.IconSize)
+          )
+        }
+
+        // 输入内容
+        Box(modifier = Modifier.weight(1f)) {
+          // 提供内容颜色的上下文，使所有子组件继承此颜色
+          CompositionLocalProvider(LocalContentColor provides textFieldStyle.textColor) {
             // 输入内容
             innerTextField()
             // 输入为空时显示占位符
             if (value.isEmpty() && placeholder != null) {
-              Text(placeholder)
+              Text(
+                text = placeholder,
+                style = finalTextStyle,
+                color = textFieldStyle.placeholderColor
+              )
             }
           }
-          // 右侧图标
-          if (finalTrailingIcon != null) {
-            Box(
-              modifier = Modifier
-                // 图标左边距
-                .padding(start = ZTextFieldDefaults.IconSpacing)
-                // 图标大小
-                .size(ZTextFieldDefaults.IconSize)
-            ) {
-              finalTrailingIcon()
-            }
-          }
+        }
+
+        // 右侧图标
+        if (finalTrailingIcon != null) {
+          ZIconWrapper(
+            icon = finalTrailingIcon,
+            iconColor = textFieldStyle.iconColor,
+            iconHoverColor = textFieldStyle.iconHoverColor,
+            modifier = Modifier
+              // 图标左边距
+              .padding(start = ZTextFieldDefaults.IconSpacing)
+              // 图标大小
+              .size(ZTextFieldDefaults.IconSize)
+          )
         }
       }
     }
   )
+}
+
+/**
+ * 图标包装器：用于处理图标的颜色和悬停状态
+ */
+@Composable
+private fun ZIconWrapper(
+  icon: @Composable () -> Unit,
+  iconColor: Color,
+  iconHoverColor: Color,
+  modifier: Modifier = Modifier
+) {
+  val interactionSource = remember { MutableInteractionSource() }
+  val isHovered by interactionSource.collectIsHoveredAsState()
+  val currentColor = if (isHovered) iconHoverColor else iconColor
+
+  Box(
+    modifier = modifier.hoverable(interactionSource),
+    contentAlignment = Alignment.Center
+  ) {
+    // 提供内容颜色的上下文，使所有子组件继承此颜色
+    CompositionLocalProvider(LocalContentColor provides currentColor) {
+      icon()
+    }
+  }
 }
 
 /**
@@ -212,6 +245,12 @@ private data class ZTextFieldStyle(
   var backgroundColor: Color,
   var borderColor: Color,
   var textColor: Color,
+  // 占位符颜色
+  var placeholderColor: Color,
+  // 图标默认颜色
+  var iconColor: Color,
+  // 图标悬停颜色
+  var iconHoverColor: Color,
   var cursorColor: Color? = null
 )
 
@@ -223,12 +262,20 @@ private data class ZTextFieldStyle(
  *
  */
 private fun getZTextFieldStyle(isDarkTheme: Boolean, isHovered: Boolean, isFocused: State<Boolean>, enabled: Boolean): ZTextFieldStyle {
+  // 定义图标颜色常量
+  val iconDefault = if (isDarkTheme) Color(0xff8d9095) else Color(0xffa8abb2)
+  val iconHover = if (isDarkTheme) Color(0xffa3a6ad) else Color(0xff909399)
+  val placeholderColor = if (isDarkTheme) Color(0xff8d9095) else Color(0xffa8abb2)
+
   // 禁用时
   if (!enabled) {
     return ZTextFieldStyle(
       backgroundColor = if (isDarkTheme) Color(0xff262727) else Color(0xfff5f7fa),
       borderColor = if (isDarkTheme) Color(0xff414243) else Color(0xffe4e7ed),
       textColor = if (isDarkTheme) Color(0xff8d9095) else Color(0xffa8abb2),
+      placeholderColor = placeholderColor,
+      iconColor = iconDefault,
+      iconHoverColor = iconDefault // 禁用时不响应悬停变色
     )
   }
   // 聚焦时
@@ -237,7 +284,10 @@ private fun getZTextFieldStyle(isDarkTheme: Boolean, isHovered: Boolean, isFocus
       backgroundColor = Color.Transparent,
       borderColor = if (isDarkTheme) Color(0xff409eff) else Color(0xff409eff),
       textColor = if (isDarkTheme) Color(0xffcfd3dc) else Color(0xff606266),
-      cursorColor = if (isDarkTheme) Color(0xffcfd3dc) else Color(0xff606266)
+      placeholderColor = placeholderColor,
+      cursorColor = if (isDarkTheme) Color(0xffcfd3dc) else Color(0xff606266),
+      iconColor = iconDefault,
+      iconHoverColor = iconHover
     )
   }
   // 悬停时
@@ -245,14 +295,20 @@ private fun getZTextFieldStyle(isDarkTheme: Boolean, isHovered: Boolean, isFocus
     return ZTextFieldStyle(
       backgroundColor = Color.Transparent,
       borderColor = if (isDarkTheme) Color(0xff6c6e72) else Color(0xffc0c4cc),
-      textColor = if (isDarkTheme) Color(0xffcfd3dc) else Color(0xff606266)
+      textColor = if (isDarkTheme) Color(0xffcfd3dc) else Color(0xff606266),
+      placeholderColor = placeholderColor,
+      iconColor = iconDefault,
+      iconHoverColor = iconHover
     )
   }
   // 默认
   return ZTextFieldStyle(
     backgroundColor = Color.Transparent,
     borderColor = if (isDarkTheme) Color(0xff4c4d4f) else Color(0xffdcdfe6),
-    textColor = if (isDarkTheme) Color(0xffcfd3dc) else Color(0xff606266)
+    textColor = if (isDarkTheme) Color(0xffcfd3dc) else Color(0xff606266),
+    placeholderColor = placeholderColor,
+    iconColor = iconDefault,
+    iconHoverColor = iconHover
   )
 }
 
