@@ -119,6 +119,8 @@ fun App() {
         for (tool in openWindows) {
           val windowState = when (tool) {
             ToolItem.TIMESTAMP -> rememberWindowState(width = 800.dp, height = 720.dp, position = WindowPosition(Alignment.Center))
+            ToolItem.JSON -> rememberWindowState(width = 1100.dp, height = 800.dp, position = WindowPosition(Alignment.Center))
+
             ToolItem.SPEECH_TO_TEXT -> rememberWindowState(width = 900.dp, height = 800.dp, position = WindowPosition(Alignment.Center)) // AI 工具通常需要大一点
           }
 

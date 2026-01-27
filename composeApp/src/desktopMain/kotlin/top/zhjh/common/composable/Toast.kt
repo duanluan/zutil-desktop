@@ -85,7 +85,7 @@ object ToastManager {
 }
 
 /**
- * Toast容器组件 - 需要在应用的顶层添加此组件
+ * Toast容器组件，需要放在根组件内部的最后，确保在顶层显示
  */
 @Composable
 fun ToastContainer() {
