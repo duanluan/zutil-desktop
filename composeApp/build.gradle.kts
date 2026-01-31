@@ -59,6 +59,15 @@ compose.desktop {
       description = "ZUtil Desktop Toolkit"
       copyright = "© 2026 duanluan. All rights reserved."
 
+      // includeAllModules = true
+      // 显式包含需要的模块
+      modules(
+        // gradlew suggestRuntimeModules
+        "java.instrument", "java.scripting", "java.sql", "jdk.unsupported"
+        // 报错 Failed to launch JVM，异常写入日志查询到
+        , "jdk.accessibility"
+      )
+
       windows {
         // 开启开始菜单图标
         menu = true
