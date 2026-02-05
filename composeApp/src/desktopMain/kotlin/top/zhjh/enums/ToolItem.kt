@@ -4,7 +4,8 @@ package top.zhjh.enums
 enum class ToolCategory(val label: String) {
   COMMON("常用"),
   AI("AI"),
-  SETTINGS("设置")
+  SETTINGS("设置"),
+  ABOUT("关于")
 }
 
 // 2. 修改：ToolItem 增加 category 属性
