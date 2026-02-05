@@ -8,17 +8,13 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.RssFeed
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.SmartToy
+import androidx.compose.material.icons.filled.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -28,16 +24,7 @@ import androidx.compose.ui.window.rememberWindowState
 import compose.icons.SimpleIcons
 import compose.icons.simpleicons.Discord
 import compose.icons.simpleicons.Tencentqq
-import java.awt.GraphicsEnvironment
-import java.awt.Desktop
-import java.awt.Toolkit
-import java.net.URI
-import java.util.prefs.Preferences
-import kotlin.math.max
-import kotlin.math.roundToInt
 import org.jetbrains.compose.resources.painterResource
-import top.zhjh.common.theme.mapleMonoFontFamily
-import top.zhjh.common.theme.mapleMonoTypography
 import top.zhjh.composable.ToolContent
 import top.zhjh.enums.ToolCategory
 import top.zhjh.enums.ToolItem
@@ -49,6 +36,13 @@ import top.zhjh.zui.enums.ZColorType
 import top.zhjh.zui.theme.ZTheme
 import zutil_desktop.composeapp.generated.resources.Res
 import zutil_desktop.composeapp.generated.resources.commonly_used
+import java.awt.Desktop
+import java.awt.GraphicsEnvironment
+import java.awt.Toolkit
+import java.net.URI
+import java.util.prefs.Preferences
+import kotlin.math.max
+import kotlin.math.roundToInt
 
 @Composable
 @Preview
@@ -71,10 +65,7 @@ fun App() {
   }
 
   CompositionLocalProvider(LocalDensity provides scaledDensity) {
-    ZTheme(
-      typography = mapleMonoTypography(),
-      defaultFontFamily = mapleMonoFontFamily()
-    ) {
+    ZTheme() {
       Row(modifier = Modifier.fillMaxWidth()) {
         // 使用枚举来管理当前选中的分类，默认选中常用
         var selectedCategory by remember { mutableStateOf(ToolCategory.COMMON) }
