@@ -6,6 +6,7 @@ plugins {
   alias(libs.plugins.composeCompiler)
   alias(libs.plugins.composeMultiplatform)
   alias(libs.plugins.composeHotReload)
+  alias(libs.plugins.osdetector)
 }
 
 kotlin {
@@ -34,15 +35,21 @@ kotlin {
       implementation(libs.icons.simple)
       implementation(libs.zutil.all)
       implementation(libs.zutil.awt)
-
       implementation(libs.commons.compress)
+
       // sherpa-onnx
       implementation(files("libs/sherpa-onnx-v1.12.23.jar"))
+      val classifier = osdetector.classifier
       // sherpa-onnx native libraries
-      implementation(files("libs/sherpa-onnx-native-lib-win-x64-v1.12.23.jar"))
-      implementation(files("libs/sherpa-onnx-native-lib-linux-x64-v1.12.23.jar"))
-      implementation(files("libs/sherpa-onnx-native-lib-osx-x64-v1.12.21.jar"))
-      implementation(files("libs/sherpa-onnx-native-lib-osx-aarch64-v1.12.21.jar"))
+      val nativeJar = when (classifier) {
+        "windows-x86_64" -> "libs/sherpa-onnx-native-lib-win-x64-v1.12.23.jar"
+        "linux-x86_64" -> "libs/sherpa-onnx-native-lib-linux-x64-v1.12.23.jar"
+        "linux-aarch_64" -> "libs/sherpa-onnx-native-lib-linux-aarch64-v1.12.23.jar"
+        "osx-x86_64" -> "libs/sherpa-onnx-native-lib-osx-x64-v1.12.21.jar"
+        "osx-aarch_64" -> "libs/sherpa-onnx-native-lib-osx-aarch64-v1.12.21.jar"
+        else -> error("Unsupported platform: $classifier")
+      }
+      implementation(files(nativeJar))
     }
   }
 }
