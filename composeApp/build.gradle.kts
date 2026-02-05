@@ -58,7 +58,14 @@ compose.desktop {
     mainClass = "top.zhjh.MainKt"
 
     nativeDistributions {
-      targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb, TargetFormat.Rpm)
+      targetFormats(
+        TargetFormat.Dmg,
+        TargetFormat.Msi,
+        TargetFormat.Exe,
+        TargetFormat.Deb,
+        TargetFormat.Rpm,
+        TargetFormat.AppImage
+      )
       packageName = "ZUtil"
       packageVersion = "1.0.0"
       vendor = "duanluan"

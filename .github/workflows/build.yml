@@ -62,11 +62,13 @@ jobs:
           # 回到项目根目录
           cd -
           
-          # 2. 收集安装包（MSI、EXE、DEB、RPM、DMG）：使用 find 命令查找深层目录下的文件，并复制到 build/release/
+          # 2. 收集安装包（MSI、EXE、DEB、RPM、AppImage、DMG）：使用 find 命令查找深层目录下的文件，并复制到 build/release/
           echo "Collecting installers..."
           find composeApp/build/compose/binaries/main -name "*.msi" -exec cp {} build/release/ \;
+          find composeApp/build/compose/binaries/main -name "*.exe" -exec cp {} build/release/ \;
           find composeApp/build/compose/binaries/main -name "*.deb" -exec cp {} build/release/ \;
           find composeApp/build/compose/binaries/main -name "*.rpm" -exec cp {} build/release/ \;
+          find composeApp/build/compose/binaries/main -iname "*.AppImage" -exec cp {} build/release/ \;
           find composeApp/build/compose/binaries/main -name "*.dmg" -exec cp {} build/release/ \;
           
           echo "Files ready for upload:"
