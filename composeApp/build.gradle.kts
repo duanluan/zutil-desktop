@@ -22,7 +22,6 @@ kotlin {
       implementation(libs.compose.ui)
       // commonMain 资源依赖：https://www.jetbrains.com/help/kotlin-multiplatform-dev/compose-multiplatform-resources-setup.html#build-script-and-directory-setup
       implementation(libs.compose.components.resources)
-      implementation(libs.compose.components.uiToolingPreview)
       implementation(libs.androidx.lifecycle.viewmodel)
       implementation(libs.androidx.lifecycle.runtime.compose)
       implementation(libs.androidx.lifecycle.viewmodel.compose)
