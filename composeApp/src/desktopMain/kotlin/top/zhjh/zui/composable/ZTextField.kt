@@ -30,9 +30,13 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.onPointerEvent
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.Dp
@@ -78,6 +82,9 @@ enum class ZTextFieldType {
  * @param leadingIcon 左侧图标
  * @param trailingIcon 右侧图标
  * @param placeholder 占位符文本，如果值为空时显示
+ * @param numericOnly 是否仅允许数字输入
+ * @param onMouseWheel 鼠标滚轮滚动回调（用于数值调节）
+ * @param onFocusChanged 焦点变化回调（true=聚焦，false=失焦）
  */
 @Composable
 fun ZTextField(
@@ -98,6 +105,9 @@ fun ZTextField(
   leadingIcon: (@Composable () -> Unit)? = null,
   trailingIcon: (@Composable () -> Unit)? = null,
   placeholder: String? = null,
+  numericOnly: Boolean = false,
+  onMouseWheel: ((Float) -> Unit)? = null,
+  onFocusChanged: ((Boolean) -> Unit)? = null,
 ) {
   // 圆角半径
   val shape = ZTextFieldDefaults.Shape
@@ -109,11 +119,19 @@ fun ZTextField(
   val isHovered by interactionSource.collectIsHoveredAsState()
   // 是否聚焦
   val isFocused: State<Boolean> = interactionSource.collectIsFocusedAsState()
+  LaunchedEffect(isFocused.value) {
+    onFocusChanged?.invoke(isFocused.value)
+  }
 
   // 获取样式
   val textFieldStyle = getZTextFieldStyle(isDarkTheme, isHovered, isFocused, enabled)
   // 应用字体颜色
   val finalTextStyle = textStyle.copy(color = textFieldStyle.textColor)
+  val finalKeyboardOptions = if (numericOnly) {
+    keyboardOptions.copy(keyboardType = KeyboardType.Number)
+  } else {
+    keyboardOptions
+  }
 
   // 控制密码显隐的状态
   var isPasswordVisible by remember { mutableStateOf(false) }
@@ -164,7 +182,10 @@ fun ZTextField(
 
   BasicTextField(
     value = value,
-    onValueChange = onValueChange,
+    onValueChange = { newValue ->
+      val filtered = if (numericOnly) newValue.filter { it.isDigit() } else newValue
+      onValueChange(filtered)
+    },
     interactionSource = interactionSource,
     modifier = Modifier
       // 悬停检测
@@ -183,11 +204,16 @@ fun ZTextField(
         if (isTextarea && resize && dragHeight != null) Modifier.height(dragHeight!!)
         else Modifier.defaultMinSize(minHeight = ZTextFieldDefaults.MinHeight)
       )
+      .then(
+        if (onMouseWheel != null) {
+          Modifier.zMouseWheel(onMouseWheel)
+        } else Modifier
+      )
       .then(modifier),
     enabled = enabled,
     readOnly = readOnly,
     textStyle = finalTextStyle,
-    keyboardOptions = keyboardOptions,
+    keyboardOptions = finalKeyboardOptions,
     keyboardActions = keyboardActions,
     singleLine = finalSingleLine,
     minLines = finalMinLines,
@@ -220,7 +246,10 @@ fun ZTextField(
                 // 图标右边距
                 .padding(end = ZTextFieldDefaults.IconSpacing)
                 // 图标大小
-                .size(ZTextFieldDefaults.IconSize)
+                .defaultMinSize(
+                  minWidth = ZTextFieldDefaults.IconSize,
+                  minHeight = ZTextFieldDefaults.IconSize
+                )
                 // 针对 TEXTAREA 增加图标顶部偏移，使用 offset 避免挤压
                 .then(if (isTextarea) Modifier.offset(y = 2.dp) else Modifier)
             )
@@ -253,7 +282,10 @@ fun ZTextField(
                 // 图标左边距
                 .padding(start = ZTextFieldDefaults.IconSpacing)
                 // 图标大小
-                .size(ZTextFieldDefaults.IconSize)
+                .defaultMinSize(
+                  minWidth = ZTextFieldDefaults.IconSize,
+                  minHeight = ZTextFieldDefaults.IconSize
+                )
                 // 针对 TEXTAREA 增加图标顶部偏移
                 .then(if (isTextarea) Modifier.offset(y = 2.dp) else Modifier)
             )
@@ -313,6 +345,16 @@ fun ZTextField(
       }
     }
   )
+}
+
+@OptIn(ExperimentalComposeUiApi::class)
+private fun Modifier.zMouseWheel(onMouseWheel: (Float) -> Unit): Modifier {
+  return onPointerEvent(PointerEventType.Scroll) { event ->
+    val delta = event.changes.firstOrNull()?.scrollDelta?.y ?: 0f
+    if (delta != 0f) {
+      onMouseWheel(delta)
+    }
+  }
 }
 
 /**
