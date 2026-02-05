@@ -7,13 +7,18 @@ import androidx.compose.material.Icon
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Surface
 import androidx.compose.material.Text
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import compose.icons.FeatherIcons
+import compose.icons.feathericons.Check
+import compose.icons.feathericons.ChevronDown
+import compose.icons.feathericons.Edit
+import compose.icons.feathericons.Mail
+import compose.icons.feathericons.Search
+import compose.icons.feathericons.Trash2
 import top.zhjh.common.composable.ToastContainer
 import top.zhjh.common.composable.ToastManager
 import top.zhjh.zui.composable.*
@@ -85,12 +90,12 @@ fun TestApp() {
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(5.dp), modifier = Modifier.padding(top = 5.dp, bottom = 5.dp)) {
-              ZButton(circle = true, icon = { Icon(Icons.Filled.Search, contentDescription = null) }, onClick = { ToastManager.success("Circle") }) { }
-              ZButton(type = ZColorType.PRIMARY, circle = true, icon = { Icon(Icons.Filled.Search, contentDescription = null) }, onClick = { ToastManager.success("Primary") }) {}
-              ZButton(type = ZColorType.SUCCESS, circle = true, icon = { Icon(Icons.Filled.Edit, contentDescription = null) }, onClick = { ToastManager.success("Success") }) { }
-              ZButton(type = ZColorType.INFO, circle = true, icon = { Icon(Icons.Filled.Check, contentDescription = null) }, onClick = { ToastManager.success("Info") }) { }
-              ZButton(type = ZColorType.WARNING, circle = true, icon = { Icon(Icons.Filled.Email, contentDescription = null) }, onClick = { ToastManager.success("Warning") }) { }
-              ZButton(type = ZColorType.DANGER, circle = true, icon = { Icon(Icons.Filled.Delete, contentDescription = null) }, onClick = { ToastManager.success("Danger") }) { }
+              ZButton(circle = true, icon = { Icon(FeatherIcons.Search, contentDescription = null) }, onClick = { ToastManager.success("Circle") }) { }
+              ZButton(type = ZColorType.PRIMARY, circle = true, icon = { Icon(FeatherIcons.Search, contentDescription = null) }, onClick = { ToastManager.success("Primary") }) {}
+              ZButton(type = ZColorType.SUCCESS, circle = true, icon = { Icon(FeatherIcons.Edit, contentDescription = null) }, onClick = { ToastManager.success("Success") }) { }
+              ZButton(type = ZColorType.INFO, circle = true, icon = { Icon(FeatherIcons.Check, contentDescription = null) }, onClick = { ToastManager.success("Info") }) { }
+              ZButton(type = ZColorType.WARNING, circle = true, icon = { Icon(FeatherIcons.Mail, contentDescription = null) }, onClick = { ToastManager.success("Warning") }) { }
+              ZButton(type = ZColorType.DANGER, circle = true, icon = { Icon(FeatherIcons.Trash2, contentDescription = null) }, onClick = { ToastManager.success("Danger") }) { }
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(5.dp), modifier = Modifier.padding(top = 5.dp, bottom = 5.dp)) {
@@ -127,8 +132,8 @@ fun TestApp() {
               var text by remember { mutableStateOf("") }
               ZTextField(
                 value = text, onValueChange = { text = it }, placeholder = "Please input",
-                leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
-                trailingIcon = { Icon(Icons.Filled.ArrowDropDown, contentDescription = null) }, singleLine = false
+                leadingIcon = { Icon(FeatherIcons.Search, contentDescription = null) },
+                trailingIcon = { Icon(FeatherIcons.ChevronDown, contentDescription = null) }, singleLine = false
               )
             }
 
@@ -141,8 +146,8 @@ fun TestApp() {
               var text by remember { mutableStateOf("") }
               ZTextField(
                 value = text, onValueChange = { text = it }, placeholder = "Please input", type = ZTextFieldType.TEXTAREA,
-                leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
-                trailingIcon = { Icon(Icons.Filled.ArrowDropDown, contentDescription = null) }
+                leadingIcon = { Icon(FeatherIcons.Search, contentDescription = null) },
+                trailingIcon = { Icon(FeatherIcons.ChevronDown, contentDescription = null) }
               )
             }
 

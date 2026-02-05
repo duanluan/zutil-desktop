@@ -2,8 +2,8 @@ package top.zhjh.zui.composable
 
 import androidx.compose.foundation.layout.height
 import androidx.compose.material.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowDropDown
+import compose.icons.FeatherIcons
+import compose.icons.feathericons.ChevronDown
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
@@ -46,7 +46,7 @@ fun ZDropdownMenu(
       trailingIcon = {
         // 使用自定义图标，而不是默认的 TrailingIcon
         Icon(
-          imageVector = Icons.Filled.ArrowDropDown,
+          imageVector = FeatherIcons.ChevronDown,
           contentDescription = "下拉菜单",
           // 根据展开状态旋转图标
           modifier = Modifier.graphicsLayer(

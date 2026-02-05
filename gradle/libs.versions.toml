@@ -1,7 +1,6 @@
 [versions]
 kotlin = "2.3.0"
 compose-multiplatform = "1.10.0"
-material-icons-extended = "1.7.3"
 hot-reload = "1.0.0"
 osdetector = "1.7.3"
 junit = "4.13.2"
@@ -15,7 +14,6 @@ commons-compress = "1.26.1"
 compose-runtime = { module = "org.jetbrains.compose.runtime:runtime", version.ref = "compose-multiplatform" }
 compose-foundation = { module = "org.jetbrains.compose.foundation:foundation", version.ref = "compose-multiplatform" }
 compose-material = { module = "org.jetbrains.compose.material:material", version.ref = "compose-multiplatform" }
-compose-material-icons-extended = { module = "org.jetbrains.compose.material:material-icons-extended", version.ref = "material-icons-extended" }
 compose-ui = { module = "org.jetbrains.compose.ui:ui", version.ref = "compose-multiplatform" }
 compose-components-resources = { module = "org.jetbrains.compose.components:components-resources", version.ref = "compose-multiplatform" }
 compose-components-uiToolingPreview = { module = "org.jetbrains.compose.components:components-ui-tooling-preview", version.ref = "compose-multiplatform" }

@@ -11,9 +11,6 @@ import androidx.compose.material.Icon
 import androidx.compose.material.LinearProgressIndicator
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Download
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -23,6 +20,8 @@ import androidx.compose.ui.window.DialogWindow
 import androidx.compose.ui.window.rememberDialogState
 import androidx.lifecycle.viewmodel.compose.viewModel
 import compose.icons.FeatherIcons
+import compose.icons.feathericons.CheckCircle
+import compose.icons.feathericons.Download
 import compose.icons.feathericons.Pause
 import compose.icons.feathericons.Play
 import compose.icons.feathericons.X
@@ -141,7 +140,7 @@ fun ModelItemCard(
           val path = File(viewModel.downloadDir, folderName).absolutePath
           onUseModel(path)
         }) {
-          Icon(Icons.Default.CheckCircle, null, modifier = Modifier.size(16.dp))
+          Icon(FeatherIcons.CheckCircle, null, modifier = Modifier.size(16.dp))
           Spacer(Modifier.width(4.dp))
           Text("使用")
         }
@@ -150,7 +149,7 @@ fun ModelItemCard(
         when (state) {
           DownloadState.IDLE, DownloadState.ERROR -> {
             ZButton(type = ZColorType.PRIMARY, onClick = { viewModel.startOrResumeDownload(model) }) {
-              Icon(Icons.Default.Download, null, modifier = Modifier.size(16.dp))
+              Icon(FeatherIcons.Download, null, modifier = Modifier.size(16.dp))
               Spacer(Modifier.width(4.dp))
               Text(if (state == DownloadState.ERROR) "重试" else "下载")
             }

@@ -17,9 +17,9 @@ import androidx.compose.material.Icon
 import androidx.compose.material.LocalContentColor
 import androidx.compose.material.LocalTextStyle
 import androidx.compose.material.Text
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
+import compose.icons.FeatherIcons
+import compose.icons.feathericons.Eye
+import compose.icons.feathericons.EyeOff
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -148,7 +148,7 @@ fun ZTextField(
   } else if (type == ZTextFieldType.PASSWORD && showPassword) {
     {
       // 根据状态切换图标
-      val icon = if (isPasswordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
+      val icon = if (isPasswordVisible) FeatherIcons.Eye else FeatherIcons.EyeOff
       Icon(
         imageVector = icon,
         contentDescription = "Toggle Password Visibility",

@@ -7,8 +7,6 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -21,7 +19,9 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.WindowPosition
 import androidx.compose.ui.window.rememberWindowState
+import compose.icons.FeatherIcons
 import compose.icons.SimpleIcons
+import compose.icons.feathericons.*
 import compose.icons.simpleicons.Discord
 import compose.icons.simpleicons.Tencentqq
 import org.jetbrains.compose.resources.painterResource
@@ -93,7 +93,7 @@ fun App() {
 
           // 2. AI
           NavigationRailItem(
-            icon = { Icon(Icons.Filled.SmartToy, null) }, // 如果报错找不到图标，暂时用 Icons.Filled.Star
+            icon = { Icon(FeatherIcons.Cpu, null) }, // 如果报错找不到图标，暂时用 FeatherIcons.Star
             label = { Text(ToolCategory.AI.label) },
             selected = selectedCategory == ToolCategory.AI,
             onClick = { selectedCategory = ToolCategory.AI }
@@ -103,14 +103,14 @@ fun App() {
 
           // 3. 设置 (通常设置在最底部)
         NavigationRailItem(
-          icon = { Icon(Icons.Filled.Settings, null) },
+          icon = { Icon(FeatherIcons.Settings, null) },
           label = { Text(ToolCategory.SETTINGS.label) },
           selected = selectedCategory == ToolCategory.SETTINGS,
           onClick = { selectedCategory = ToolCategory.SETTINGS }
         )
 
         NavigationRailItem(
-          icon = { Icon(Icons.Filled.Info, null) },
+          icon = { Icon(FeatherIcons.Info, null) },
           label = { Text(ToolCategory.ABOUT.label) },
           selected = selectedCategory == ToolCategory.ABOUT,
           onClick = { selectedCategory = ToolCategory.ABOUT }
@@ -126,7 +126,7 @@ fun App() {
               value = searchText.value,
               onValueChange = { searchText.value = it },
               placeholder = "搜索${selectedCategory.label}工具...",
-              leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+              leadingIcon = { Icon(FeatherIcons.Search, contentDescription = null) },
               modifier = Modifier.fillMaxWidth()
             )
             Spacer(modifier = Modifier.height(10.dp))
@@ -306,7 +306,7 @@ private fun AboutPage() {
       title = "官方博客",
       lines = emptyList(),
       url = BLOG_URL,
-      icon = Icons.Filled.RssFeed
+      icon = FeatherIcons.Rss
     )
   )
 
@@ -384,7 +384,7 @@ fun ToolListGrid(
         // 根据工具类型动态显示图标
         val iconModifier = Modifier.size(24.dp).padding(end = 8.dp)
         if (tool.category == ToolCategory.AI) {
-          Icon(Icons.Filled.SmartToy, null, modifier = iconModifier)
+          Icon(FeatherIcons.Cpu, null, modifier = iconModifier)
         } else {
           Icon(painterResource(Res.drawable.commonly_used), null, modifier = iconModifier)
         }
