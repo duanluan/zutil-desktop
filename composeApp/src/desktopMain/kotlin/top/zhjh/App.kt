@@ -10,6 +10,7 @@ import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.tooling.preview.Preview
@@ -75,47 +76,59 @@ fun App() {
 
         // --- 左侧导航栏 ---
         NavigationRail(modifier = Modifier.width(72.dp)) { // 给个固定宽度美观些
+          val selectedColor = Color(0xff409eff)
+          val unselectedColor = MaterialTheme.colors.onSurface.copy(alpha = ContentAlpha.medium)
+
 
           // 1. 常用
+          val commonSelected = selectedCategory == ToolCategory.COMMON
+          val commonColor = if (commonSelected) selectedColor else unselectedColor
           NavigationRailItem(
             icon = {
               Icon(
                 // 暂时复用之前的资源，建议后续换成矢量图 Icons.Filled.Home
                 painter = painterResource(Res.drawable.commonly_used),
                 contentDescription = null,
-                modifier = Modifier.size(24.dp)
+                modifier = Modifier.size(24.dp),
+                tint = commonColor
               )
             },
-            label = { Text(ToolCategory.COMMON.label) },
-            selected = selectedCategory == ToolCategory.COMMON,
+            label = { Text(ToolCategory.COMMON.label, color = commonColor) },
+            selected = commonSelected,
             onClick = { selectedCategory = ToolCategory.COMMON }
           )
 
           // 2. AI
+          val aiSelected = selectedCategory == ToolCategory.AI
+          val aiColor = if (aiSelected) selectedColor else unselectedColor
           NavigationRailItem(
-            icon = { Icon(FeatherIcons.Cpu, null) }, // 如果报错找不到图标，暂时用 FeatherIcons.Star
-            label = { Text(ToolCategory.AI.label) },
-            selected = selectedCategory == ToolCategory.AI,
+            icon = { Icon(FeatherIcons.Cpu, null, tint = aiColor) }, // 如果报错找不到图标，暂时用 FeatherIcons.Star
+            label = { Text(ToolCategory.AI.label, color = aiColor) },
+            selected = aiSelected,
             onClick = { selectedCategory = ToolCategory.AI }
           )
 
           Spacer(Modifier.weight(1f)) // 把设置顶到底部
 
           // 3. 设置 (通常设置在最底部)
-        NavigationRailItem(
-          icon = { Icon(FeatherIcons.Settings, null) },
-          label = { Text(ToolCategory.SETTINGS.label) },
-          selected = selectedCategory == ToolCategory.SETTINGS,
-          onClick = { selectedCategory = ToolCategory.SETTINGS }
-        )
+          val settingsSelected = selectedCategory == ToolCategory.SETTINGS
+          val settingsColor = if (settingsSelected) selectedColor else unselectedColor
+          NavigationRailItem(
+            icon = { Icon(FeatherIcons.Settings, null, tint = settingsColor) },
+            label = { Text(ToolCategory.SETTINGS.label, color = settingsColor) },
+            selected = settingsSelected,
+            onClick = { selectedCategory = ToolCategory.SETTINGS }
+          )
 
-        NavigationRailItem(
-          icon = { Icon(FeatherIcons.Info, null) },
-          label = { Text(ToolCategory.ABOUT.label) },
-          selected = selectedCategory == ToolCategory.ABOUT,
-          onClick = { selectedCategory = ToolCategory.ABOUT }
-        )
-      }
+          val aboutSelected = selectedCategory == ToolCategory.ABOUT
+          val aboutColor = if (aboutSelected) selectedColor else unselectedColor
+          NavigationRailItem(
+            icon = { Icon(FeatherIcons.Info, null, tint = aboutColor) },
+            label = { Text(ToolCategory.ABOUT.label, color = aboutColor) },
+            selected = aboutSelected,
+            onClick = { selectedCategory = ToolCategory.ABOUT }
+          )
+        }
 
         // --- 右侧内容区域 ---
         Column(Modifier.fillMaxSize().padding(10.dp)) {
