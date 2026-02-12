@@ -3,12 +3,12 @@ package top.zhjh.viewmodel
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.Snapshot
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.k2fsa.sherpa.onnx.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import top.zhjh.common.composable.ToastManager
 import java.io.File
 import javax.sound.sampled.AudioSystem
@@ -27,15 +27,18 @@ class SpeechToTextViewModel : ViewModel() {
     }
 
     viewModelScope.launch(Dispatchers.IO) {
-      isConverting = true
-      progressInfo = "正在初始化模型..."
-      resultText = ""
+      updateState {
+        isConverting = true
+        progressInfo = "正在初始化模型..."
+        resultText = ""
+      }
 
       try {
         // 1. 自动识别模型类型并创建配置
         val modelConfig = createModelConfig(modelDir)
         if (modelConfig == null) {
-          withContext(Dispatchers.Main) {
+          updateState {
+            progressInfo = "无法识别模型类型"
             ToastManager.error("无法识别模型类型，请确保文件夹名称包含 sense-voice, paraformer, whisper 或 zipformer")
           }
           return@launch
@@ -51,7 +54,7 @@ class SpeechToTextViewModel : ViewModel() {
         val recognizer = OfflineRecognizer(config)
 
         // 4. 读取音频
-        progressInfo = "正在转换..."
+        updateState { progressInfo = "正在转换..." }
         val stream = recognizer.createStream()
 
         try {
@@ -59,7 +62,8 @@ class SpeechToTextViewModel : ViewModel() {
           stream.acceptWaveform(samples, sampleRate)
         } catch (e: Exception) {
           e.printStackTrace()
-          withContext(Dispatchers.Main) {
+          updateState {
+            progressInfo = "音频读取失败"
             ToastManager.error("音频读取失败: ${e.message}")
           }
           stream.release()
@@ -71,7 +75,7 @@ class SpeechToTextViewModel : ViewModel() {
         recognizer.decode(stream)
         val result = recognizer.getResult(stream)
 
-        withContext(Dispatchers.Main) {
+        updateState {
           resultText = result.text
           progressInfo = "转换完成"
           ToastManager.success("转换成功")
@@ -82,13 +86,19 @@ class SpeechToTextViewModel : ViewModel() {
 
       } catch (e: Exception) {
         e.printStackTrace()
-        withContext(Dispatchers.Main) {
+        updateState {
           progressInfo = "转换失败: ${e.message}"
           ToastManager.error("错误: ${e.message}")
         }
       } finally {
-        isConverting = false
+        updateState { isConverting = false }
       }
+    }
+  }
+
+  private fun updateState(block: () -> Unit) {
+    Snapshot.withMutableSnapshot {
+      block()
     }
   }
 
