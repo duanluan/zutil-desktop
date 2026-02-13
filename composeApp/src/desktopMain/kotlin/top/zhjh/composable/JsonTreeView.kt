@@ -3,11 +3,13 @@ package top.zhjh.composable
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.Icon
 import androidx.compose.material.LinearProgressIndicator
 import androidx.compose.material.Text
 import androidx.compose.runtime.*
+import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -25,6 +27,7 @@ import top.zhjh.zui.composable.ZButton
 import top.zhjh.zui.enums.ZColorType
 import java.awt.Toolkit
 import java.awt.datatransfer.StringSelection
+import java.util.ArrayDeque
 import java.util.Locale
 
 // 配色常量
@@ -35,6 +38,8 @@ private val ColorBoolean = Color(0xFFCC7832)
 private val ColorNull = Color(0xFFFFC66D)
 
 private const val LARGE_JSON_THRESHOLD = 500_000
+private const val MAX_TREE_DEPTH = 200
+private const val INDENT_STEP_DP = 20
 
 private data class ParsedJson(
   val root: Any?,
@@ -47,6 +52,27 @@ private sealed class ParseState {
   data class Error(val message: String) : ParseState()
 }
 
+private sealed class TreeRow {
+  data class Node(
+    val path: String,
+    val depth: Int,
+    val key: String?,
+    val value: Any?,
+    val isContainer: Boolean,
+    val containerSize: Int,
+    val isExpanded: Boolean
+  ) : TreeRow()
+
+  data class DepthLimit(val depth: Int) : TreeRow()
+}
+
+private data class NodeFrame(
+  val path: String,
+  val depth: Int,
+  val key: String?,
+  val value: Any?
+)
+
 @Composable
 fun JsonTreeView(
   jsonString: String,
@@ -55,6 +81,13 @@ fun JsonTreeView(
 ) {
   val isLargeJson = jsonString.length >= LARGE_JSON_THRESHOLD
   var allowLarge by remember(jsonString) { mutableStateOf(false) }
+  val expandMap = remember { mutableStateMapOf<String, Boolean>() }
+  var lastExpandSignal by remember { mutableStateOf(0) }
+
+  LaunchedEffect(jsonString) {
+    expandMap.clear()
+    lastExpandSignal = 0
+  }
 
   if (isLargeJson && !allowLarge) {
     val sizeLabel = formatSize(jsonString.length)
@@ -100,27 +133,45 @@ fun JsonTreeView(
     is ParseState.Ready -> {
       val finalRoot = state.data.root
       val isEscapedView = state.data.isEscapedView
+      val listState = rememberLazyListState()
+
+      LaunchedEffect(finalRoot, expandState) {
+        if (expandState != 0 && expandState != lastExpandSignal) {
+          val targetExpanded = expandState == 1
+          val containerPaths = collectContainerPaths(finalRoot)
+          Snapshot.withMutableSnapshot {
+            expandMap.clear()
+            containerPaths.forEach { expandMap[it] = targetExpanded }
+          }
+          lastExpandSignal = expandState
+        }
+      }
+
+      val rows by remember(finalRoot, expandMap) {
+        derivedStateOf { buildVisibleRows(finalRoot, expandMap) }
+      }
 
       LazyColumn(
         modifier = Modifier.fillMaxSize().padding(8.dp),
-        state = rememberLazyListState()
+        state = listState
       ) {
-        // 遍历顶层内容
-        item {
-          if (finalRoot is Map<*, *>) {
-            Column(modifier = Modifier.padding(start = 0.dp)) {
-              for ((k, v) in finalRoot) {
-                JsonNode(k.toString(), v, false, isEscapedView, isUnicodeDisplay, expandState)
-              }
+        items(rows) { row ->
+          when (row) {
+            is TreeRow.Node -> {
+              JsonTreeRow(
+                row = row,
+                isEscapedView = isEscapedView,
+                isUnicodeDisplay = isUnicodeDisplay,
+                onToggle = { path ->
+                  val current = expandMap[path] ?: false
+                  expandMap[path] = !current
+                }
+              )
             }
-          } else if (finalRoot is List<*>) {
-            Column(modifier = Modifier.padding(start = 0.dp)) {
-              for (i in 0 until finalRoot.size) {
-                JsonNode("$i", finalRoot[i], false, isEscapedView, isUnicodeDisplay, expandState)
-              }
+
+            is TreeRow.DepthLimit -> {
+              DepthLimitRow(row.depth)
             }
-          } else {
-            JsonValueText(finalRoot, isUnicodeDisplay, isEscapedView)
           }
         }
       }
@@ -190,86 +241,226 @@ private fun formatSize(chars: Int): String {
   }
 }
 
-@Composable
-fun JsonNode(
-  key: String?,
-  value: Any?,
-  isRoot: Boolean = false,
-  isEscapedView: Boolean,
-  isUnicodeDisplay: Boolean,
-  expandState: Int // 传入展开状态
-) {
-  // 默认不展开
-  var isExpanded by remember { mutableStateOf(isRoot) }
+private fun buildVisibleRows(root: Any?, expandMap: Map<String, Boolean>): List<TreeRow> {
+  val rows = mutableListOf<TreeRow>()
+  val stack = ArrayDeque<NodeFrame>()
 
-  // 监听外部展开/收缩信号
-  LaunchedEffect(expandState) {
-    if (expandState == 1) isExpanded = true
-    if (expandState == 2) isExpanded = false
-  }
-
-  val isContainer = value is Map<*, *> || value is List<*>
-
-  val finalKey = if (key != null) {
-    if (isEscapedView && !isRoot) "\"\\\"$key\\\"\": " else "\"$key\": "
-  } else ""
-
-  Column {
-    Row(
-      verticalAlignment = Alignment.CenterVertically,
-      modifier = Modifier
-        .fillMaxWidth()
-        .clickable { if (isContainer) isExpanded = !isExpanded }
-        .padding(vertical = 2.dp)
-    ) {
-      if (isContainer) {
-        Icon(
-          imageVector = if (isExpanded) FeatherIcons.ChevronDown else FeatherIcons.ChevronRight,
-          contentDescription = null,
-          modifier = Modifier.size(16.dp),
-          tint = Color.Gray
-        )
-      } else {
-        Spacer(modifier = Modifier.size(16.dp))
-      }
-
-      if (finalKey.isNotEmpty()) {
-        Text(
-          text = finalKey,
-          color = ColorKey,
-          fontFamily = FontFamily.Monospace,
-          fontSize = 13.sp
-        )
-      }
-
-      if (isContainer) {
-        if (!isExpanded) {
-          val preview = when (value) {
-            is Map<*, *> -> "{ ${value.size} fields }"
-            is List<*> -> "[ ${value.size} items ]"
-            else -> ""
-          }
-          Text(text = preview, color = Color.Gray, fontSize = 12.sp)
+  fun pushChildren(container: Any?, parentPath: String, depth: Int) {
+    when (container) {
+      is Map<*, *> -> {
+        val entries = container.entries.toList()
+        for (i in entries.indices.reversed()) {
+          val entry = entries[i]
+          val key = entry.key?.toString() ?: "null"
+          stack.addLast(
+            NodeFrame(
+              path = buildChildPath(parentPath, key),
+              depth = depth,
+              key = key,
+              value = entry.value
+            )
+          )
         }
-      } else {
-        JsonValueText(value, isUnicodeDisplay, isEscapedView)
+      }
+      is List<*> -> {
+        for (i in container.indices.reversed()) {
+          val key = i.toString()
+          stack.addLast(
+            NodeFrame(
+              path = buildChildPath(parentPath, key),
+              depth = depth,
+              key = key,
+              value = container[i]
+            )
+          )
+        }
       }
     }
+  }
+
+  when (root) {
+    is Map<*, *> -> pushChildren(root, "", 0)
+    is List<*> -> pushChildren(root, "", 0)
+    else -> {
+      rows.add(
+        TreeRow.Node(
+          path = "",
+          depth = 0,
+          key = null,
+          value = root,
+          isContainer = false,
+          containerSize = -1,
+          isExpanded = false
+        )
+      )
+      return rows
+    }
+  }
+
+  while (stack.isNotEmpty()) {
+    val frame = stack.removeLast()
+    val value = frame.value
+    val isContainer = value is Map<*, *> || value is List<*>
+    val containerSize = when (value) {
+      is Map<*, *> -> value.size
+      is List<*> -> value.size
+      else -> -1
+    }
+    val isExpanded = if (isContainer) expandMap[frame.path] ?: false else false
+
+    rows.add(
+      TreeRow.Node(
+        path = frame.path,
+        depth = frame.depth,
+        key = frame.key,
+        value = value,
+        isContainer = isContainer,
+        containerSize = containerSize,
+        isExpanded = isExpanded
+      )
+    )
 
     if (isContainer && isExpanded) {
-      Column(modifier = Modifier.padding(start = 20.dp)) {
-        if (value is Map<*, *>) {
-          for ((k, v) in value) {
-            JsonNode(k.toString(), v, false, isEscapedView, isUnicodeDisplay, expandState)
-          }
-        } else if (value is List<*>) {
-          for (i in 0 until value.size) {
-            JsonNode("$i", value[i], false, isEscapedView, isUnicodeDisplay, expandState)
-          }
+      if (frame.depth >= MAX_TREE_DEPTH) {
+        rows.add(TreeRow.DepthLimit(frame.depth + 1))
+      } else {
+        pushChildren(value, frame.path, frame.depth + 1)
+      }
+    }
+  }
+
+  return rows
+}
+
+private fun collectContainerPaths(root: Any?): List<String> {
+  val paths = mutableListOf<String>()
+  val stack = ArrayDeque<NodeFrame>()
+
+  fun pushChildren(container: Any?, parentPath: String, depth: Int) {
+    when (container) {
+      is Map<*, *> -> {
+        val entries = container.entries.toList()
+        for (i in entries.indices.reversed()) {
+          val entry = entries[i]
+          val key = entry.key?.toString() ?: "null"
+          stack.addLast(
+            NodeFrame(
+              path = buildChildPath(parentPath, key),
+              depth = depth,
+              key = key,
+              value = entry.value
+            )
+          )
+        }
+      }
+      is List<*> -> {
+        for (i in container.indices.reversed()) {
+          val key = i.toString()
+          stack.addLast(
+            NodeFrame(
+              path = buildChildPath(parentPath, key),
+              depth = depth,
+              key = key,
+              value = container[i]
+            )
+          )
         }
       }
     }
   }
+
+  when (root) {
+    is Map<*, *> -> pushChildren(root, "", 0)
+    is List<*> -> pushChildren(root, "", 0)
+    else -> return paths
+  }
+
+  while (stack.isNotEmpty()) {
+    val frame = stack.removeLast()
+    val value = frame.value
+    val isContainer = value is Map<*, *> || value is List<*>
+    if (isContainer) {
+      paths.add(frame.path)
+      if (frame.depth < MAX_TREE_DEPTH) {
+        pushChildren(value, frame.path, frame.depth + 1)
+      }
+    }
+  }
+
+  return paths
+}
+
+private fun buildChildPath(parent: String, child: String): String {
+  return if (parent.isEmpty()) child else "$parent/$child"
+}
+
+@Composable
+private fun JsonTreeRow(
+  row: TreeRow.Node,
+  isEscapedView: Boolean,
+  isUnicodeDisplay: Boolean,
+  onToggle: (String) -> Unit
+) {
+  val indent = (row.depth * INDENT_STEP_DP).dp
+  val isContainer = row.isContainer
+  val finalKey = if (row.key != null) {
+    if (isEscapedView) "\"\\\"${row.key}\\\"\": " else "\"${row.key}\": "
+  } else ""
+
+  Row(
+    verticalAlignment = Alignment.CenterVertically,
+    modifier = Modifier
+      .fillMaxWidth()
+      .clickable { if (isContainer) onToggle(row.path) }
+      .padding(start = indent, top = 2.dp, bottom = 2.dp)
+  ) {
+    if (isContainer) {
+      Icon(
+        imageVector = if (row.isExpanded) FeatherIcons.ChevronDown else FeatherIcons.ChevronRight,
+        contentDescription = null,
+        modifier = Modifier.size(16.dp),
+        tint = Color.Gray
+      )
+    } else {
+      Spacer(modifier = Modifier.size(16.dp))
+    }
+
+    if (finalKey.isNotEmpty()) {
+      Text(
+        text = finalKey,
+        color = ColorKey,
+        fontFamily = FontFamily.Monospace,
+        fontSize = 13.sp
+      )
+    }
+
+    if (isContainer) {
+      if (!row.isExpanded) {
+        val preview = when {
+          row.containerSize >= 0 && row.key != null -> when (row.value) {
+            is Map<*, *> -> "{ ${row.containerSize} fields }"
+            is List<*> -> "[ ${row.containerSize} items ]"
+            else -> ""
+          }
+          else -> ""
+        }
+        Text(text = preview, color = Color.Gray, fontSize = 12.sp)
+      }
+    } else {
+      JsonValueText(row.value, isUnicodeDisplay, isEscapedView)
+    }
+  }
+}
+
+@Composable
+private fun DepthLimitRow(depth: Int) {
+  val indent = (depth * INDENT_STEP_DP).dp
+  Text(
+    text = "... depth limit reached ...",
+    color = Color.Gray,
+    fontSize = 12.sp,
+    modifier = Modifier.padding(start = indent, top = 2.dp, bottom = 2.dp)
+  )
 }
 
 @Composable
