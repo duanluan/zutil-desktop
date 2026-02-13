@@ -10,12 +10,13 @@ import com.k2fsa.sherpa.onnx.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import top.zhjh.common.composable.ToastManager
+import top.zhjh.util.ModelDownloadSettings
 import java.io.File
 import javax.sound.sampled.AudioSystem
 
 class SpeechToTextViewModel : ViewModel() {
   var audioPath by mutableStateOf("")
-  var modelDir by mutableStateOf("")
+  var modelDir by mutableStateOf(ModelDownloadSettings.loadOrDefault())
   var resultText by mutableStateOf("")
   var isConverting by mutableStateOf(false)
   var progressInfo by mutableStateOf("准备就绪")
@@ -58,8 +59,7 @@ class SpeechToTextViewModel : ViewModel() {
         val stream = recognizer.createStream()
 
         try {
-          val (samples, sampleRate) = readWavFile(File(audioPath))
-          stream.acceptWaveform(samples, sampleRate)
+          streamWavFile(File(audioPath), stream)
         } catch (e: Exception) {
           e.printStackTrace()
           updateState {
@@ -192,21 +192,55 @@ class SpeechToTextViewModel : ViewModel() {
     return null
   }
 
-  private fun readWavFile(file: File): Pair<FloatArray, Int> {
+  private fun streamWavFile(file: File, stream: OfflineStream) {
     AudioSystem.getAudioInputStream(file).use { ais ->
       val format = ais.format
       val sampleRate = format.sampleRate.toInt()
       if (format.sampleSizeInBits != 16) throw UnsupportedOperationException("只支持 16-bit WAV")
-      val bytes = ais.readAllBytes()
-      val floatArray = FloatArray(bytes.size / 2)
       val isBigEndian = format.isBigEndian
-      for (i in floatArray.indices) {
-        val b1 = bytes[i * 2].toInt()
-        val b2 = bytes[i * 2 + 1].toInt()
-        val sampleShort = if (isBigEndian) ((b1 shl 8) or (b2 and 0xFF)) else ((b2 shl 8) or (b1 and 0xFF))
-        floatArray[i] = sampleShort.toShort() / 32768.0f
+      val buffer = ByteArray(8192)
+      var carry: Byte? = null
+      var bytesRead = ais.read(buffer)
+
+      while (bytesRead > 0) {
+        var available = bytesRead
+        val data = if (carry != null) {
+          val combined = ByteArray(bytesRead + 1)
+          combined[0] = carry!!
+          System.arraycopy(buffer, 0, combined, 1, bytesRead)
+          carry = null
+          available = combined.size
+          combined
+        } else {
+          buffer
+        }
+
+        if (available % 2 != 0) {
+          carry = data[available - 1]
+          available -= 1
+        }
+
+        val sampleCount = available / 2
+        if (sampleCount > 0) {
+          val samples = FloatArray(sampleCount)
+          var sampleIndex = 0
+          var i = 0
+          while (i < available) {
+            val b1 = data[i].toInt()
+            val b2 = data[i + 1].toInt()
+            val sampleShort = if (isBigEndian) {
+              (b1 shl 8) or (b2 and 0xFF)
+            } else {
+              (b2 shl 8) or (b1 and 0xFF)
+            }
+            samples[sampleIndex++] = sampleShort.toShort() / 32768.0f
+            i += 2
+          }
+          stream.acceptWaveform(samples, sampleRate)
+        }
+
+        bytesRead = ais.read(buffer)
       }
-      return Pair(floatArray, sampleRate)
     }
   }
 }

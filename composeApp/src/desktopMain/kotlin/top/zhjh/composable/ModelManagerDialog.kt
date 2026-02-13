@@ -33,6 +33,7 @@ import top.zhjh.zui.composable.ZButton
 import top.zhjh.zui.composable.ZCard
 import top.zhjh.zui.enums.ZColorType
 import java.io.File
+import java.util.Locale
 
 @Composable
 fun ModelManagerDialog(
@@ -108,6 +109,9 @@ fun ModelItemCard(
   val taskStatus = viewModel.taskStatuses[model.id]
   val state = taskStatus?.state ?: DownloadState.IDLE
   val progress = taskStatus?.progress ?: 0f
+  val downloadedBytes = taskStatus?.downloadedBytes ?: 0L
+  val totalBytes = taskStatus?.totalBytes ?: -1L
+  val speedBytesPerSec = taskStatus?.speedBytesPerSec ?: 0.0
 
   // 检查本地是否已存在
   val folderName = model.fileName.replace(".tar.bz2", "")
@@ -158,8 +162,15 @@ fun ModelItemCard(
           DownloadState.DOWNLOADING -> {
             Row(verticalAlignment = Alignment.CenterVertically) {
               Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(end = 8.dp)) {
-                LinearProgressIndicator(progress = progress, modifier = Modifier.width(60.dp))
-                Text("${(progress * 100).toInt()}%", style = MaterialTheme.typography.caption)
+                if (progress < 0f) {
+                  LinearProgressIndicator(modifier = Modifier.width(60.dp))
+                } else {
+                  LinearProgressIndicator(progress = progress, modifier = Modifier.width(60.dp))
+                }
+                Text(
+                  buildProgressLabel(downloadedBytes, totalBytes, speedBytesPerSec),
+                  style = MaterialTheme.typography.caption
+                )
               }
 
               // 暂停按钮
@@ -176,7 +187,11 @@ fun ModelItemCard(
 
           DownloadState.PAUSED -> {
             Row(verticalAlignment = Alignment.CenterVertically) {
-              Text("暂停: ${(progress * 100).toInt()}%", style = MaterialTheme.typography.caption, modifier = Modifier.padding(end = 8.dp))
+              Text(
+                "暂停: ${buildProgressLabel(downloadedBytes, totalBytes, speedBytesPerSec)}",
+                style = MaterialTheme.typography.caption,
+                modifier = Modifier.padding(end = 8.dp)
+              )
 
               // 继续按钮
               ZButton(type = ZColorType.PRIMARY, modifier = Modifier.size(30.dp), contentPadding = PaddingValues(0.dp), onClick = { viewModel.startOrResumeDownload(model) }) {
@@ -202,4 +217,23 @@ fun ModelItemCard(
       }
     }
   }
+}
+
+private fun buildProgressLabel(downloadedBytes: Long, totalBytes: Long, speedBytesPerSec: Double): String {
+  val downloadedLabel = formatBytes(downloadedBytes)
+  val totalLabel = if (totalBytes > 0L) formatBytes(totalBytes) else "未知"
+  val speedLabel = formatSpeed(speedBytesPerSec)
+  return "已下载 $downloadedLabel / $totalLabel · $speedLabel"
+}
+
+private fun formatBytes(bytes: Long): String {
+  if (bytes <= 0L) return "0.0 MB"
+  val mb = bytes / (1024.0 * 1024.0)
+  return String.format(Locale.US, "%.1f MB", mb)
+}
+
+private fun formatSpeed(bytesPerSec: Double): String {
+  if (bytesPerSec <= 0.0) return "0.0 MB/s"
+  val mbPerSec = bytesPerSec / (1024.0 * 1024.0)
+  return String.format(Locale.US, "%.1f MB/s", mbPerSec)
 }
