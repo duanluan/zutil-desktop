@@ -430,7 +430,11 @@ private fun JsonTreeRow(
         text = finalKey,
         color = ColorKey,
         fontFamily = FontFamily.Monospace,
-        fontSize = 13.sp
+        fontSize = 13.sp,
+        modifier = Modifier.clickable {
+          // 只复制 key 本身，不包含引号与冒号
+          row.key?.let { copyToClipboard(it, "已复制 Key") }
+        }
       )
     }
 
@@ -489,9 +493,13 @@ fun JsonValueText(value: Any?, isUnicodeDisplay: Boolean, isEscapedView: Boolean
     fontFamily = FontFamily.Monospace,
     fontSize = 13.sp,
     modifier = Modifier.clickable {
-      val clipboard = Toolkit.getDefaultToolkit().systemClipboard
-      clipboard.setContents(StringSelection(text), null)
-      ToastManager.success("已复制值")
+      copyToClipboard(text, "已复制值")
     }
   )
+}
+
+private fun copyToClipboard(content: String, successText: String) {
+  val clipboard = Toolkit.getDefaultToolkit().systemClipboard
+  clipboard.setContents(StringSelection(content), null)
+  ToastManager.success(successText)
 }

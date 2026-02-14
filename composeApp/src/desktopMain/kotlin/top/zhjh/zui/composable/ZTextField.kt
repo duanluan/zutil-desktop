@@ -105,6 +105,7 @@ fun ZTextField(
   leadingIcon: (@Composable () -> Unit)? = null,
   trailingIcon: (@Composable () -> Unit)? = null,
   placeholder: String? = null,
+  visualTransformation: VisualTransformation? = null,
   numericOnly: Boolean = false,
   onMouseWheel: ((Float) -> Unit)? = null,
   onFocusChanged: ((Boolean) -> Unit)? = null,
@@ -136,10 +137,10 @@ fun ZTextField(
   // 控制密码显隐的状态
   var isPasswordVisible by remember { mutableStateOf(false) }
   // 可视化转换，密码类型时隐藏文本
-  val visualTransformation = if (type == ZTextFieldType.PASSWORD && !isPasswordVisible) {
-    PasswordVisualTransformation()
-  } else {
-    VisualTransformation.None
+  val resolvedVisualTransformation = when {
+    visualTransformation != null -> visualTransformation
+    type == ZTextFieldType.PASSWORD && !isPasswordVisible -> PasswordVisualTransformation()
+    else -> VisualTransformation.None
   }
 
   // 决定最终的右侧图标
@@ -218,7 +219,7 @@ fun ZTextField(
     singleLine = finalSingleLine,
     minLines = finalMinLines,
     maxLines = finalMaxLines,
-    visualTransformation = visualTransformation,
+    visualTransformation = resolvedVisualTransformation,
     // 光标
     cursorBrush = textFieldStyle.cursorColor?.let { SolidColor(it) } ?: SolidColor(LocalContentColor.current),  // 当 cursorColor 为空时使用默认颜色
     decorationBox = { innerTextField ->
