@@ -219,9 +219,15 @@ private fun ZuiComponentDemoContent(
     }
 
     Row(horizontalArrangement = Arrangement.spacedBy(5.dp), modifier = Modifier.padding(top = 5.dp, bottom = 5.dp)) {
-      ZCard(modifier = Modifier.weight(1f)) {}
-      ZCard(shadow = ZCardShadow.HOVER, modifier = Modifier.weight(1f)) {}
-      ZCard(shadow = ZCardShadow.NEVER, modifier = Modifier.weight(1f)) {}
+      ZCard(modifier = Modifier.weight(1f)) {
+        ZText("Always")
+      }
+      ZCard(shadow = ZCardShadow.HOVER, modifier = Modifier.weight(1f)) {
+        ZText("Hover")
+      }
+      ZCard(shadow = ZCardShadow.NEVER, modifier = Modifier.weight(1f)) {
+        ZText("Never")
+      }
     }
 
     ZCard(shadow = ZCardShadow.NEVER) {

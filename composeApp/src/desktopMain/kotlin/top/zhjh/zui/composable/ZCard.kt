@@ -16,8 +16,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.draw.dropShadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.shadow.Shadow
+import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import top.zhjh.zui.enums.ZCardShadow
 import top.zhjh.zui.theme.isAppInDarkTheme
@@ -68,16 +70,20 @@ fun ZCard(
     modifier = Modifier
       .then(
         if (shouldShowShadow) {
-          Modifier.shadow(
-            shape = ZCardDefaults.Shape,
-            elevation = ZCardDefaults.ShadowElevation,
-            ambientColor = ZCardDefaults.ShadowAmbientColor,
-            spotColor = ZCardDefaults.ShadowSpotColor
-          )
+          Modifier
+            .dropShadow(
+              shape = ZCardDefaults.Shape,
+              shadow = Shadow(
+                radius = ZCardDefaults.ShadowRadius,
+                spread = ZCardDefaults.ShadowSpread,
+                offset = ZCardDefaults.ShadowOffset,
+                color = ZCardDefaults.ShadowColor
+              )
+            )
         } else Modifier
       )
       // 默认背景色，可以被传入的 modifier 中的 background 覆盖
-      .background(color = cardStyle.backgroundColor)
+      .background(color = cardStyle.backgroundColor, shape = ZCardDefaults.Shape)
       .border(1.dp, cardStyle.borderColor, shape = ZCardDefaults.Shape)
       // 用户传入的 modifier 放在最后，以便覆盖默认样式（如背景色）
       .then(modifier)
@@ -174,15 +180,25 @@ object ZCardDefaults {
   /**
    * 阴影高度
    */
-  val ShadowElevation = 12.dp
+  val ShadowRadius = 12.dp
 
   /**
    * 环境光阴影颜色  rgba(0, 0, 0, 0.12)
    */
-  val ShadowAmbientColor = Color(0x1F000000)
+  val ShadowSpread = 0.dp
 
   /**
    * 点光源阴影颜色 rgba(0, 0, 0, 0.12)
    */
-  val ShadowSpotColor = Color(0x1F000000)
+  val ShadowOuterPadding = ShadowRadius + ShadowSpread
+
+  /**
+   * 阴影偏移
+   */
+  val ShadowOffset = DpOffset(0.dp, 0.dp)
+
+  /**
+   * 阴影颜色 rgba(0, 0, 0, 0.12)
+   */
+  val ShadowColor = Color(0x1F000000)
 }
