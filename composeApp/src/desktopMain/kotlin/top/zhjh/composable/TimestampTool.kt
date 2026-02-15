@@ -14,10 +14,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import compose.icons.FeatherIcons
-import compose.icons.feathericons.ArrowRightCircle
-import compose.icons.feathericons.Clipboard
-import compose.icons.feathericons.RefreshCw
-import compose.icons.feathericons.Shuffle
+import compose.icons.feathericons.*
 import top.zhjh.common.composable.ToastContainer
 import top.zhjh.viewmodel.TimestampViewModel
 import top.zhjh.zui.composable.*
@@ -116,6 +113,31 @@ fun TimestampTool() {
             )
           }
 
+          Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(5.dp)
+          ) {
+            ZDropdownMenu(
+              options = TimestampViewModel.DATETIME_FORMAT_OPTIONS,
+              defaultSelectedOption = viewModel.selectedDatetimeFormatToDatetime,
+              onOptionSelected = { selectedFormat ->
+                viewModel.selectedDatetimeFormatToDatetime = selectedFormat
+                viewModel.convertTimestampToDatetime()
+              },
+              placeholder = "请选择输出格式",
+              modifier = Modifier.width(220.dp)
+            )
+
+            if (viewModel.selectedDatetimeFormatToDatetime == TimestampViewModel.CUSTOM_DATETIME_FORMAT_OPTION) {
+              ZTextField(
+                modifier = Modifier.width(300.dp),
+                value = viewModel.customDatetimeFormatToDatetime,
+                onValueChange = { viewModel.customDatetimeFormatToDatetime = it },
+                placeholder = "自定义格式，例如 yyyy-MM-dd HH:mm:ss"
+              )
+            }
+          }
+
           Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
             val toDatetimeToggleText = if (viewModel.isMilliToDatetime) "切换为秒级" else "切换为毫秒级"
             ZButton(
@@ -154,7 +176,7 @@ fun TimestampTool() {
               icon = {
                 Icon(
                   modifier = Modifier.size(14.dp),
-                  imageVector = FeatherIcons.RefreshCw,
+                  imageVector = FeatherIcons.Clock,
                   contentDescription = nowToDatetimeText
                 )
               }
@@ -196,6 +218,31 @@ fun TimestampTool() {
             )
           }
 
+          Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(5.dp)
+          ) {
+            ZDropdownMenu(
+              options = TimestampViewModel.DATETIME_FORMAT_OPTIONS,
+              defaultSelectedOption = viewModel.selectedDatetimeFormatToTimestamp,
+              onOptionSelected = { selectedFormat ->
+                viewModel.selectedDatetimeFormatToTimestamp = selectedFormat
+                viewModel.convertDatetimeToTimestamp()
+              },
+              placeholder = "请选择输入格式",
+              modifier = Modifier.width(220.dp)
+            )
+
+            if (viewModel.selectedDatetimeFormatToTimestamp == TimestampViewModel.CUSTOM_DATETIME_FORMAT_OPTION) {
+              ZTextField(
+                modifier = Modifier.width(300.dp),
+                value = viewModel.customDatetimeFormatToTimestamp,
+                onValueChange = { viewModel.customDatetimeFormatToTimestamp = it },
+                placeholder = "自定义格式，例如 yyyy-MM-dd HH:mm:ss"
+              )
+            }
+          }
+
           Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
             val toTimestampToggleText = if (viewModel.isMilliToTimestamp) "切换为秒级" else "切换为毫秒级"
             ZButton(
@@ -234,7 +281,7 @@ fun TimestampTool() {
               icon = {
                 Icon(
                   modifier = Modifier.size(14.dp),
-                  imageVector = FeatherIcons.RefreshCw,
+                  imageVector = FeatherIcons.Clock,
                   contentDescription = nowToTimestampText
                 )
               }

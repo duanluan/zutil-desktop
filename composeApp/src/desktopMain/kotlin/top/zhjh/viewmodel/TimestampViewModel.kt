@@ -11,7 +11,10 @@ import top.csaf.awt.ClipboardUtil
 import top.csaf.date.DateUtil
 import top.csaf.lang.StrUtil
 import top.zhjh.common.composable.ToastManager
-import java.util.TimeZone
+import java.time.Instant
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+import java.util.*
 
 /**
  * 时间戳工具页的状态与业务逻辑中心。
@@ -22,6 +25,18 @@ import java.util.TimeZone
  * 3. 所有字段使用 Compose State（mutableStateOf），确保状态变化能驱动界面自动重组。
  */
 class TimestampViewModel : ViewModel() {
+  companion object {
+    const val CUSTOM_DATETIME_FORMAT_OPTION = "自定义"
+    private const val DEFAULT_DATETIME_FORMAT = "yyyy-MM-dd HH:mm:ss"
+
+    val DATETIME_FORMAT_OPTIONS = listOf(
+      DEFAULT_DATETIME_FORMAT,
+      "yyyy-MM-dd HH:mm:ss.SSS",
+      "yyyy/MM/dd HH:mm:ss",
+      "yyyy-MM-dd'T'HH:mm:ss",
+      CUSTOM_DATETIME_FORMAT_OPTION
+    )
+  }
 
   // ==================== 卡片一：当前时间戳 ====================
 
@@ -64,6 +79,16 @@ class TimestampViewModel : ViewModel() {
    */
   var selectedTimezoneToDatetime by mutableStateOf(TimeZone.getDefault().id)
 
+  /**
+   * “时间戳 -> 日期时间”输出格式选项。
+   */
+  var selectedDatetimeFormatToDatetime by mutableStateOf(DEFAULT_DATETIME_FORMAT)
+
+  /**
+   * “时间戳 -> 日期时间”自定义格式内容（当下拉选中“自定义”时生效）。
+   */
+  var customDatetimeFormatToDatetime by mutableStateOf(DEFAULT_DATETIME_FORMAT)
+
   // ==================== 卡片三：日期时间 -> 时间戳 ====================
 
   /**
@@ -88,6 +113,16 @@ class TimestampViewModel : ViewModel() {
    * “日期时间 -> 时间戳”链路使用的时区 ID。
    */
   var selectedTimezoneToTimestamp by mutableStateOf(TimeZone.getDefault().id)
+
+  /**
+   * “日期时间 -> 时间戳”输入格式选项。
+   */
+  var selectedDatetimeFormatToTimestamp by mutableStateOf(DEFAULT_DATETIME_FORMAT)
+
+  /**
+   * “日期时间 -> 时间戳”自定义格式内容（当下拉选中“自定义”时生效）。
+   */
+  var customDatetimeFormatToTimestamp by mutableStateOf(DEFAULT_DATETIME_FORMAT)
 
   init {
     startClock()
@@ -145,6 +180,17 @@ class TimestampViewModel : ViewModel() {
   // ==================== 卡片二行为：时间戳 -> 日期时间 ====================
 
   /**
+   * 获取“时间戳 -> 日期时间”当前生效的日期格式模板。
+   */
+  fun getEffectiveDatetimeFormatToDatetime(): String {
+    return if (selectedDatetimeFormatToDatetime == CUSTOM_DATETIME_FORMAT_OPTION) {
+      customDatetimeFormatToDatetime.trim()
+    } else {
+      selectedDatetimeFormatToDatetime
+    }
+  }
+
+  /**
    * 执行“时间戳 -> 日期时间”转换。
    *
    * 处理步骤：
@@ -160,12 +206,14 @@ class TimestampViewModel : ViewModel() {
     }
 
     try {
-      toDatetimeResult = DateUtil.format(
-        finalTimestamp,
-        TimeZone.getTimeZone(selectedTimezoneToDatetime).toZoneId()
-      )
+      val formatter = DateTimeFormatter.ofPattern(getEffectiveDatetimeFormatToDatetime())
+      val zoneId = TimeZone.getTimeZone(selectedTimezoneToDatetime).toZoneId()
+      toDatetimeResult = Instant.ofEpochMilli(finalTimestamp)
+        .atZone(zoneId)
+        .toLocalDateTime()
+        .format(formatter)
     } catch (_: Exception) {
-      ToastManager.error("时间戳格式错误")
+      ToastManager.error("时间戳或日期格式错误")
     }
   }
 
@@ -200,13 +248,30 @@ class TimestampViewModel : ViewModel() {
       nowMillis / 1000
     }
 
-    toDatetimeResult = DateUtil.format(
-      nowMillis,
-      TimeZone.getTimeZone(selectedTimezoneToDatetime).toZoneId()
-    )
+    try {
+      val formatter = DateTimeFormatter.ofPattern(getEffectiveDatetimeFormatToDatetime())
+      val zoneId = TimeZone.getTimeZone(selectedTimezoneToDatetime).toZoneId()
+      toDatetimeResult = Instant.ofEpochMilli(nowMillis)
+        .atZone(zoneId)
+        .toLocalDateTime()
+        .format(formatter)
+    } catch (_: Exception) {
+      ToastManager.error("日期格式错误")
+    }
   }
 
   // ==================== 卡片三行为：日期时间 -> 时间戳 ====================
+
+  /**
+   * 获取“日期时间 -> 时间戳”当前生效的日期格式模板。
+   */
+  fun getEffectiveDatetimeFormatToTimestamp(): String {
+    return if (selectedDatetimeFormatToTimestamp == CUSTOM_DATETIME_FORMAT_OPTION) {
+      customDatetimeFormatToTimestamp.trim()
+    } else {
+      selectedDatetimeFormatToTimestamp
+    }
+  }
 
   /**
    * 执行“日期时间 -> 时间戳”转换。
@@ -224,10 +289,14 @@ class TimestampViewModel : ViewModel() {
 
     return try {
       val zoneId = TimeZone.getTimeZone(selectedTimezoneToTimestamp).toZoneId()
+      val formatter = DateTimeFormatter.ofPattern(getEffectiveDatetimeFormatToTimestamp())
+      val instant = LocalDateTime.parse(toTimestampDatetimeInput, formatter)
+        .atZone(zoneId)
+        .toInstant()
       toTimestampResult = if (isMilliToTimestamp) {
-        DateUtil.toEpochMilli(toTimestampDatetimeInput, zoneId).toString()
+        instant.toEpochMilli().toString()
       } else {
-        DateUtil.toEpochSecond(toTimestampDatetimeInput, zoneId).toString()
+        instant.epochSecond.toString()
       }
       true
     } catch (_: Exception) {
@@ -262,7 +331,16 @@ class TimestampViewModel : ViewModel() {
     val nowMillis = DateUtil.nowEpochMilli()
     val zoneId = TimeZone.getTimeZone(selectedTimezoneToTimestamp).toZoneId()
 
-    toTimestampDatetimeInput = DateUtil.format(nowMillis, zoneId)
+    try {
+      val formatter = DateTimeFormatter.ofPattern(getEffectiveDatetimeFormatToTimestamp())
+      toTimestampDatetimeInput = Instant.ofEpochMilli(nowMillis)
+        .atZone(zoneId)
+        .toLocalDateTime()
+        .format(formatter)
+    } catch (_: Exception) {
+      ToastManager.error("日期格式错误")
+      return
+    }
     toTimestampResult = if (isMilliToTimestamp) {
       nowMillis.toString()
     } else {
