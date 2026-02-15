@@ -49,6 +49,17 @@ import top.zhjh.zui.theme.isAppInDarkTheme
  * - 树形/源码模式切换
  * - 复制时可选择缩进风格（2 空格 / 4 空格 / 1 Tab）
  * - 源码模式启用 JSON 语法高亮
+ *
+ * 数据流约定：
+ * - 左侧输入区（`inputJson`）是“原始编辑面”；
+ * - 右侧结果区（`outputJson`）是“处理结果面”，可二次处理但默认不覆盖左侧；
+ * - 中间穿梭按钮用于显式完成“左 -> 右 格式化”与“右 -> 左 覆盖”。
+ *
+ * 交互细节：
+ * - 输入区支持 `Ctrl/Cmd + Enter` 快捷格式化；
+ * - 点击历史记录会回填左侧并自动格式化；
+ * - 树形视图下可展开/收缩节点，源码视图下可直接编辑结果文本；
+ * - 复制按钮始终复制“当前右侧结果”，并按下拉缩进策略重排后再写入剪贴板。
  */
 @Composable
 fun JsonTool() {
@@ -173,7 +184,7 @@ fun JsonTool() {
           shadow = ZCardShadow.NEVER,
           contentPadding = PaddingValues(0.dp)
         ) {
-          // 回归最纯粹的输入框，无行号干扰
+          // 输入区只承担“文本编辑”职责，不做语法上色，保证输入时光标与内容绝对一致。
           ZTextField(
             value = viewModel.inputJson,
             onValueChange = { viewModel.inputJson = it },
@@ -181,6 +192,7 @@ fun JsonTool() {
             resize = false,
             modifier = Modifier.fillMaxSize()
               .onPreviewKeyEvent {
+                // 统一拦截快捷键：按下 Ctrl/Cmd + Enter 等同点击“格式化”。
                 if (it.type == KeyEventType.KeyDown && it.key == Key.Enter && (it.isCtrlPressed || it.isMetaPressed)) {
                   focusManager.clearFocus()
                   viewModel.formatJson()
@@ -248,6 +260,7 @@ fun JsonTool() {
             icon = { Icon(if (viewModel.isTreeMode) FeatherIcons.Code else FeatherIcons.List, null, modifier = Modifier.size(14.dp)) },
             onClick = { viewModel.isTreeMode = !viewModel.isTreeMode }
           ) {
+            // 文案显示的是“下一步动作”，不是当前模式，点击意图更直接。
             ZText(if (viewModel.isTreeMode) "切换为源码" else "切换为树形")
           }
 
@@ -319,6 +332,7 @@ fun JsonTool() {
           contentPadding = PaddingValues(0.dp)
         ) {
           if (viewModel.isTreeMode) {
+            // 树形模式优先使用输出文本，若输出为空则回退到输入文本，保证始终可查看结构。
             JsonTreeView(
               jsonString = viewModel.outputJson.ifEmpty { viewModel.inputJson },
               isUnicodeDisplay = viewModel.isUnicodeDisplay,
@@ -364,6 +378,10 @@ fun JsonTool() {
  * 历史记录单项卡片。
  * - 展示 JSON 的压缩预览（去空白后截断）
  * - 点击后回填到左侧输入区并触发格式化逻辑
+ *
+ * 额外约束：
+ * - 预览最大 200 字符 + 最多 3 行，避免超长记录压缩列表可读性；
+ * - 使用等宽字体，便于快速识别 JSON 结构片段。
  */
 @Composable
 private fun HistoryItem(json: String, onClick: () -> Unit) {
@@ -429,6 +447,11 @@ private class JsonSourceSyntaxHighlighter(
  * - 数字：蓝色
  * - 布尔值：橙色
  * - null：浅黄色
+ *
+ * 说明：
+ * - 这是“近似词法高亮”，不做完整语法树校验；
+ * - 目标是提升可读性，而不是替代严格 JSON 校验；
+ * - 即使输入不合法，也尽量给出稳定高亮，不中断编辑。
  */
 private fun highlightJson(raw: String, isDarkTheme: Boolean): AnnotatedString {
   if (raw.isEmpty()) return AnnotatedString("")
@@ -483,6 +506,9 @@ private fun highlightJson(raw: String, isDarkTheme: Boolean): AnnotatedString {
 /**
  * 从给定双引号起点开始，找到字符串 token 的结束位置（不含越界）。
  * 会正确跳过转义字符（例如 `\"`、`\\`）。
+ *
+ * 该函数是高亮正确性的关键：
+ * - 若不跳过转义字符，`\"` 会被误判为字符串结束，导致后续着色整体错位。
  */
 private fun findStringTokenEnd(raw: String, start: Int): Int {
   var i = start + 1
@@ -519,6 +545,10 @@ private fun isJsonKey(raw: String, tokenEndExclusive: Int): Boolean {
  * - 负号
  * - 整数/小数
  * - 科学计数法（`e`/`E`）
+ *
+ * 返回约定：
+ * - 返回值 > start：识别成功，返回 token 结束下标（exclusive）；
+ * - 返回值 == start：识别失败，由调用方按普通字符处理。
  */
 private fun findNumberTokenEnd(raw: String, start: Int): Int {
   var i = start
@@ -562,6 +592,11 @@ private fun findNumberTokenEnd(raw: String, start: Int): Int {
 /**
  * 关键字（true/false/null）边界判断。
  * 避免把 `trueValue` 这种字符串前缀误高亮为关键字。
+ *
+ * 示例：
+ * - `true,` 视为关键字；
+ * - `xtrue` 不视为关键字（前边界不成立）；
+ * - `trueValue` 不视为关键字（后边界不成立）。
  */
 private fun isKeywordBoundary(raw: String, start: Int, tokenLength: Int): Boolean {
   val prevChar = if (start > 0) raw[start - 1] else null
@@ -578,7 +613,11 @@ private fun isTokenBoundary(ch: Char?): Boolean {
   return ch.isWhitespace() || ch == ',' || ch == ':' || ch == '{' || ch == '}' || ch == '[' || ch == ']'
 }
 
-// 复制缩进选项（右侧复制按钮左侧下拉）
+/**
+ * 复制缩进选项（右侧复制按钮左侧下拉）。
+ *
+ * 注意：这组常量只影响“复制动作”的文本重排，不会直接改动右侧编辑器中的显示内容。
+ */
 private const val JSON_INDENT_OPTION_2_SPACES = "2 空格"
 private const val JSON_INDENT_OPTION_4_SPACES = "4 空格"
 private const val JSON_INDENT_OPTION_1_TAB = "1 Tab"
@@ -604,6 +643,10 @@ private fun indentUnitFromOption(option: String): String {
  * 复制前重排 JSON 缩进。
  * - 解析失败时兜底返回原文本，避免复制动作中断。
  * - 当 `forceUnicodeEscaped` 为 true 时，会把非 ASCII 字符转为 `\uXXXX`。
+ *
+ * 这样设计的目的：
+ * - 不污染编辑区内容（用户仍可按自己习惯编辑）；
+ * - 复制到外部系统时再统一风格，兼顾“编辑自由”和“输出规范”。
  */
 private fun reindentJsonForCopy(raw: String, indentUnit: String, forceUnicodeEscaped: Boolean): String {
   if (raw.isBlank()) return raw
@@ -632,6 +675,10 @@ private fun toUnicodeEscapedText(raw: String): String {
 
 /**
  * 递归渲染任意 JSON 值为带指定缩进的文本。
+ *
+ * 与直接 `JsonUtil.format` 的区别：
+ * - 这里支持“自定义缩进字符串”（例如 1 Tab）；
+ * - 用于复制链路，避免影响页面现有显示。
  */
 private fun prettyJsonValue(value: Any?, indentUnit: String, depth: Int): String {
   return when (value) {
