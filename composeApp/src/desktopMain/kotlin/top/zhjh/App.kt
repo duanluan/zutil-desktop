@@ -4,6 +4,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.*
@@ -40,6 +41,7 @@ import top.zhjh.zui.enums.ZColorType
 import top.zhjh.zui.theme.ZTheme
 import zutil_desktop.composeapp.generated.resources.Res
 import zutil_desktop.composeapp.generated.resources.commonly_used
+import zutil_desktop.composeapp.generated.resources.icon
 import java.awt.Desktop
 import java.awt.GraphicsEnvironment
 import java.awt.Toolkit
@@ -57,7 +59,7 @@ import kotlin.math.roundToInt
  * 3. 统一主题与缩放容器。
  */
 @Composable
-fun ApplicationScope.AppRoot() {
+fun ApplicationScope.AppRoot(onExitRequest: () -> Unit) {
   // 系统缩放检测（只初始化一次）
   val autoScale = remember { detectSystemScale() }
   // 基于系统缩放得到默认百分比
@@ -84,9 +86,10 @@ fun ApplicationScope.AppRoot() {
 
   // 主窗口
   Window(
-    onCloseRequest = ::exitApplication,
+    onCloseRequest = onExitRequest,
     title = "ZUtil 工具箱",
-    state = rememberWindowState(position = WindowPosition(Alignment.Center))
+    state = rememberWindowState(position = WindowPosition(Alignment.Center)),
+    icon = painterResource(Res.drawable.icon)
   ) {
     // 统一缩放与主题入口
     ScaledContent(autoScale, scalePercent) {
@@ -108,13 +111,15 @@ fun ApplicationScope.AppRoot() {
       val windowState = when (tool) {
         ToolItem.TIMESTAMP -> rememberWindowState(width = 800.dp, height = 720.dp, position = WindowPosition(Alignment.Center))
         ToolItem.JSON -> rememberWindowState(width = 1100.dp, height = 800.dp, position = WindowPosition(Alignment.Center))
+        ToolItem.UUID -> rememberWindowState(width = 1000.dp, height = 760.dp, position = WindowPosition(Alignment.Center))
         ToolItem.SPEECH_TO_TEXT -> rememberWindowState(width = 900.dp, height = 800.dp, position = WindowPosition(Alignment.Center))
       }
 
       Window(
         onCloseRequest = { openWindows.remove(tool) },
         title = tool.toolName,
-        state = windowState
+        state = windowState,
+        icon = painterResource(Res.drawable.icon)
       ) {
         // 子窗口同样应用缩放与主题
         ScaledContent(autoScale, scalePercent) {
@@ -176,7 +181,7 @@ private fun App(
       val aiColor = if (aiSelected) selectedColor else unselectedColor
       NavigationRailItem(
         // 如果报错找不到图标，可临时替换为其他内置图标
-        icon = { Icon(FeatherIcons.Cpu, null, tint = aiColor) },
+        icon = { Icon(FeatherIcons.Command, null, tint = aiColor) },
         label = { Text(ToolCategory.AI.label, color = aiColor) },
         selected = aiSelected,
         onClick = { selectedCategory = ToolCategory.AI }
@@ -195,6 +200,16 @@ private fun App(
         onClick = { selectedCategory = ToolCategory.SETTINGS }
       )
 
+      // 4. ZUI
+      val zuiSelected = selectedCategory == ToolCategory.ZUI
+      val zuiColor = if (zuiSelected) selectedColor else unselectedColor
+      NavigationRailItem(
+        icon = { Icon(FeatherIcons.Layers, null, tint = zuiColor) },
+        label = { Text(ToolCategory.ZUI.label, color = zuiColor) },
+        selected = zuiSelected,
+        onClick = { selectedCategory = ToolCategory.ZUI }
+      )
+
       // 4. 关于
       val aboutSelected = selectedCategory == ToolCategory.ABOUT
       val aboutColor = if (aboutSelected) selectedColor else unselectedColor
@@ -210,7 +225,11 @@ private fun App(
     Column(Modifier.fillMaxSize().padding(10.dp)) {
 
       // 只有在非设置页面显示搜索框
-      if (selectedCategory != ToolCategory.SETTINGS && selectedCategory != ToolCategory.ABOUT) {
+      if (
+        selectedCategory != ToolCategory.SETTINGS &&
+        selectedCategory != ToolCategory.ZUI &&
+        selectedCategory != ToolCategory.ABOUT
+      ) {
         ZTextField(
           value = searchText.value,
           onValueChange = { searchText.value = it },
@@ -228,6 +247,11 @@ private fun App(
             autoScale = autoScale,
             scalePercent = scalePercent,
             onScalePercentChange = onScalePercentChange
+          )
+        } else if (selectedCategory == ToolCategory.ZUI) {
+          ZuiComponentShowcase(
+            modifier = Modifier.fillMaxSize(),
+            useInternalScroll = true
           )
         } else if (selectedCategory == ToolCategory.ABOUT) {
           AboutPage()
@@ -524,20 +548,21 @@ fun ToolListGrid(
   filterText: String,
   onToolClick: (ToolItem) -> Unit
 ) {
+  // 使用枚举 name 进行比较，规避 Live Edit/热重载时枚举类加载器不一致导致的过滤失效
+  val categoryName = category.name
+  val normalizedFilterText = filterText.trim()
+  val tools = ToolItem.entries.filter { tool ->
+    tool.category.name == categoryName &&
+      (normalizedFilterText.isEmpty() || tool.toolName.contains(normalizedFilterText, ignoreCase = true))
+  }
+
   LazyVerticalGrid(
     columns = GridCells.Adaptive(minSize = 200.dp),
     modifier = Modifier.fillMaxSize(),
     verticalArrangement = Arrangement.spacedBy(10.dp),
     horizontalArrangement = Arrangement.spacedBy(10.dp)
   ) {
-    // 核心过滤逻辑：先按分类筛选，再按搜索词筛选
-    val tools = ToolItem.entries.filter {
-      it.category == category &&
-        (filterText.isEmpty() || it.toolName.contains(filterText, ignoreCase = true))
-    }
-
-    items(tools.size) { i ->
-      val tool = tools[i]
+    items(items = tools, key = { it.name }) { tool ->
       ZButton(
         type = ZColorType.PRIMARY,
         contentPadding = PaddingValues(15.dp),
@@ -546,7 +571,7 @@ fun ToolListGrid(
       ) {
         // 根据工具类型动态显示图标
         val iconModifier = Modifier.size(24.dp).padding(end = 8.dp)
-        if (tool.category == ToolCategory.AI) {
+        if (tool.category.name == ToolCategory.AI.name) {
           Icon(FeatherIcons.Cpu, null, modifier = iconModifier)
         } else {
           Icon(painterResource(Res.drawable.commonly_used), null, modifier = iconModifier)
@@ -882,3 +907,4 @@ private fun scalePercentToScale(percent: Int): Float {
 private fun sanitizeScalePercent(value: Int): Int {
   return value.coerceIn(SCALE_MIN_PERCENT, SCALE_MAX_PERCENT)
 }
+

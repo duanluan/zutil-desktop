@@ -1,11 +1,14 @@
 package top.zhjh
 
 import androidx.compose.ui.window.application
+import top.zhjh.util.SingleInstanceGuard
 import java.io.File
 import java.io.PrintWriter
 import java.io.StringWriter
+import java.awt.GraphicsEnvironment
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import javax.swing.JOptionPane
 
 /**
  * 把异常写入日志文件
@@ -48,12 +51,41 @@ private fun logCrash(cause: Throwable) {
 }
 
 fun main() {
+  val instance = SingleInstanceGuard.tryAcquire("zutil-desktop")
+  if (instance == null) {
+    notifyAlreadyRunning()
+    return
+  }
+
   try {
     application {
-      AppRoot()
+      AppRoot(
+        onExitRequest = {
+          instance.close()
+          this@application.exitApplication()
+        }
+      )
       // TestApp()
     }
   } catch (e: Throwable) {
     logCrash(e)
+  } finally {
+    instance.close()
+  }
+}
+
+private fun notifyAlreadyRunning() {
+  val message = "ZUtil Desktop is already running."
+  System.err.println("[ZUtil] $message")
+
+  runCatching {
+    if (!GraphicsEnvironment.isHeadless()) {
+      JOptionPane.showMessageDialog(
+        null,
+        message,
+        "ZUtil",
+        JOptionPane.WARNING_MESSAGE
+      )
+    }
   }
 }
