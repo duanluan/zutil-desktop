@@ -7,7 +7,6 @@ import androidx.compose.foundation.rememberScrollbarAdapter
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Icon
 import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -58,12 +57,15 @@ fun SpeechToTextTool() {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
           Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
             // 【修改点1】加大加粗标题
-            ZText("配置", style = MaterialTheme.typography.h3, fontWeight = FontWeight.Bold)
+            ZText("配置", fontWeight = FontWeight.Bold)
 
-            ZButton(type = ZColorType.SUCCESS, modifier = Modifier.height(30.dp), onClick = { showDownloadDialog = true }) {
-              Icon(FeatherIcons.DownloadCloud, null, modifier = Modifier.size(14.dp))
-              Spacer(Modifier.width(4.dp))
-              Text("在线下载模型")
+            ZButton(
+              type = ZColorType.SUCCESS,
+              modifier = Modifier.height(30.dp),
+              onClick = { showDownloadDialog = true },
+              icon = { Icon(FeatherIcons.DownloadCloud, null, modifier = Modifier.size(14.dp)) }
+            ) {
+              ZText("在线下载模型")
             }
           }
 
@@ -77,13 +79,15 @@ fun SpeechToTextTool() {
               modifier = Modifier.weight(1f)
             )
             Spacer(modifier = Modifier.width(8.dp))
-            ZButton(type = ZColorType.PRIMARY, onClick = {
-              val path = FilePickerUtil.pickDirectory("选择模型文件夹")
-              if (path != null) viewModel.modelDir = path
-            }) {
-              Icon(FeatherIcons.Folder, null, modifier = Modifier.size(16.dp))
-              Spacer(Modifier.width(4.dp))
-              Text("浏览")
+            ZButton(
+              type = ZColorType.PRIMARY,
+              onClick = {
+                val path = FilePickerUtil.pickDirectory("选择模型文件夹")
+                if (path != null) viewModel.modelDir = path
+              },
+              icon = { Icon(FeatherIcons.Folder, null, modifier = Modifier.size(16.dp)) }
+            ) {
+              ZText("浏览")
             }
           }
 
@@ -96,13 +100,15 @@ fun SpeechToTextTool() {
               modifier = Modifier.weight(1f)
             )
             Spacer(modifier = Modifier.width(8.dp))
-            ZButton(type = ZColorType.PRIMARY, onClick = {
-              val path = FilePickerUtil.pickFile("选择音频", listOf("wav"))
-              if (path != null) viewModel.audioPath = path
-            }) {
-              Icon(FeatherIcons.File, null, modifier = Modifier.size(16.dp))
-              Spacer(Modifier.width(4.dp))
-              Text("选择音频")
+            ZButton(
+              type = ZColorType.PRIMARY,
+              onClick = {
+                val path = FilePickerUtil.pickFile("选择音频", listOf("wav"))
+                if (path != null) viewModel.audioPath = path
+              },
+              icon = { Icon(FeatherIcons.File, null, modifier = Modifier.size(16.dp)) }
+            ) {
+              ZText("选择音频")
             }
           }
 
@@ -111,15 +117,14 @@ fun SpeechToTextTool() {
             ZButton(
               type = ZColorType.PRIMARY,
               enabled = !viewModel.isConverting,
-              onClick = { viewModel.convert() }
+              onClick = { viewModel.convert() },
+              icon = { Icon(FeatherIcons.Play, null, modifier = Modifier.size(16.dp)) }
             ) {
-              Icon(FeatherIcons.Play, null, modifier = Modifier.size(16.dp))
-              Spacer(Modifier.width(4.dp))
-              Text(if (viewModel.isConverting) "转换中..." else "开始转换")
+              ZText(if (viewModel.isConverting) "转换中..." else "开始转换")
             }
 
             Spacer(Modifier.width(10.dp))
-            Text(viewModel.progressInfo, style = MaterialTheme.typography.caption)
+            ZText(viewModel.progressInfo, style = MaterialTheme.typography.caption)
           }
         }
       }
@@ -128,7 +133,7 @@ fun SpeechToTextTool() {
       ZCard(shadow = ZCardShadow.NEVER, modifier = Modifier.fillMaxWidth()) {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
           // 【修改点1】加大加粗标题
-          ZText("转换结果", style = MaterialTheme.typography.h3, fontWeight = FontWeight.Bold)
+          ZText("转换结果", fontWeight = FontWeight.Bold)
 
           ZTextField(
             value = viewModel.resultText,
@@ -143,7 +148,7 @@ fun SpeechToTextTool() {
       // ==================== 简介 ====================
       ZCard(shadow = ZCardShadow.NEVER, modifier = Modifier.fillMaxWidth()) {
         // 【修改点1】加大加粗标题
-        ZText("说明", style = MaterialTheme.typography.h3, fontWeight = FontWeight.Bold)
+        ZText("说明", fontWeight = FontWeight.Bold)
         ZParagraph("基于 Sherpa-ONNX 引擎和 SenseVoiceSmall 模型。", indent = false)
         ZParagraph("请确保音频文件为 16kHz 采样率、16-bit 单声道的 WAV 格式。", indent = false)
         ZParagraph("你需要从 ModelScope 或 GitHub 下载对应的 ONNX 模型文件并解压到本地。", indent = false)
