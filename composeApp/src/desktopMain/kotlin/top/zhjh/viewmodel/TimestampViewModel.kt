@@ -11,37 +11,100 @@ import top.csaf.awt.ClipboardUtil
 import top.csaf.date.DateUtil
 import top.csaf.lang.StrUtil
 import top.zhjh.common.composable.ToastManager
-import java.util.*
+import java.util.TimeZone
 
+/**
+ * 时间戳工具页的状态与业务逻辑中心。
+ *
+ * 设计目标：
+ * 1. 将“时间转换规则、单位切换规则、错误处理”集中在 ViewModel，避免 UI 层散落业务逻辑。
+ * 2. 对外暴露稳定的状态字段与函数，便于 Composable 简洁调用。
+ * 3. 所有字段使用 Compose State（mutableStateOf），确保状态变化能驱动界面自动重组。
+ */
 class TimestampViewModel : ViewModel() {
 
-  // ==================== 状态区域 (State) ====================
+  // ==================== 卡片一：当前时间戳 ====================
 
-  // 1. 【卡片一】当前时间戳
+  /**
+   * 当前时间戳展示单位：
+   * - false：秒
+   * - true ：毫秒
+   */
   var isMilliByCurrent by mutableStateOf(false)
+
+  /**
+   * 当前时间戳值（随时钟定时刷新）。
+   * 对外只读，防止 UI 层误写导致数据不一致。
+   */
   var currentTimestamp by mutableStateOf(DateUtil.nowEpochSecond())
     private set
 
-  // 2. 【卡片二】时间戳 -> 日期时间
-  var toDatetimeTimestamp by mutableStateOf(currentTimestamp) // 输入：时间戳
-  var isMilliToDatetime by mutableStateOf(false)              // 状态：是否毫秒
-  var toDatetimeResult by mutableStateOf("")                  // 输出：日期时间字符串
+  // ==================== 卡片二：时间戳 -> 日期时间 ====================
+
+  /**
+   * 输入的时间戳（数字）。
+   * 默认使用 currentTimestamp 作为初始值，降低用户首次使用成本。
+   */
+  var toDatetimeTimestamp by mutableStateOf(currentTimestamp)
+
+  /**
+   * 输入时间戳单位：
+   * - false：秒级输入
+   * - true ：毫秒级输入
+   */
+  var isMilliToDatetime by mutableStateOf(false)
+
+  /**
+   * 转换后的日期时间字符串输出。
+   */
+  var toDatetimeResult by mutableStateOf("")
+
+  /**
+   * “时间戳 -> 日期时间”链路使用的时区 ID（如 Asia/Shanghai）。
+   */
   var selectedTimezoneToDatetime by mutableStateOf(TimeZone.getDefault().id)
 
-  // 3. 【卡片三】日期时间 -> 时间戳
-  var toTimestampDatetimeInput by mutableStateOf("")          // 输入：日期时间字符串
-  var isMilliToTimestamp by mutableStateOf(false)             // 状态：是否毫秒
-  var toTimestampResult by mutableStateOf("")                 // 输出：时间戳
+  // ==================== 卡片三：日期时间 -> 时间戳 ====================
+
+  /**
+   * 待解析的日期时间字符串输入。
+   */
+  var toTimestampDatetimeInput by mutableStateOf("")
+
+  /**
+   * 输出时间戳单位：
+   * - false：输出秒级
+   * - true ：输出毫秒级
+   */
+  var isMilliToTimestamp by mutableStateOf(false)
+
+  /**
+   * 解析结果（时间戳字符串）。
+   * 采用 String 是为了与输入框绑定更直接，避免 UI 层频繁做 Long/String 转换。
+   */
+  var toTimestampResult by mutableStateOf("")
+
+  /**
+   * “日期时间 -> 时间戳”链路使用的时区 ID。
+   */
   var selectedTimezoneToTimestamp by mutableStateOf(TimeZone.getDefault().id)
-
-
-  // ==================== 逻辑区域 (Logic) ====================
 
   init {
     startClock()
   }
 
-  // --- 内部逻辑 ---
+  // ==================== 内部时钟刷新逻辑 ====================
+
+  /**
+   * 启动一个循环任务，按当前单位刷新 [currentTimestamp]。
+   *
+   * 刷新频率策略：
+   * - 毫秒模式：100ms 刷新一次，平衡“实时感”与“重组开销”。
+   * - 秒模式：1000ms 刷新一次，避免无意义高频更新。
+   *
+   * 说明：
+   * 该协程运行在 viewModelScope 内，ViewModel 销毁时会自动取消，无需手动清理。
+   */
   private fun startClock() {
     viewModelScope.launch {
       while (true) {
@@ -50,20 +113,27 @@ class TimestampViewModel : ViewModel() {
         } else {
           DateUtil.nowEpochSecond()
         }
-        // 根据单位动态调整刷新频率
         delay(if (isMilliByCurrent) 100 else 1000)
       }
     }
   }
 
-  // --- 卡片一：当前时间戳逻辑 ---
+  // ==================== 卡片一行为 ====================
 
+  /**
+   * 切换当前时间戳显示单位（秒 <-> 毫秒）。
+   *
+   * 切换后立即刷新一次 currentTimestamp，
+   * 避免必须等待下一轮 delay 才看到变化。
+   */
   fun toggleCurrentMilli() {
     isMilliByCurrent = !isMilliByCurrent
-    // 切换后立即更新一次数值，避免等待 delay 造成的视觉延迟
     currentTimestamp = if (isMilliByCurrent) DateUtil.nowEpochMilli() else DateUtil.nowEpochSecond()
   }
 
+  /**
+   * 复制当前时间戳到系统剪贴板，并给出操作反馈。
+   */
   fun copyCurrentTimestamp() {
     if (ClipboardUtil.set(currentTimestamp)) {
       ToastManager.success("复制成功")
@@ -72,43 +142,86 @@ class TimestampViewModel : ViewModel() {
     }
   }
 
-  // --- 卡片二：时间戳转日期逻辑 ---
+  // ==================== 卡片二行为：时间戳 -> 日期时间 ====================
 
-  // 转换执行
+  /**
+   * 执行“时间戳 -> 日期时间”转换。
+   *
+   * 处理步骤：
+   * 1. 根据 [isMilliToDatetime] 判断输入是秒还是毫秒。
+   * 2. 如果输入是秒，则统一放大到毫秒再格式化。
+   * 3. 使用 [selectedTimezoneToDatetime] 对应时区输出目标文本。
+   */
   fun convertTimestampToDatetime() {
-    val timestamp = toDatetimeTimestamp ?: return
-    // 如果当前是秒级，转为毫秒处理
-    val finalTimestamp = if (!isMilliToDatetime) timestamp * 1000 else timestamp
+    val finalTimestamp = if (!isMilliToDatetime) {
+      toDatetimeTimestamp * 1000
+    } else {
+      toDatetimeTimestamp
+    }
 
     try {
-      // 使用您指正后的正确写法
       toDatetimeResult = DateUtil.format(
         finalTimestamp,
         TimeZone.getTimeZone(selectedTimezoneToDatetime).toZoneId()
       )
-    } catch (e: Exception) {
+    } catch (_: Exception) {
       ToastManager.error("时间戳格式错误")
     }
   }
 
-  // 切换秒/毫秒（带数值自动换算）
+  /**
+   * 切换“时间戳输入单位”（秒 <-> 毫秒）。
+   *
+   * 关键点：
+   * - 该切换作用于“输入值解释方式”，不是只改显示文案。
+   * - 为了保持“表示同一时刻”，切换时会自动乘/除 1000。
+   */
   fun toggleTimestampToDatetimeMilli() {
     isMilliToDatetime = !isMilliToDatetime
-    // 切换单位时，自动乘除 1000，保持时间点一致
-    if (isMilliToDatetime) {
-      toDatetimeTimestamp = (toDatetimeTimestamp ?: 0) * 1000
+    toDatetimeTimestamp = if (isMilliToDatetime) {
+      toDatetimeTimestamp * 1000
     } else {
-      toDatetimeTimestamp = (toDatetimeTimestamp ?: 0) / 1000
+      toDatetimeTimestamp / 1000
     }
   }
 
-  // --- 卡片三：日期转时间戳逻辑 ---
+  /**
+   * 将“时间戳 -> 日期时间”区域的输入与输出都设置为当前时刻。
+   *
+   * 规则：
+   * - 输入框 toDatetimeTimestamp 按当前单位（秒/毫秒）写入。
+   * - 输出框 toDatetimeResult 按当前选择时区格式化。
+   */
+  fun useNowForTimestampToDatetime() {
+    val nowMillis = DateUtil.nowEpochMilli()
+    toDatetimeTimestamp = if (isMilliToDatetime) {
+      nowMillis
+    } else {
+      nowMillis / 1000
+    }
 
-  // 转换执行（返回 Boolean 供 UI 判断是否需要执行后续逻辑）
+    toDatetimeResult = DateUtil.format(
+      nowMillis,
+      TimeZone.getTimeZone(selectedTimezoneToDatetime).toZoneId()
+    )
+  }
+
+  // ==================== 卡片三行为：日期时间 -> 时间戳 ====================
+
+  /**
+   * 执行“日期时间 -> 时间戳”转换。
+   *
+   * @return true 表示转换成功，false 表示失败（空输入或解析异常）。
+   *
+   * 说明：
+   * - 输入为空时直接返回 false，不弹错，避免打断用户输入过程。
+   * - 解析失败时清空输出并 toast 提示。
+   */
   fun convertDatetimeToTimestamp(): Boolean {
     if (StrUtil.isBlank(toTimestampDatetimeInput)) {
       return false
     }
+
     return try {
       val zoneId = TimeZone.getTimeZone(selectedTimezoneToTimestamp).toZoneId()
       toTimestampResult = if (isMilliToTimestamp) {
@@ -117,21 +230,43 @@ class TimestampViewModel : ViewModel() {
         DateUtil.toEpochSecond(toTimestampDatetimeInput, zoneId).toString()
       }
       true
-    } catch (e: Exception) {
+    } catch (_: Exception) {
       ToastManager.error("日期时间转换错误")
       toTimestampResult = ""
       false
     }
   }
 
-  // 切换秒/毫秒
+  /**
+   * 切换“日期时间 -> 时间戳”输出单位（秒 <-> 毫秒）。
+   *
+   * 行为约定：
+   * - 仅切换状态不直接报错。
+   * - 若输入框当前有内容，则自动触发一次重算，保证结果立即与新单位一致。
+   */
   fun toggleDatetimeToTimestampMilli() {
-    // 1. 先切换状态
     isMilliToTimestamp = !isMilliToTimestamp
-
-    // 2. 如果输入框有内容，立即根据【新状态】重新计算结果
     if (StrUtil.isNotBlank(toTimestampDatetimeInput)) {
       convertDatetimeToTimestamp()
+    }
+  }
+
+  /**
+   * 将“日期时间 -> 时间戳”区域的输入与输出都设置为当前时刻。
+   *
+   * 规则：
+   * - 输入框 toTimestampDatetimeInput 以当前选择时区格式化当前时间。
+   * - 输出框 toTimestampResult 按当前单位（秒/毫秒）写入。
+   */
+  fun useNowForDatetimeToTimestamp() {
+    val nowMillis = DateUtil.nowEpochMilli()
+    val zoneId = TimeZone.getTimeZone(selectedTimezoneToTimestamp).toZoneId()
+
+    toTimestampDatetimeInput = DateUtil.format(nowMillis, zoneId)
+    toTimestampResult = if (isMilliToTimestamp) {
+      nowMillis.toString()
+    } else {
+      (nowMillis / 1000).toString()
     }
   }
 }

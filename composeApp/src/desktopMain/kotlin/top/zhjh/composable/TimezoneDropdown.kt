@@ -6,24 +6,48 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import top.zhjh.zui.composable.ZDropdownMenu
-import java.util.*
+import java.util.TimeZone
 
+/**
+ * 时区下拉选择组件。
+ *
+ * 职责边界：
+ * - 仅负责“展示可选时区 + 透传选中事件”。
+ * - 不包含业务转换逻辑，转换由调用方（通常是 ViewModel）处理。
+ *
+ * @param selectedTimezone 当前已选时区 ID，例如 `Asia/Shanghai`。
+ * @param onTimezoneSelected 选中回调，返回用户新选中的时区 ID。
+ */
 @Composable
 fun TimezoneDropdown(
-  // 当前选中的时区
   selectedTimezone: String,
-  // 时区变化时的回调函数
   onTimezoneSelected: (String) -> Unit
 ) {
-  // 获取所有可用的时区ID
-  val timezones = remember { TimeZone.getAvailableIDs().sortedArray().toList() }
+  /**
+   * 读取并缓存系统可用时区列表。
+   *
+   * 为什么使用 remember：
+   * - TimeZone.getAvailableIDs() 结果在运行时基本稳定；
+   * - 若每次重组都重新构建列表，会增加不必要的分配与排序开销。
+   */
+  val timezones = remember {
+    TimeZone.getAvailableIDs()
+      .sortedArray()
+      .toList()
+  }
 
-  // 使用ZDropdownMenu替代原来的实现
+  /**
+   * 使用统一的 ZUI 下拉组件，保持项目交互与视觉一致。
+   *
+   * 宽度固定为 220.dp 的考虑：
+   * - 大多数常见时区字符串可完整展示（如 America/Los_Angeles）；
+   * - 不会因内容长度变化引发布局抖动。
+   */
   ZDropdownMenu(
     options = timezones,
     defaultSelectedOption = selectedTimezone,
     onOptionSelected = onTimezoneSelected,
     placeholder = "请选择时区",
-    modifier = Modifier.width(220.dp) // 保持原来的宽度
+    modifier = Modifier.width(220.dp)
   )
 }
