@@ -12,6 +12,7 @@ enum class ToolItem(val toolName: String, val category: ToolCategory) {
   // 常用
   TIMESTAMP("时间戳", ToolCategory.COMMON),
   JSON("JSON", ToolCategory.COMMON),
+  UUID("UUID 生成", ToolCategory.COMMON),
 
   // AI
   SPEECH_TO_TEXT("语音转文本", ToolCategory.AI)

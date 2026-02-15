@@ -8,6 +8,7 @@ fun ToolContent(toolName: ToolItem) {
   when (toolName) {
     ToolItem.TIMESTAMP -> TimestampTool()
     ToolItem.JSON -> JsonTool()
+    ToolItem.UUID -> UuidTool()
     ToolItem.SPEECH_TO_TEXT -> SpeechToTextTool()
   }
 }

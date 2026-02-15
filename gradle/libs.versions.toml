@@ -7,7 +7,7 @@ junit = "4.13.2"
 androidx-lifecycle = "2.9.0"
 kotlinx-coroutines = "1.10.1"
 devsrsouza-compose-icons = "1.1.1"
-zutil = "2.0.0-beta3"
+zutil = "2.0.0-beta4"
 commons-compress = "1.26.1"
 
 [libraries]
@@ -27,6 +27,7 @@ kotlinx-coroutines-swing = { group = "org.jetbrains.kotlinx", name = "kotlinx-co
 icons-feather = { module = "br.com.devsrsouza.compose.icons:feather", version.ref = "devsrsouza-compose-icons" }
 icons-simple = { module = "br.com.devsrsouza.compose.icons:simple-icons", version.ref = "devsrsouza-compose-icons" }
 zutil-all = { module = "top.csaf:zutil-all", version.ref = "zutil" }
+zutil-id = { module = "top.csaf:zutil-id", version.ref = "zutil" }
 zutil-awt = { module = "top.csaf:zutil-awt", version.ref = "zutil" }
 commons-compress = { module = "org.apache.commons:commons-compress", version.ref = "commons-compress" }
 

@@ -34,6 +34,7 @@ kotlin {
       implementation(libs.icons.feather)
       implementation(libs.icons.simple)
       implementation(libs.zutil.all)
+      implementation(libs.zutil.id)
       implementation(libs.zutil.awt)
       implementation(libs.commons.compress)
 
