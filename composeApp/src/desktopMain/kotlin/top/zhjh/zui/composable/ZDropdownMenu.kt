@@ -20,6 +20,10 @@ fun ZDropdownMenu(
   // 字体大小，默认 14.sp
   fontSize: TextUnit = 12.sp,
   modifier: Modifier = Modifier,
+  size: ZFormSize? = null,
+  // 受控值。非 null 时，组件显示由外部状态完全控制。
+  value: String? = null,
+  // 非受控模式下的初始值（兼容旧调用）。
   defaultSelectedOption: String? = null,
   onOptionSelected: (String) -> Unit = {},
   placeholder: String = "请选择"
@@ -31,13 +35,26 @@ fun ZDropdownMenu(
   )
 
   var expanded by remember { mutableStateOf(false) }
-  var selectedOption by remember { mutableStateOf(defaultSelectedOption ?: "") }
+
+  // 非受控模式内部状态；受控模式下不会使用该状态作为最终显示值。
+  var internalSelectedOption by remember { mutableStateOf(defaultSelectedOption ?: "") }
+
+  // 当外部默认值变化且当前是非受控模式时，同步内部状态，避免与 ViewModel 脱节。
+  LaunchedEffect(defaultSelectedOption, value) {
+    if (value == null) {
+      internalSelectedOption = defaultSelectedOption ?: ""
+    }
+  }
+
+  val selectedOption = value ?: internalSelectedOption
+  val resolvedSize = size ?: LocalZFormSize.current
 
   ExposedDropdownMenuBox(
     expanded = expanded,
     onExpandedChange = { expanded = !expanded }
   ) {
     ZTextField(
+      size = resolvedSize,
       value = selectedOption,
       onValueChange = {},
       readOnly = true,
@@ -64,7 +81,9 @@ fun ZDropdownMenu(
       options.forEach { option ->
         DropdownMenuItem(
           onClick = {
-            selectedOption = option
+            if (value == null) {
+              internalSelectedOption = option
+            }
             expanded = false
             onOptionSelected(option)
           },

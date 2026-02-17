@@ -188,11 +188,6 @@ object ZCardDefaults {
   val ShadowSpread = 0.dp
 
   /**
-   * 点光源阴影颜色 rgba(0, 0, 0, 0.12)
-   */
-  val ShadowOuterPadding = ShadowRadius + ShadowSpread
-
-  /**
    * 阴影偏移
    */
   val ShadowOffset = DpOffset(0.dp, 0.dp)

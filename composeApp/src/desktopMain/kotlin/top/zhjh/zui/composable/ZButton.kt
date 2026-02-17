@@ -40,6 +40,7 @@ import top.zhjh.zui.theme.isAppInDarkTheme
 fun ZButton(
   onClick: () -> Unit,
   modifier: Modifier = Modifier,
+  size: ZFormSize? = null,
   type: ZColorType = DEFAULT,
   icon: @Composable (() -> Unit)? = null,
   contentPadding: PaddingValues = ZButtonDefaults.ContentPadding,
@@ -50,6 +51,10 @@ fun ZButton(
   enabled: Boolean = true,
   content: @Composable (RowScope.() -> Unit)? = null,
 ) {
+  // 表单场景中优先继承 ZForm 尺寸；普通场景保持默认按钮高度。
+  val resolvedSize = size ?: LocalZFormSize.current
+  val minHeight = ZFormDefaults.resolveControlHeight(resolvedSize, ZButtonDefaults.MinHeight)
+
   // 圆角半径
   val shape = when {
     round -> RoundedCornerShape(50) // 圆角按钮（左右两端为半圆）
@@ -77,7 +82,7 @@ fun ZButton(
         .border(BorderStroke(1.dp, buttonStyle.borderColor), shape)
           // 按钮启用时添加点击事件
         .then(if (enabled) Modifier.clickable(onClick = onClick) else Modifier)
-        .defaultMinSize(minHeight = ZButtonDefaults.MinHeight)
+        .defaultMinSize(minHeight = minHeight)
         .then(modifier)
     ) {
       ZButtonContent(
@@ -94,7 +99,7 @@ fun ZButton(
       modifier = Modifier
           // 按钮启用时添加点击事件
         .then(if (enabled) Modifier.clickable(onClick = onClick) else Modifier)
-        .defaultMinSize(minHeight = ZButtonDefaults.MinHeight)
+        .defaultMinSize(minHeight = minHeight)
         .then(modifier)
     ) {
       // 使用Canvas绘制圆形

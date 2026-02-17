@@ -91,6 +91,7 @@ fun ZTextField(
   value: String,
   onValueChange: (String) -> Unit,
   modifier: Modifier = Modifier,
+  size: ZFormSize? = null,
   type: ZTextFieldType = ZTextFieldType.TEXT,
   enabled: Boolean = true,
   readOnly: Boolean = false,
@@ -110,6 +111,10 @@ fun ZTextField(
   onMouseWheel: ((Float) -> Unit)? = null,
   onFocusChanged: ((Boolean) -> Unit)? = null,
 ) {
+  // 表单场景中优先使用 ZForm 传入的尺寸上下文；非表单场景保持原默认高度。
+  val resolvedSize = size ?: LocalZFormSize.current
+  val minHeight = ZFormDefaults.resolveControlHeight(resolvedSize, ZTextFieldDefaults.MinHeight)
+
   // 圆角半径
   val shape = ZTextFieldDefaults.Shape
   // 判断是否为暗黑模式
@@ -196,14 +201,14 @@ fun ZTextField(
       // 边框，聚焦时修改边框颜色
       .border(width = 1.dp, color = textFieldStyle.borderColor, shape = shape)
       // 最小高度
-      .defaultMinSize(minHeight = ZTextFieldDefaults.MinHeight)
+      .defaultMinSize(minHeight = minHeight)
       .onGloballyPositioned { coordinates ->
         currentHeightPx = coordinates.size.height.toFloat()
       }
       .then(
         // 必须是 TEXTAREA 且 开启了 resize，且 dragHeight 有值时才应用高度
         if (isTextarea && resize && dragHeight != null) Modifier.height(dragHeight!!)
-        else Modifier.defaultMinSize(minHeight = ZTextFieldDefaults.MinHeight)
+        else Modifier.defaultMinSize(minHeight = minHeight)
       )
       .then(
         if (onMouseWheel != null) {
@@ -318,7 +323,7 @@ fun ZTextField(
                     // 计算新高度 = 当前高度 + 拖拽垂直距离
                     val currentDp = dragHeight ?: with(density) { currentHeightPx.toDp() }
                     val deltaDp = with(density) { dragAmount.y.toDp() }
-                    val newHeight = (currentDp + deltaDp).coerceAtLeast(ZTextFieldDefaults.MinHeight)
+                    val newHeight = (currentDp + deltaDp).coerceAtLeast(minHeight)
 
                     dragHeight = newHeight
                   }
@@ -328,16 +333,16 @@ fun ZTextField(
             // 绘制第一条线（较短）
             drawLine(
               color = iconColor,
-              start = androidx.compose.ui.geometry.Offset(size.width, size.height * 0.5f),
-              end = androidx.compose.ui.geometry.Offset(size.width * 0.5f, size.height),
+              start = androidx.compose.ui.geometry.Offset(this.size.width, this.size.height * 0.5f),
+              end = androidx.compose.ui.geometry.Offset(this.size.width * 0.5f, this.size.height),
               strokeWidth = 1.dp.toPx(),
               cap = StrokeCap.Round
             )
             // 绘制第二条线（较长，在左上方）
             drawLine(
               color = iconColor,
-              start = androidx.compose.ui.geometry.Offset(size.width, 0f),
-              end = androidx.compose.ui.geometry.Offset(0f, size.height),
+              start = androidx.compose.ui.geometry.Offset(this.size.width, 0f),
+              end = androidx.compose.ui.geometry.Offset(0f, this.size.height),
               strokeWidth = 1.dp.toPx(),
               cap = StrokeCap.Round
             )
