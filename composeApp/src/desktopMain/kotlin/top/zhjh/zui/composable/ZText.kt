@@ -54,6 +54,8 @@ enum class ZTextSize {
  * @param modifier 修饰符，用于布局、间距、点击等能力组合。
  * @param type 语义类型（默认、主色、成功、信息、警告、危险）。
  * @param size 文本尺寸（Large / Default / Small）。仅在未显式传入 `fontSize` 时生效。
+ * @param truncated 是否启用单行省略（文本超出宽度时展示省略符 `...`）。
+ * @param lineClamp 多行截断行数。大于 0 时启用多行省略并展示省略符。
  * @param color 显式文本颜色；传入时会覆盖 `type` 自动颜色策略。
  * @param fontSize 字号。
  * @param fontStyle 字体样式（例如斜体）。
@@ -76,6 +78,8 @@ fun _ZTextImpl(
   modifier: Modifier = Modifier,
   type: ZColorType = ZColorType.DEFAULT,
   size: ZTextSize = ZTextSize.Default,
+  truncated: Boolean = false,
+  lineClamp: Int = 0,
   color: Color = Color.Unspecified,
   fontSize: TextUnit = TextUnit.Unspecified,
   fontStyle: FontStyle? = null,
@@ -115,6 +119,8 @@ fun _ZTextImpl(
     ZTextSize.Default -> 14.sp
     ZTextSize.Small -> 12.sp
   }
+  val normalizedLineClamp = lineClamp.coerceAtLeast(0)
+  val hasLineClamp = normalizedLineClamp > 0
 
   // 查找当前 style 是否命中标题样式。
   val headingIndex = headingStyles.indexOfFirst { it == style }
@@ -152,6 +158,22 @@ fun _ZTextImpl(
   } else {
     getZTextTypeColor(type = type, isDarkTheme = isDarkTheme)
   }
+  val resolvedOverflow = if (truncated || hasLineClamp) {
+    TextOverflow.Ellipsis
+  } else {
+    overflow
+  }
+  val resolvedSoftWrap = when {
+    hasLineClamp -> true
+    truncated -> false
+    else -> softWrap
+  }
+  val resolvedMaxLines = when {
+    hasLineClamp -> normalizedLineClamp
+    truncated -> 1
+    else -> maxLines
+  }
+  val resolvedMinLines = if (truncated || hasLineClamp) 1 else minLines
 
   Text(
     text = text,
@@ -165,10 +187,10 @@ fun _ZTextImpl(
     textDecoration = textDecoration,
     textAlign = textAlign,
     lineHeight = lineHeight,
-    overflow = overflow,
-    softWrap = softWrap,
-    maxLines = maxLines,
-    minLines = minLines,
+    overflow = resolvedOverflow,
+    softWrap = resolvedSoftWrap,
+    maxLines = resolvedMaxLines,
+    minLines = resolvedMinLines,
     onTextLayout = onTextLayout,
     style = finalStyle
   )
@@ -186,6 +208,8 @@ fun ZText(
   modifier: Modifier = Modifier,
   type: ZColorType = ZColorType.DEFAULT,
   size: ZTextSize = ZTextSize.Default,
+  truncated: Boolean = false,
+  lineClamp: Int = 0,
   color: Color = Color.Unspecified,
   fontSize: TextUnit = TextUnit.Unspecified,
   fontStyle: FontStyle? = null,
@@ -207,6 +231,8 @@ fun ZText(
     modifier = modifier,
     type = type,
     size = size,
+    truncated = truncated,
+    lineClamp = lineClamp,
     color = color,
     fontSize = fontSize,
     fontStyle = fontStyle,
@@ -237,6 +263,8 @@ fun ZText(
   modifier: Modifier = Modifier,
   type: ZColorType = ZColorType.DEFAULT,
   size: ZTextSize = ZTextSize.Default,
+  truncated: Boolean = false,
+  lineClamp: Int = 0,
   color: Color = Color.Unspecified,
   fontSize: TextUnit = TextUnit.Unspecified,
   fontStyle: FontStyle? = null,
@@ -258,6 +286,8 @@ fun ZText(
     modifier = modifier,
     type = type,
     size = size,
+    truncated = truncated,
+    lineClamp = lineClamp,
     color = color,
     fontSize = fontSize,
     fontStyle = fontStyle,

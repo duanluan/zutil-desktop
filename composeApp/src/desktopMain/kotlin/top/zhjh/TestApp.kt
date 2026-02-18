@@ -148,6 +148,24 @@ private fun ZuiComponentDemoContent(
           ZText("Small", size = ZTextSize.Small)
         }
 
+        ZText(
+          text = "truncated 示例：这是一段超长文本，当容器宽度不足时会显示省略号而不是换行。",
+          truncated = true,
+          modifier = Modifier
+            .width(350.dp)
+            // .border(1.dp, MaterialTheme.colors.primary)
+            // .padding(4.dp)
+        )
+
+        ZText(
+          text = "lineClamp 示例：这是一段用于演示多行省略的文本内容。设置 lineClamp 为 2 后，超过两行的部分会被截断，并在末尾显示省略号。",
+          lineClamp = 2,
+          modifier = Modifier
+            .width(350.dp)
+            // .border(1.dp, MaterialTheme.colors.primary)
+            // .padding(4.dp)
+        )
+
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
           ZText("H1", style = MaterialTheme.typography.h1, modifier = Modifier.border(1.dp, MaterialTheme.colors.primary))
           ZText("H2", style = MaterialTheme.typography.h2, modifier = Modifier.border(1.dp, MaterialTheme.colors.primary))
