@@ -142,6 +142,12 @@ private fun ZuiComponentDemoContent(
           ZText("Danger", type = ZColorType.DANGER)
         }
 
+        Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
+          ZText("Large", size = ZTextSize.Large)
+          ZText("Default", size = ZTextSize.Default)
+          ZText("Small", size = ZTextSize.Small)
+        }
+
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
           ZText("H1", style = MaterialTheme.typography.h1, modifier = Modifier.border(1.dp, MaterialTheme.colors.primary))
           ZText("H2", style = MaterialTheme.typography.h2, modifier = Modifier.border(1.dp, MaterialTheme.colors.primary))

@@ -23,6 +23,20 @@ import top.zhjh.zui.enums.ZColorType
 import top.zhjh.zui.theme.isAppInDarkTheme
 
 /**
+ * ZText 文本尺寸枚举。
+ *
+ * 对齐约定：
+ * - Large: 16sp
+ * - Default: 14sp
+ * - Small: 12sp
+ */
+enum class ZTextSize {
+  Large,
+  Default,
+  Small
+}
+
+/**
  * ZText 的底层实现函数。
  *
  * 这个函数集中处理三件核心事情：
@@ -39,6 +53,7 @@ import top.zhjh.zui.theme.isAppInDarkTheme
  * @param text 文本内容，使用 `AnnotatedString` 以支持富文本样式。
  * @param modifier 修饰符，用于布局、间距、点击等能力组合。
  * @param type 语义类型（默认、主色、成功、信息、警告、危险）。
+ * @param size 文本尺寸（Large / Default / Small）。仅在未显式传入 `fontSize` 时生效。
  * @param color 显式文本颜色；传入时会覆盖 `type` 自动颜色策略。
  * @param fontSize 字号。
  * @param fontStyle 字体样式（例如斜体）。
@@ -60,6 +75,7 @@ fun _ZTextImpl(
   text: AnnotatedString,
   modifier: Modifier = Modifier,
   type: ZColorType = ZColorType.DEFAULT,
+  size: ZTextSize = ZTextSize.Default,
   color: Color = Color.Unspecified,
   fontSize: TextUnit = TextUnit.Unspecified,
   fontStyle: FontStyle? = null,
@@ -94,20 +110,26 @@ fun _ZTextImpl(
   // - 间距映射：为标题添加上下呼吸感，提升层级辨识度。
   val headingFontSizes = listOf(34.sp, 26.sp, 22.sp, 16.sp, 14.sp, 10.sp)
   val headingPaddings = listOf(23.dp, 21.dp, 19.dp, 23.dp, 24.dp, 28.dp)
+  val sizeFontSize = when (size) {
+    ZTextSize.Large -> 16.sp
+    ZTextSize.Default -> 14.sp
+    ZTextSize.Small -> 12.sp
+  }
 
   // 查找当前 style 是否命中标题样式。
   val headingIndex = headingStyles.indexOfFirst { it == style }
 
   // 最终样式：
   // - 命中标题时，统一替换为“组件定义字号 + Bold”；
-  // - 非标题场景，完全沿用调用方 style。
-  val finalStyle = if (headingIndex != -1) {
-    TextStyle(
+  // - 非标题场景且未显式传 fontSize 时，使用 size 对应字号；
+  // - 其他场景沿用调用方 style（显式 fontSize 由 Text 参数本身生效）。
+  val finalStyle = when {
+    headingIndex != -1 -> TextStyle(
       fontSize = headingFontSizes[headingIndex],
       fontWeight = FontWeight.Bold
     )
-  } else {
-    style
+    fontSize == TextUnit.Unspecified -> style.copy(fontSize = sizeFontSize)
+    else -> style
   }
 
   // 最终修饰符：
@@ -163,6 +185,7 @@ fun ZText(
   text: AnnotatedString,
   modifier: Modifier = Modifier,
   type: ZColorType = ZColorType.DEFAULT,
+  size: ZTextSize = ZTextSize.Default,
   color: Color = Color.Unspecified,
   fontSize: TextUnit = TextUnit.Unspecified,
   fontStyle: FontStyle? = null,
@@ -183,6 +206,7 @@ fun ZText(
     text = text,
     modifier = modifier,
     type = type,
+    size = size,
     color = color,
     fontSize = fontSize,
     fontStyle = fontStyle,
@@ -212,6 +236,7 @@ fun ZText(
   text: String,
   modifier: Modifier = Modifier,
   type: ZColorType = ZColorType.DEFAULT,
+  size: ZTextSize = ZTextSize.Default,
   color: Color = Color.Unspecified,
   fontSize: TextUnit = TextUnit.Unspecified,
   fontStyle: FontStyle? = null,
@@ -232,6 +257,7 @@ fun ZText(
     text = AnnotatedString(text),
     modifier = modifier,
     type = type,
+    size = size,
     color = color,
     fontSize = fontSize,
     fontStyle = fontStyle,
