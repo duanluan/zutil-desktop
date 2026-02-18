@@ -1,0 +1,4 @@
+# Normalize text files in the repository and ignore platform-specific EOL differences.
+* text=auto
+*.bat text eol=crlf
+*.cmd text eol=crlf
