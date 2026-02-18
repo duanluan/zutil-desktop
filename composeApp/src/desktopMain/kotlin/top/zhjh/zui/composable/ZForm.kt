@@ -222,7 +222,13 @@ class ZFormState {
 
   fun validate(): Boolean {
     if (fields.isEmpty()) return true
-    return fields.values.all { it.validate(ZFormValidateTrigger.SUBMIT) }
+    var valid = true
+    fields.values.forEach { controller ->
+      if (!controller.validate(ZFormValidateTrigger.SUBMIT)) {
+        valid = false
+      }
+    }
+    return valid
   }
 
   fun validateField(prop: String, trigger: ZFormValidateTrigger = ZFormValidateTrigger.SUBMIT): Boolean {
@@ -232,7 +238,13 @@ class ZFormState {
 
   fun validateFields(props: Collection<String>, trigger: ZFormValidateTrigger = ZFormValidateTrigger.SUBMIT): Boolean {
     if (props.isEmpty()) return true
-    return props.all { validateField(it, trigger) }
+    var valid = true
+    props.forEach { prop ->
+      if (!validateField(prop, trigger)) {
+        valid = false
+      }
+    }
+    return valid
   }
 
   fun clearValidate(vararg props: String) {
@@ -407,6 +419,7 @@ fun ZFormItem(
     errorMessage = null
     status = ZFormValidateStatus.NONE
     hasValidatedOnce = false
+    hasObservedValue = false
   }
 
   fun validateInternal(trigger: ZFormValidateTrigger): Boolean {
@@ -544,10 +557,15 @@ private fun ZFormItemLabel(
   textAlign: TextAlign,
   modifier: Modifier = Modifier
 ) {
+  val labelArrangement = when (textAlign) {
+    TextAlign.Right, TextAlign.End -> Arrangement.End
+    else -> Arrangement.Start
+  }
+
   Row(
     modifier = modifier,
     verticalAlignment = Alignment.CenterVertically,
-    horizontalArrangement = Arrangement.End
+    horizontalArrangement = labelArrangement
   ) {
     if (required) {
       ZText("*", color = ZFormDefaults.RequiredMarkColor, fontSize = 12.sp)
@@ -555,8 +573,7 @@ private fun ZFormItemLabel(
     }
     ZText(
       text = label,
-      textAlign = textAlign,
-      modifier = Modifier.fillMaxWidth()
+      textAlign = textAlign
     )
   }
 }
