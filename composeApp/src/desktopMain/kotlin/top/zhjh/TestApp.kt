@@ -86,6 +86,9 @@ private fun ZuiComponentDemoContent(
   var email by remember { mutableStateOf("") }
   var password by remember { mutableStateOf("") }
   var confirmPassword by remember { mutableStateOf("") }
+  var radioStringValue by remember { mutableStateOf("option1") }
+  var radioNumberValue by remember { mutableStateOf(1) }
+  var radioBooleanValue by remember { mutableStateOf(true) }
 
   val formState = rememberZFormState()
   val formModel = remember(username, email, password, confirmPassword) {
@@ -192,6 +195,94 @@ private fun ZuiComponentDemoContent(
           ZText("H4", style = MaterialTheme.typography.h4, modifier = Modifier.border(1.dp, MaterialTheme.colors.primary))
           ZText("H5", style = MaterialTheme.typography.h5, modifier = Modifier.border(1.dp, MaterialTheme.colors.primary))
           ZText("H6", style = MaterialTheme.typography.h6, modifier = Modifier.border(1.dp, MaterialTheme.colors.primary))
+        }
+      }
+    },
+    ZTabPane(label = "Radio 单选框", name = "radio") {
+      Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        ZText("Radio String")
+        Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
+          ZRadio(
+            value = "option1",
+            selectedValue = radioStringValue,
+            onValueChange = { radioStringValue = it },
+            label = "Option 1"
+          )
+          ZRadio(
+            value = "option2",
+            selectedValue = radioStringValue,
+            onValueChange = { radioStringValue = it },
+            label = "Option 2"
+          )
+          ZRadio(
+            value = "option3",
+            selectedValue = radioStringValue,
+            onValueChange = { radioStringValue = it },
+            label = "Option 3"
+          )
+        }
+
+        ZText("Radio Number")
+        Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
+          ZRadio(
+            value = 1,
+            selectedValue = radioNumberValue,
+            onValueChange = { radioNumberValue = it },
+            label = "1"
+          )
+          ZRadio(
+            value = 2,
+            selectedValue = radioNumberValue,
+            onValueChange = { radioNumberValue = it },
+            label = "2"
+          )
+          ZRadio(
+            value = 3,
+            selectedValue = radioNumberValue,
+            onValueChange = { radioNumberValue = it },
+            label = "3"
+          )
+        }
+
+        ZText("Radio Boolean")
+        Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
+          ZRadio(
+            value = true,
+            selectedValue = radioBooleanValue,
+            onValueChange = { radioBooleanValue = it },
+            label = "True"
+          )
+          ZRadio(
+            value = false,
+            selectedValue = radioBooleanValue,
+            onValueChange = { radioBooleanValue = it },
+            label = "False"
+          )
+        }
+
+        ZText("Radio Size")
+        Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
+          ZRadio(
+            value = "large",
+            selectedValue = "large",
+            onValueChange = {},
+            label = "Large",
+            size = ZRadioSize.Large
+          )
+          ZRadio(
+            value = "default",
+            selectedValue = "default",
+            onValueChange = {},
+            label = "Default",
+            size = ZRadioSize.Default
+          )
+          ZRadio(
+            value = "small",
+            selectedValue = "small",
+            onValueChange = {},
+            label = "Small",
+            size = ZRadioSize.Small
+          )
         }
       }
     },
