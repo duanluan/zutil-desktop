@@ -148,6 +148,25 @@ private fun ZuiComponentDemoContent(
           ZText("Small", size = ZTextSize.Small)
         }
 
+        ZText("这是一段 paragraph 文本示例（tag = p）。", tag = "p")
+
+        Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
+          ZText("Bold", tag = "b")
+          ZText("Italic", tag = "i")
+          ZText("Inserted", tag = "ins")
+          ZText("Deleted", tag = "del")
+          ZText("Marked", tag = "mark")
+        }
+
+        Row(horizontalArrangement = Arrangement.Start, verticalAlignment = Alignment.CenterVertically) {
+          ZText("H", modifier = Modifier.alignByBaseline())
+          ZText("2", tag = "sub", modifier = Modifier.alignByBaseline())
+          ZText("O", modifier = Modifier.alignByBaseline())
+          Spacer(modifier = Modifier.width(12.dp))
+          ZText("X", modifier = Modifier.alignByBaseline())
+          ZText("2", tag = "sup", modifier = Modifier.alignByBaseline())
+        }
+
         ZText(
           text = "truncated 示例：这是一段超长文本，当容器宽度不足时会显示省略号而不是换行。",
           truncated = true,

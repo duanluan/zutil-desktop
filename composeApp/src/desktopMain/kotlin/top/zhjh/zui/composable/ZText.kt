@@ -13,6 +13,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.BaselineShift
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
@@ -54,6 +55,7 @@ enum class ZTextSize {
  * @param modifier 修饰符，用于布局、间距、点击等能力组合。
  * @param type 语义类型（默认、主色、成功、信息、警告、危险）。
  * @param size 文本尺寸（Large / Default / Small）。仅在未显式传入 `fontSize` 时生效。
+ * @param tag 元素标签覆盖，支持 `p`/`b`/`i`/`sub`/`sup`/`ins`/`del`/`mark`。
  * @param truncated 是否启用单行省略（文本超出宽度时展示省略符 `...`）。
  * @param lineClamp 多行截断行数。大于 0 时启用多行省略并展示省略符。
  * @param color 显式文本颜色；传入时会覆盖 `type` 自动颜色策略。
@@ -78,6 +80,7 @@ fun _ZTextImpl(
   modifier: Modifier = Modifier,
   type: ZColorType = ZColorType.DEFAULT,
   size: ZTextSize = ZTextSize.Default,
+  tag: String? = null,
   truncated: Boolean = false,
   lineClamp: Int = 0,
   color: Color = Color.Unspecified,
@@ -119,6 +122,7 @@ fun _ZTextImpl(
     ZTextSize.Default -> 14.sp
     ZTextSize.Small -> 12.sp
   }
+  val resolvedTag = parseZTextTag(tag)
   val normalizedLineClamp = lineClamp.coerceAtLeast(0)
   val hasLineClamp = normalizedLineClamp > 0
 
@@ -129,7 +133,7 @@ fun _ZTextImpl(
   // - 命中标题时，统一替换为“组件定义字号 + Bold”；
   // - 非标题场景且未显式传 fontSize 时，使用 size 对应字号；
   // - 其他场景沿用调用方 style（显式 fontSize 由 Text 参数本身生效）。
-  val finalStyle = when {
+  val baseStyle = when {
     headingIndex != -1 -> TextStyle(
       fontSize = headingFontSizes[headingIndex],
       fontWeight = FontWeight.Bold
@@ -141,14 +145,23 @@ fun _ZTextImpl(
   // 最终修饰符：
   // - 标题场景自动追加上下间距；
   // - 普通场景保持调用方原始 modifier。
-  val finalModifier = if (headingIndex != -1) {
-    modifier.padding(
-      top = headingPaddings[headingIndex],
-      bottom = headingPaddings[headingIndex]
-    )
+  val baseModifier = if (headingIndex != -1) {
+    modifier.padding(top = headingPaddings[headingIndex], bottom = headingPaddings[headingIndex])
   } else {
     modifier
   }
+  val finalModifier = applyTagModifier(baseModifier, resolvedTag)
+  val fallbackFontSize = when {
+    fontSize != TextUnit.Unspecified -> fontSize
+    baseStyle.fontSize != TextUnit.Unspecified -> baseStyle.fontSize
+    else -> sizeFontSize
+  }
+  val finalStyle = applyTagStyle(
+    baseStyle = baseStyle,
+    tag = resolvedTag,
+    isDarkTheme = isDarkTheme,
+    fallbackFontSize = fallbackFontSize
+  )
 
   // 最终颜色：
   // - 显式 color 优先级最高；
@@ -208,6 +221,7 @@ fun ZText(
   modifier: Modifier = Modifier,
   type: ZColorType = ZColorType.DEFAULT,
   size: ZTextSize = ZTextSize.Default,
+  tag: String? = null,
   truncated: Boolean = false,
   lineClamp: Int = 0,
   color: Color = Color.Unspecified,
@@ -231,6 +245,7 @@ fun ZText(
     modifier = modifier,
     type = type,
     size = size,
+    tag = tag,
     truncated = truncated,
     lineClamp = lineClamp,
     color = color,
@@ -263,6 +278,7 @@ fun ZText(
   modifier: Modifier = Modifier,
   type: ZColorType = ZColorType.DEFAULT,
   size: ZTextSize = ZTextSize.Default,
+  tag: String? = null,
   truncated: Boolean = false,
   lineClamp: Int = 0,
   color: Color = Color.Unspecified,
@@ -286,6 +302,7 @@ fun ZText(
     modifier = modifier,
     type = type,
     size = size,
+    tag = tag,
     truncated = truncated,
     lineClamp = lineClamp,
     color = color,
@@ -325,6 +342,80 @@ private fun getZTextTypeColor(type: ZColorType, isDarkTheme: Boolean): Color {
     ZColorType.INFO -> if (isDarkTheme) Color(0xffa6a9ad) else Color(0xff909399)
     ZColorType.WARNING -> Color(0xffe6a23c)
     ZColorType.DANGER -> Color(0xfff56c6c)
+  }
+}
+
+private enum class ZTextTag {
+  P,
+  B,
+  I,
+  SUB,
+  SUP,
+  INS,
+  DEL,
+  MARK
+}
+
+private fun parseZTextTag(tag: String?): ZTextTag? {
+  return when (tag?.trim()?.lowercase()) {
+    "p" -> ZTextTag.P
+    "b" -> ZTextTag.B
+    "i" -> ZTextTag.I
+    "sub" -> ZTextTag.SUB
+    "sup" -> ZTextTag.SUP
+    "ins" -> ZTextTag.INS
+    "del" -> ZTextTag.DEL
+    "mark" -> ZTextTag.MARK
+    else -> null
+  }
+}
+
+private fun applyTagModifier(modifier: Modifier, tag: ZTextTag?): Modifier {
+  return when (tag) {
+    ZTextTag.P -> modifier.padding(bottom = 8.dp)
+    else -> modifier
+  }
+}
+
+@Composable
+private fun applyTagStyle(
+  baseStyle: TextStyle,
+  tag: ZTextTag?,
+  isDarkTheme: Boolean,
+  fallbackFontSize: TextUnit
+): TextStyle {
+  return when (tag) {
+    ZTextTag.P -> baseStyle
+      .merge(MaterialTheme.typography.body1)
+      .copy(lineHeight = 24.sp)
+    ZTextTag.B -> baseStyle.copy(fontWeight = FontWeight.Bold)
+    ZTextTag.I -> baseStyle.copy(fontStyle = FontStyle.Italic)
+    ZTextTag.SUB -> baseStyle.copy(
+      baselineShift = BaselineShift(-0.2f),
+      fontSize = fallbackFontSize * 0.75f
+    )
+    ZTextTag.SUP -> baseStyle.copy(
+      baselineShift = BaselineShift(0.35f),
+      fontSize = fallbackFontSize * 0.75f
+    )
+    ZTextTag.INS -> baseStyle.copy(
+      textDecoration = mergeTextDecoration(baseStyle.textDecoration, TextDecoration.Underline)
+    )
+    ZTextTag.DEL -> baseStyle.copy(
+      textDecoration = mergeTextDecoration(baseStyle.textDecoration, TextDecoration.LineThrough)
+    )
+    ZTextTag.MARK -> baseStyle.copy(
+      background = if (isDarkTheme) Color(0xff5f4b00) else Color(0xffffff00)
+    )
+    null -> baseStyle
+  }
+}
+
+private fun mergeTextDecoration(current: TextDecoration?, added: TextDecoration): TextDecoration {
+  return when {
+    current == null || current == TextDecoration.None -> added
+    current == added -> added
+    else -> TextDecoration.combine(listOf(current, added))
   }
 }
 
