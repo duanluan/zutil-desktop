@@ -9,6 +9,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.LocalContentColor
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -16,10 +17,60 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import top.zhjh.zui.enums.ZColorType
 import top.zhjh.zui.enums.ZColorType.*
 import top.zhjh.zui.theme.isAppInDarkTheme
+
+/**
+ * 按钮组方向。
+ */
+enum class ZButtonGroupDirection {
+  Horizontal,
+  Vertical
+}
+
+private val LocalIsInButtonGroup = compositionLocalOf { false }
+
+/**
+ * 按钮组容器。
+ *
+ * 用于将多个 [ZButton] 组合在一起显示，`direction` 控制横向或纵向布局。
+ */
+@Composable
+fun ZButtonGroup(
+  modifier: Modifier = Modifier,
+  direction: ZButtonGroupDirection = ZButtonGroupDirection.Horizontal,
+  itemSpacing: Dp = ZButtonDefaults.GroupItemSpacing,
+  content: @Composable () -> Unit
+) {
+  val groupModifier = modifier.clip(ZButtonDefaults.Shape)
+
+  CompositionLocalProvider(LocalIsInButtonGroup provides true) {
+    when (direction) {
+      ZButtonGroupDirection.Horizontal -> {
+        Row(
+          modifier = groupModifier,
+          horizontalArrangement = Arrangement.spacedBy(itemSpacing),
+          verticalAlignment = Alignment.CenterVertically
+        ) {
+          content()
+        }
+      }
+
+      ZButtonGroupDirection.Vertical -> {
+        Column(
+          modifier = groupModifier,
+          verticalArrangement = Arrangement.spacedBy(itemSpacing),
+          horizontalAlignment = Alignment.Start
+        ) {
+          content()
+        }
+      }
+    }
+  }
+}
 
 /**
  * 按钮
@@ -54,9 +105,11 @@ fun ZButton(
   // 表单场景中优先继承 ZForm 尺寸；普通场景保持默认按钮高度。
   val resolvedSize = size ?: LocalZFormSize.current
   val minHeight = ZFormDefaults.resolveControlHeight(resolvedSize, ZButtonDefaults.MinHeight)
+  val isInButtonGroup = LocalIsInButtonGroup.current
 
   // 圆角半径
   val shape = when {
+    isInButtonGroup -> RoundedCornerShape(0.dp)
     round -> RoundedCornerShape(50) // 圆角按钮（左右两端为半圆）
     else -> ZButtonDefaults.Shape // 默认形状
   }
@@ -666,6 +719,7 @@ object ZButtonDefaults {
    * 图标大小
    */
   val IconSpacing = 2.dp
+  val GroupItemSpacing = 0.8.dp
 
   /**
    * 圆角形状

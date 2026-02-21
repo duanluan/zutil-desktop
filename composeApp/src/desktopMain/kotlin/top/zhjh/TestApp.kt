@@ -89,6 +89,7 @@ private fun ZuiComponentDemoContent(
   var radioStringValue by remember { mutableStateOf("option1") }
   var radioNumberValue by remember { mutableStateOf(1) }
   var radioBooleanValue by remember { mutableStateOf(true) }
+  var buttonGroupDirectionValue by remember { mutableStateOf("horizontal") }
 
   val formState = rememberZFormState()
   val formModel = remember(username, email, password, confirmPassword) {
@@ -286,7 +287,7 @@ private fun ZuiComponentDemoContent(
         }
       }
     },
-    ZTabPane(label = "Button 文本", name = "button") {
+    ZTabPane(label = "Button 按钮", name = "button") {
       Column {
         Row(horizontalArrangement = Arrangement.spacedBy(5.dp), modifier = Modifier.padding(top = 5.dp, bottom = 5.dp)) {
           ZButton(onClick = {}) {}
@@ -341,6 +342,69 @@ private fun ZuiComponentDemoContent(
           ZButton(type = ZColorType.INFO, enabled = false, plain = true, onClick = { ToastManager.success("Info") }) { Text("Info") }
           ZButton(type = ZColorType.WARNING, enabled = false, plain = true, onClick = { ToastManager.success("Warning") }) { Text("Warning") }
           ZButton(type = ZColorType.DANGER, enabled = false, plain = true, onClick = { ToastManager.success("Danger") }) { Text("Danger") }
+        }
+
+        Row(horizontalArrangement = Arrangement.spacedBy(5.dp), modifier = Modifier.padding(top = 8.dp, bottom = 5.dp)) {
+          ZButtonGroup {
+            ZButton(type = ZColorType.PRIMARY, onClick = { ToastManager.success("Previous Page") }) {
+              Icon(FeatherIcons.ChevronLeft, contentDescription = null)
+              Spacer(modifier = Modifier.width(1.dp))
+              Text("Previous Page")
+            }
+            ZButton(type = ZColorType.PRIMARY, onClick = { ToastManager.success("Next Page") }) {
+              Text("Next Page")
+              Spacer(modifier = Modifier.width(1.dp))
+              Icon(FeatherIcons.ChevronRight, contentDescription = null)
+            }
+          }
+        }
+
+        Row(
+          horizontalArrangement = Arrangement.spacedBy(28.dp),
+          verticalAlignment = Alignment.CenterVertically,
+          modifier = Modifier.padding(top = 8.dp, bottom = 8.dp)
+        ) {
+          ZRadio(
+            value = "horizontal",
+            selectedValue = buttonGroupDirectionValue,
+            onValueChange = { buttonGroupDirectionValue = it },
+            label = "Horizontal"
+          )
+          ZRadio(
+            value = "vertical",
+            selectedValue = buttonGroupDirectionValue,
+            onValueChange = { buttonGroupDirectionValue = it },
+            label = "Vertical"
+          )
+        }
+
+        Row(horizontalArrangement = Arrangement.spacedBy(5.dp), modifier = Modifier.padding(top = 4.dp, bottom = 5.dp)) {
+          ZButtonGroup(
+            direction = if (buttonGroupDirectionValue == "horizontal") {
+              ZButtonGroupDirection.Horizontal
+            } else {
+              ZButtonGroupDirection.Vertical
+            }
+          ) {
+            ZButton(
+              type = ZColorType.PRIMARY,
+              icon = { Icon(FeatherIcons.Home, contentDescription = null) },
+              modifier = Modifier.width(45.dp),
+              onClick = { ToastManager.success("Home") }
+            ) {}
+            ZButton(
+              type = ZColorType.PRIMARY,
+              icon = { Icon(FeatherIcons.Sliders, contentDescription = null) },
+              modifier = Modifier.width(45.dp),
+              onClick = { ToastManager.success("Sliders") }
+            ) {}
+            ZButton(
+              type = ZColorType.PRIMARY,
+              icon = { Icon(FeatherIcons.Copy, contentDescription = null) },
+              modifier = Modifier.width(45.dp),
+              onClick = { ToastManager.success("Copy") }
+            ) {}
+          }
         }
       }
     },
