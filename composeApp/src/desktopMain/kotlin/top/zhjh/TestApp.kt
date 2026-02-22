@@ -90,6 +90,7 @@ private fun ZuiComponentDemoContent(
   var radioNumberValue by remember { mutableStateOf(1) }
   var radioBooleanValue by remember { mutableStateOf(true) }
   var buttonGroupDirectionValue by remember { mutableStateOf("horizontal") }
+  var dropdownClearableValue by remember { mutableStateOf("Option1") }
 
   val formState = rememberZFormState()
   val formModel = remember(username, email, password, confirmPassword) {
@@ -555,7 +556,10 @@ private fun ZuiComponentDemoContent(
       }
     },
     ZTabPane(label = "DropdownMenu 选择器", name = "dropdown") {
-      Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.padding(top = 5.dp, bottom = 5.dp)) {
+      Column(
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+        modifier = Modifier.padding(top = 5.dp, bottom = 5.dp)
+      ) {
         ZDropdownMenu(
           options = listOf("Option1", "Option2", "Option3", "Option4", "Option5"),
           placeholder = "Select",
@@ -567,6 +571,14 @@ private fun ZuiComponentDemoContent(
           placeholder = "Select",
           enabled = false,
           modifier = Modifier.width(220.dp)
+        )
+        ZDropdownMenu(
+          options = listOf("Option1", "Option2", "Option3", "Option4", "Option5"),
+          placeholder = "Select",
+          modifier = Modifier.width(220.dp),
+          clearable = true,
+          value = dropdownClearableValue,
+          onOptionSelected = { dropdownClearableValue = it }
         )
       }
     },

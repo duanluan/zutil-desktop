@@ -1,5 +1,9 @@
 package top.zhjh.zui.composable
 
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.hoverable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.height
 import androidx.compose.material.*
 import androidx.compose.runtime.*
@@ -9,6 +13,7 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.sp
 import compose.icons.FeatherIcons
 import compose.icons.feathericons.ChevronDown
+import compose.icons.feathericons.XCircle
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
@@ -27,7 +32,8 @@ fun ZDropdownMenu(
   defaultSelectedOption: String? = null,
   onOptionSelected: (String) -> Unit = {},
   placeholder: String = "请选择",
-  disabledOptions: Set<String> = emptySet()
+  disabledOptions: Set<String> = emptySet(),
+  clearable: Boolean = false
 ) {
   // 共享的文字样式，确保一致性
   val textStyle = LocalTextStyle.current.copy(
@@ -36,6 +42,9 @@ fun ZDropdownMenu(
   )
 
   var expanded by remember { mutableStateOf(false) }
+  var suppressNextToggle by remember { mutableStateOf(false) }
+  val hoverInteractionSource = remember { MutableInteractionSource() }
+  val isHovered by hoverInteractionSource.collectIsHoveredAsState()
   LaunchedEffect(enabled) {
     if (!enabled) {
       expanded = false
@@ -55,10 +64,15 @@ fun ZDropdownMenu(
   val selectedOption = value ?: internalSelectedOption
   val resolvedSize = size ?: LocalZFormSize.current
   val optionHeight = ZFormDefaults.resolveControlHeight(resolvedSize, ZTextFieldDefaults.MinHeight)
+  val showClearIcon = clearable && enabled && selectedOption.isNotEmpty() && isHovered && !expanded
 
   ExposedDropdownMenuBox(
     expanded = expanded,
     onExpandedChange = {
+      if (suppressNextToggle) {
+        suppressNextToggle = false
+        return@ExposedDropdownMenuBox
+      }
       if (enabled) {
         expanded = !expanded
       }
@@ -70,18 +84,34 @@ fun ZDropdownMenu(
       onValueChange = {},
       enabled = enabled,
       readOnly = true,
-      modifier = modifier,
+      modifier = modifier.hoverable(hoverInteractionSource),
       placeholder = if (selectedOption.isEmpty()) placeholder else selectedOption,
       trailingIcon = {
-        // 使用自定义图标，而不是默认的 TrailingIcon
-        Icon(
-          imageVector = FeatherIcons.ChevronDown,
-          contentDescription = "下拉菜单",
-          // 根据展开状态旋转图标
-          modifier = Modifier.graphicsLayer(
-            rotationZ = if (expanded) 180f else 0f
+        if (showClearIcon) {
+          Icon(
+            imageVector = FeatherIcons.XCircle,
+            contentDescription = "Clear selection",
+            modifier = Modifier.clickable(
+              interactionSource = remember { MutableInteractionSource() },
+              indication = null
+            ) {
+              suppressNextToggle = true
+              expanded = false
+              if (value == null) {
+                internalSelectedOption = ""
+              }
+              onOptionSelected("")
+            }
           )
-        )
+        } else {
+          Icon(
+            imageVector = FeatherIcons.ChevronDown,
+            contentDescription = "Toggle options",
+            modifier = Modifier.graphicsLayer(
+              rotationZ = if (expanded) 180f else 0f
+            )
+          )
+        }
       }
     )
 
