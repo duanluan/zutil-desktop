@@ -120,6 +120,7 @@ fun ZButton(
   icon: @Composable (() -> Unit)? = null,
   loading: Boolean = false,
   loadingIcon: @Composable (() -> Unit)? = null,
+  loadingIconSpacing: Dp? = null,
   contentPadding: PaddingValues? = null,
   contentAlignment: Alignment = Alignment.Center,
   plain: Boolean = false,
@@ -133,6 +134,11 @@ fun ZButton(
   val metrics = ZButtonDefaults.metrics(resolvedSize)
   val resolvedContentPadding = contentPadding ?: metrics.contentPadding
   val finalContentPadding = if (circle) PaddingValues(0.dp) else resolvedContentPadding
+  val resolvedIconSpacing = if (loading) {
+    loadingIconSpacing ?: metrics.iconSpacing
+  } else {
+    metrics.iconSpacing
+  }
   val isInButtonGroup = LocalIsInButtonGroup.current
   val uriHandler = LocalUriHandler.current
 
@@ -190,7 +196,7 @@ fun ZButton(
         buttonStyle = visualStyle,
         textStyle = metrics.textStyle,
         iconSize = metrics.iconSize,
-        iconSpacing = metrics.iconSpacing,
+        iconSpacing = resolvedIconSpacing,
         contentPadding = finalContentPadding,
         icon = resolvedIcon,
         loading = loading,
@@ -235,7 +241,7 @@ fun ZButton(
         buttonStyle = visualStyle,
         textStyle = metrics.textStyle,
         iconSize = metrics.iconSize,
-        iconSpacing = metrics.iconSpacing,
+        iconSpacing = resolvedIconSpacing,
         contentPadding = finalContentPadding,
         icon = resolvedIcon,
         loading = loading,

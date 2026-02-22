@@ -3,7 +3,10 @@ package top.zhjh
 import ZLink
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.*
+import androidx.compose.material.Icon
+import androidx.compose.material.MaterialTheme
+import androidx.compose.material.Surface
+import androidx.compose.material.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -405,13 +408,14 @@ private fun ZuiComponentDemoContent(
         }
 
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.padding(top = 8.dp, bottom = 5.dp)) {
-          ZButton(type = ZColorType.PRIMARY, loading = true, onClick = { ToastManager.success("Loading") }) {
+          ZButton(type = ZColorType.PRIMARY, loading = true, loadingIconSpacing = 5.dp, onClick = { ToastManager.success("Loading") }) {
             Text("Loading")
           }
           ZButton(
             type = ZColorType.PRIMARY,
             loading = true,
             loadingIcon = { Icon(FeatherIcons.Tool, contentDescription = null) },
+            loadingIconSpacing = 5.dp,
             onClick = { ToastManager.success("Loading") }
           ) {
             Text("Loading")
