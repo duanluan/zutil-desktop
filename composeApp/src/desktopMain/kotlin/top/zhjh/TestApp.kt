@@ -417,6 +417,82 @@ private fun ZuiComponentDemoContent(
             Text("Loading")
           }
         }
+
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.padding(top = 10.dp, bottom = 5.dp)) {
+          ZButton(size = ZButtonSize.Large, onClick = { ToastManager.success("Large") }) { Text("Large") }
+          ZButton(size = ZButtonSize.Default, onClick = { ToastManager.success("Default") }) { Text("Default") }
+          ZButton(size = ZButtonSize.Small, onClick = { ToastManager.success("Small") }) { Text("Small") }
+          ZButton(
+            size = ZButtonSize.Large,
+            icon = { Icon(FeatherIcons.Search, contentDescription = null) },
+            onClick = { ToastManager.success("Search") }
+          ) { Text("Search") }
+          ZButton(
+            size = ZButtonSize.Default,
+            icon = { Icon(FeatherIcons.Search, contentDescription = null) },
+            onClick = { ToastManager.success("Search") }
+          ) { Text("Search") }
+          ZButton(
+            size = ZButtonSize.Small,
+            icon = { Icon(FeatherIcons.Search, contentDescription = null) },
+            onClick = { ToastManager.success("Search") }
+          ) { Text("Search") }
+        }
+
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.padding(top = 5.dp, bottom = 5.dp)) {
+          ZButton(size = ZButtonSize.Large, round = true, onClick = { ToastManager.success("Large Round") }) { Text("Large") }
+          ZButton(size = ZButtonSize.Default, round = true, onClick = { ToastManager.success("Default Round") }) { Text("Default") }
+          ZButton(size = ZButtonSize.Small, round = true, onClick = { ToastManager.success("Small Round") }) { Text("Small") }
+          ZButton(
+            size = ZButtonSize.Large,
+            round = true,
+            icon = { Icon(FeatherIcons.Search, contentDescription = null) },
+            onClick = { ToastManager.success("Search Round") }
+          ) { Text("Search") }
+          ZButton(
+            size = ZButtonSize.Default,
+            round = true,
+            icon = { Icon(FeatherIcons.Search, contentDescription = null) },
+            onClick = { ToastManager.success("Search Round") }
+          ) { Text("Search") }
+          ZButton(
+            size = ZButtonSize.Small,
+            round = true,
+            icon = { Icon(FeatherIcons.Search, contentDescription = null) },
+            onClick = { ToastManager.success("Search Round") }
+          ) { Text("Search") }
+        }
+
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.padding(top = 5.dp, bottom = 5.dp)) {
+          ZButton(
+            size = ZButtonSize.Large,
+            circle = true,
+            icon = { Icon(FeatherIcons.Search, contentDescription = null) },
+            onClick = { ToastManager.success("Large Circle") }
+          ) {}
+          ZButton(
+            size = ZButtonSize.Default,
+            circle = true,
+            icon = { Icon(FeatherIcons.Search, contentDescription = null) },
+            onClick = { ToastManager.success("Default Circle") }
+          ) {}
+          ZButton(
+            size = ZButtonSize.Small,
+            circle = true,
+            icon = { Icon(FeatherIcons.Search, contentDescription = null) },
+            onClick = { ToastManager.success("Small Circle") }
+          ) {}
+        }
+
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.padding(top = 6.dp, bottom = 8.dp)) {
+          ZButton(
+            type = ZColorType.PRIMARY,
+            href = "https://github.com/duanluan/zutil-desktop",
+            icon = { Icon(FeatherIcons.Link, contentDescription = null) }
+          ) {
+            Text("zutil-desktop")
+          }
+        }
       }
     },
     ZTabPane(label = "TextField 输入框", name = "textfield") {

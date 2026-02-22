@@ -1,11 +1,6 @@
 package top.zhjh.zui.composable
 
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsHoveredAsState
@@ -13,22 +8,22 @@ import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.LocalContentColor
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.compositionLocalOf
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
+import androidx.compose.material.LocalTextStyle
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import top.zhjh.zui.enums.ZColorType
 import top.zhjh.zui.enums.ZColorType.*
 import top.zhjh.zui.theme.isAppInDarkTheme
@@ -43,6 +38,21 @@ enum class ZButtonGroupDirection {
   Horizontal,
   Vertical
 }
+
+enum class ZButtonSize {
+  Large,
+  Default,
+  Small
+}
+
+internal data class ZButtonMetrics(
+  val minHeight: Dp,
+  val circleSize: Dp,
+  val iconSize: Dp,
+  val iconSpacing: Dp,
+  val contentPadding: PaddingValues,
+  val textStyle: TextStyle
+)
 
 private val LocalIsInButtonGroup = compositionLocalOf { false }
 
@@ -102,14 +112,15 @@ fun ZButtonGroup(
  */
 @Composable
 fun ZButton(
-  onClick: () -> Unit,
+  onClick: () -> Unit = {},
   modifier: Modifier = Modifier,
-  size: ZFormSize? = null,
+  size: ZButtonSize? = null,
   type: ZColorType = DEFAULT,
+  href: String? = null,
   icon: @Composable (() -> Unit)? = null,
   loading: Boolean = false,
   loadingIcon: @Composable (() -> Unit)? = null,
-  contentPadding: PaddingValues = ZButtonDefaults.ContentPadding,
+  contentPadding: PaddingValues? = null,
   contentAlignment: Alignment = Alignment.Center,
   plain: Boolean = false,
   round: Boolean = false,
@@ -118,9 +129,12 @@ fun ZButton(
   content: @Composable (RowScope.() -> Unit)? = null,
 ) {
   // 表单场景中优先继承 ZForm 尺寸；普通场景保持默认按钮高度。
-  val resolvedSize = size ?: LocalZFormSize.current
-  val minHeight = ZFormDefaults.resolveControlHeight(resolvedSize, ZButtonDefaults.MinHeight)
+  val resolvedSize = size ?: ZButtonDefaults.fromFormSize(LocalZFormSize.current)
+  val metrics = ZButtonDefaults.metrics(resolvedSize)
+  val resolvedContentPadding = contentPadding ?: metrics.contentPadding
+  val finalContentPadding = if (circle) PaddingValues(0.dp) else resolvedContentPadding
   val isInButtonGroup = LocalIsInButtonGroup.current
+  val uriHandler = LocalUriHandler.current
 
   // 圆角半径
   val shape = when {
@@ -145,6 +159,14 @@ fun ZButton(
     buttonStyle
   }
   val isClickable = enabled && !loading
+  val resolvedOnClick: () -> Unit = {
+    val targetHref = href?.trim().orEmpty()
+    if (targetHref.isNotEmpty()) {
+      uriHandler.openUri(targetHref)
+    } else {
+      onClick()
+    }
+  }
   val resolvedIcon = if (loading) {
     loadingIcon ?: { ZButtonDefaultLoadingIcon() }
   } else {
@@ -160,13 +182,16 @@ fun ZButton(
         .background(visualStyle.backgroundColor)
         .border(BorderStroke(1.dp, visualStyle.borderColor), shape)
           // 按钮启用时添加点击事件
-        .then(if (isClickable) Modifier.clickable(onClick = onClick) else Modifier)
-        .defaultMinSize(minHeight = minHeight)
+        .then(if (isClickable) Modifier.clickable(onClick = resolvedOnClick) else Modifier)
+        .defaultMinSize(minHeight = metrics.minHeight)
         .then(modifier)
     ) {
       ZButtonContent(
         buttonStyle = visualStyle,
-        contentPadding = contentPadding,
+        textStyle = metrics.textStyle,
+        iconSize = metrics.iconSize,
+        iconSpacing = metrics.iconSpacing,
+        contentPadding = finalContentPadding,
         icon = resolvedIcon,
         loading = loading,
         content = content,
@@ -178,8 +203,8 @@ fun ZButton(
       contentAlignment = contentAlignment,
       modifier = Modifier
           // 按钮启用时添加点击事件
-        .then(if (isClickable) Modifier.clickable(onClick = onClick) else Modifier)
-        .defaultMinSize(minHeight = minHeight)
+        .then(if (isClickable) Modifier.clickable(onClick = resolvedOnClick) else Modifier)
+        .defaultMinSize(minWidth = metrics.circleSize, minHeight = metrics.circleSize)
         .then(modifier)
     ) {
       // 使用Canvas绘制圆形
@@ -208,7 +233,10 @@ fun ZButton(
 
       ZButtonContent(
         buttonStyle = visualStyle,
-        contentPadding = contentPadding,
+        textStyle = metrics.textStyle,
+        iconSize = metrics.iconSize,
+        iconSpacing = metrics.iconSpacing,
+        contentPadding = finalContentPadding,
         icon = resolvedIcon,
         loading = loading,
         content = content,
@@ -221,6 +249,9 @@ fun ZButton(
 @Composable
 private fun ZButtonContent(
   buttonStyle: ZButtonStyle,
+  textStyle: TextStyle,
+  iconSize: Dp,
+  iconSpacing: Dp,
   contentPadding: PaddingValues,
   icon: (@Composable (() -> Unit))? = null,
   loading: Boolean = false,
@@ -247,7 +278,10 @@ private fun ZButtonContent(
   }
 
   // 提供内容颜色的上下文，使所有子组件继承此颜色
-  CompositionLocalProvider(LocalContentColor provides buttonStyle.textColor) {
+  CompositionLocalProvider(
+    LocalContentColor provides buttonStyle.textColor,
+    LocalTextStyle provides textStyle
+  ) {
     Row(
       verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center,
       modifier = Modifier.padding(contentPadding)
@@ -255,7 +289,7 @@ private fun ZButtonContent(
       if (icon != null) {
         Box(
           modifier = Modifier
-            .size(ZButtonDefaults.IconSize)
+            .size(iconSize)
             .graphicsLayer {
               rotationZ = if (loading) loadingRotation else 0f
               transformOrigin = TransformOrigin.Center
@@ -266,12 +300,12 @@ private fun ZButtonContent(
           icon()
         }
         if (!circle && content != null) {
-          Spacer(modifier = Modifier.width(ZButtonDefaults.IconSpacing))
+          Spacer(modifier = Modifier.width(iconSpacing))
         }
       }
       // 圆形按钮没有图标也要占位
       else if (circle) {
-        Box(modifier = Modifier.size(ZButtonDefaults.IconSize))
+        Box(modifier = Modifier.size(iconSize))
       }
       // 内容函数
       content?.invoke(this)
@@ -798,14 +832,30 @@ private fun getZButtonStyle(type: ZColorType, isDarkTheme: Boolean, isPlain: Boo
  * ZButton 默认值，参考 [androidx.compose.material.ButtonDefaults]
  */
 object ZButtonDefaults {
-  private val ButtonHorizontalPadding = 10.dp
+  private val DefaultButtonHorizontalPadding = 10.dp
+  private val LargeButtonHorizontalPadding = 16.dp
+  private val SmallButtonHorizontalPadding = 8.dp
+  private val DefaultFontSize = 14.sp
+  private val SmallFontSize = 12.sp
 
   /**
    * 内边距
    */
   val ContentPadding = PaddingValues(
-    start = ButtonHorizontalPadding,
-    end = ButtonHorizontalPadding,
+    start = DefaultButtonHorizontalPadding,
+    end = DefaultButtonHorizontalPadding,
+    top = 0.dp,
+    bottom = 0.dp
+  )
+  val LargeContentPadding = PaddingValues(
+    start = LargeButtonHorizontalPadding,
+    end = LargeButtonHorizontalPadding,
+    top = 0.dp,
+    bottom = 0.dp
+  )
+  val SmallContentPadding = PaddingValues(
+    start = SmallButtonHorizontalPadding,
+    end = SmallButtonHorizontalPadding,
     top = 0.dp,
     bottom = 0.dp
   )
@@ -814,16 +864,65 @@ object ZButtonDefaults {
    * 最小高度
    */
   val MinHeight = 30.dp
+  val LargeMinHeight = 38.dp
+  val SmallMinHeight = 24.dp
 
   /**
    * 字体大小
    */
   val IconSize = 14.dp
+  val LargeIconSize = 16.dp
+  val SmallIconSize = 12.dp
 
   /**
    * 图标大小
    */
   val IconSpacing = 2.dp
+  val LargeIconSpacing = 3.dp
+  val SmallIconSpacing = 1.dp
+  val CircleSize = MinHeight
+  val LargeCircleSize = LargeMinHeight
+  val SmallCircleSize = SmallMinHeight
+
+  fun fromFormSize(size: ZFormSize?): ZButtonSize {
+    return when (size) {
+      ZFormSize.LARGE -> ZButtonSize.Large
+      ZFormSize.SMALL -> ZButtonSize.Small
+      else -> ZButtonSize.Default
+    }
+  }
+
+  internal fun metrics(size: ZButtonSize): ZButtonMetrics {
+    return when (size) {
+      ZButtonSize.Large -> ZButtonMetrics(
+        minHeight = LargeMinHeight,
+        circleSize = LargeCircleSize,
+        iconSize = LargeIconSize,
+        iconSpacing = LargeIconSpacing,
+        contentPadding = LargeContentPadding,
+        textStyle = TextStyle(fontSize = DefaultFontSize)
+      )
+
+      ZButtonSize.Small -> ZButtonMetrics(
+        minHeight = SmallMinHeight,
+        circleSize = SmallCircleSize,
+        iconSize = SmallIconSize,
+        iconSpacing = SmallIconSpacing,
+        contentPadding = SmallContentPadding,
+        textStyle = TextStyle(fontSize = SmallFontSize)
+      )
+
+      ZButtonSize.Default -> ZButtonMetrics(
+        minHeight = MinHeight,
+        circleSize = CircleSize,
+        iconSize = IconSize,
+        iconSpacing = IconSpacing,
+        contentPadding = ContentPadding,
+        textStyle = TextStyle(fontSize = DefaultFontSize)
+      )
+    }
+  }
+
   val GroupItemSpacing = 0.8.dp
   val LoadingPrimaryLightColor = Color(0xff7abbff)
   val LoadingPrimaryDarkColor = Color(0xff2d6eb2)
