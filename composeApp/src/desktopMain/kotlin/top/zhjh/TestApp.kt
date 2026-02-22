@@ -91,6 +91,10 @@ private fun ZuiComponentDemoContent(
   var radioBooleanValue by remember { mutableStateOf(true) }
   var buttonGroupDirectionValue by remember { mutableStateOf("horizontal") }
   var dropdownClearableValue by remember { mutableStateOf("Option1") }
+  var dropdownMultiDefaultValue by remember { mutableStateOf(listOf("Option1", "Option2")) }
+  var dropdownMultiCollapseValue by remember { mutableStateOf(listOf("Option1", "Option2", "Option3")) }
+  var dropdownMultiCollapseTooltipValue by remember { mutableStateOf(listOf("Option1", "Option3", "Option4", "Option5")) }
+  var dropdownMultiMaxCollapseValue by remember { mutableStateOf(listOf("Option1", "Option2", "Option3", "Option4")) }
 
   val formState = rememberZFormState()
   val formModel = remember(username, email, password, confirmPassword) {
@@ -600,6 +604,50 @@ private fun ZuiComponentDemoContent(
             modifier = Modifier.width(160.dp)
           )
         }
+
+        ZText("default")
+        ZDropdownMenu(
+          options = listOf("Option1", "Option2", "Option3", "Option4", "Option5"),
+          placeholder = "Select",
+          modifier = Modifier.width(360.dp),
+          multiple = true,
+          values = dropdownMultiDefaultValue,
+          onOptionsSelected = { dropdownMultiDefaultValue = it }
+        )
+
+        ZText("use collapse-tags")
+        ZDropdownMenu(
+          options = listOf("Option1", "Option2", "Option3", "Option4", "Option5"),
+          placeholder = "Select",
+          modifier = Modifier.width(360.dp),
+          multiple = true,
+          collapseTags = true,
+          values = dropdownMultiCollapseValue,
+          onOptionsSelected = { dropdownMultiCollapseValue = it }
+        )
+
+        ZText("use collapse-tags-tooltip")
+        ZDropdownMenu(
+          options = listOf("Option1", "Option2", "Option3", "Option4", "Option5"),
+          placeholder = "Select",
+          modifier = Modifier.width(360.dp),
+          multiple = true,
+          collapseTags = true,
+          collapseTagsTooltip = true,
+          values = dropdownMultiCollapseTooltipValue,
+          onOptionsSelected = { dropdownMultiCollapseTooltipValue = it }
+        )
+
+        ZText("use max-collapse-tags")
+        ZDropdownMenu(
+          options = listOf("Option1", "Option2", "Option3", "Option4", "Option5"),
+          placeholder = "Select",
+          modifier = Modifier.width(360.dp),
+          multiple = true,
+          maxCollapseTags = 3,
+          values = dropdownMultiMaxCollapseValue,
+          onOptionsSelected = { dropdownMultiMaxCollapseValue = it }
+        )
       }
     },
     ZTabPane(label = "Form 表单", name = "form") {
