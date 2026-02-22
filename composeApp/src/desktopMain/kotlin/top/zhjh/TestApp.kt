@@ -555,8 +555,19 @@ private fun ZuiComponentDemoContent(
       }
     },
     ZTabPane(label = "DropdownMenu 选择器", name = "dropdown") {
-      Row(horizontalArrangement = Arrangement.spacedBy(5.dp), modifier = Modifier.padding(top = 5.dp, bottom = 5.dp)) {
-        ZDropdownMenu(options = listOf("选项1", "选项2", "选项3"))
+      Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.padding(top = 5.dp, bottom = 5.dp)) {
+        ZDropdownMenu(
+          options = listOf("Option1", "Option2", "Option3", "Option4", "Option5"),
+          placeholder = "Select",
+          modifier = Modifier.width(220.dp),
+          disabledOptions = setOf("Option2")
+        )
+        ZDropdownMenu(
+          options = listOf("Option1", "Option2", "Option3", "Option4", "Option5"),
+          placeholder = "Select",
+          enabled = false,
+          modifier = Modifier.width(220.dp)
+        )
       }
     },
     ZTabPane(label = "Form 表单", name = "form") {

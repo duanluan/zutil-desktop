@@ -2,14 +2,13 @@ package top.zhjh.zui.composable
 
 import androidx.compose.foundation.layout.height
 import androidx.compose.material.*
-import compose.icons.FeatherIcons
-import compose.icons.feathericons.ChevronDown
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.TextUnit
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import compose.icons.FeatherIcons
+import compose.icons.feathericons.ChevronDown
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
@@ -20,13 +19,15 @@ fun ZDropdownMenu(
   // 字体大小，默认 14.sp
   fontSize: TextUnit = 12.sp,
   modifier: Modifier = Modifier,
+  enabled: Boolean = true,
   size: ZFormSize? = null,
   // 受控值。非 null 时，组件显示由外部状态完全控制。
   value: String? = null,
   // 非受控模式下的初始值（兼容旧调用）。
   defaultSelectedOption: String? = null,
   onOptionSelected: (String) -> Unit = {},
-  placeholder: String = "请选择"
+  placeholder: String = "请选择",
+  disabledOptions: Set<String> = emptySet()
 ) {
   // 共享的文字样式，确保一致性
   val textStyle = LocalTextStyle.current.copy(
@@ -35,6 +36,11 @@ fun ZDropdownMenu(
   )
 
   var expanded by remember { mutableStateOf(false) }
+  LaunchedEffect(enabled) {
+    if (!enabled) {
+      expanded = false
+    }
+  }
 
   // 非受控模式内部状态；受控模式下不会使用该状态作为最终显示值。
   var internalSelectedOption by remember { mutableStateOf(defaultSelectedOption ?: "") }
@@ -48,15 +54,21 @@ fun ZDropdownMenu(
 
   val selectedOption = value ?: internalSelectedOption
   val resolvedSize = size ?: LocalZFormSize.current
+  val optionHeight = ZFormDefaults.resolveControlHeight(resolvedSize, ZTextFieldDefaults.MinHeight)
 
   ExposedDropdownMenuBox(
     expanded = expanded,
-    onExpandedChange = { expanded = !expanded }
+    onExpandedChange = {
+      if (enabled) {
+        expanded = !expanded
+      }
+    }
   ) {
     ZTextField(
       size = resolvedSize,
       value = selectedOption,
       onValueChange = {},
+      enabled = enabled,
       readOnly = true,
       modifier = modifier,
       placeholder = if (selectedOption.isEmpty()) placeholder else selectedOption,
@@ -74,11 +86,12 @@ fun ZDropdownMenu(
     )
 
     ExposedDropdownMenu(
-      expanded = expanded,
+      expanded = expanded && enabled,
       onDismissRequest = { expanded = false }
     ) {
       // 为每个选项创建一个菜单项
       options.forEach { option ->
+        val isDisabled = option in disabledOptions
         DropdownMenuItem(
           onClick = {
             if (value == null) {
@@ -87,7 +100,8 @@ fun ZDropdownMenu(
             expanded = false
             onOptionSelected(option)
           },
-          modifier = Modifier.height(lineHeight.dp)
+          enabled = enabled && !isDisabled,
+          modifier = Modifier.height(optionHeight)
         ) {
           Text(text = option, style = textStyle)
         }
