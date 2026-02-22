@@ -1,5 +1,11 @@
 package top.zhjh.zui.composable
 
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.*
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsHoveredAsState
@@ -15,13 +21,20 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import top.zhjh.zui.enums.ZColorType
 import top.zhjh.zui.enums.ZColorType.*
 import top.zhjh.zui.theme.isAppInDarkTheme
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.sin
 
 /**
  * 按钮组方向。
@@ -94,6 +107,8 @@ fun ZButton(
   size: ZFormSize? = null,
   type: ZColorType = DEFAULT,
   icon: @Composable (() -> Unit)? = null,
+  loading: Boolean = false,
+  loadingIcon: @Composable (() -> Unit)? = null,
   contentPadding: PaddingValues = ZButtonDefaults.ContentPadding,
   contentAlignment: Alignment = Alignment.Center,
   plain: Boolean = false,
@@ -124,6 +139,17 @@ fun ZButton(
 
   // 获取样式
   val buttonStyle = getZButtonStyle(type, isDarkTheme, plain, isHovered, isPressed, enabled)
+  val visualStyle = if (loading) {
+    getLoadingButtonStyle(buttonStyle, type, plain, isDarkTheme)
+  } else {
+    buttonStyle
+  }
+  val isClickable = enabled && !loading
+  val resolvedIcon = if (loading) {
+    loadingIcon ?: { ZButtonDefaultLoadingIcon() }
+  } else {
+    icon
+  }
 
   // 非圆形
   if (!circle) {
@@ -131,17 +157,18 @@ fun ZButton(
       contentAlignment = contentAlignment,
       modifier = Modifier
         .clip(shape)
-        .background(buttonStyle.backgroundColor)
-        .border(BorderStroke(1.dp, buttonStyle.borderColor), shape)
+        .background(visualStyle.backgroundColor)
+        .border(BorderStroke(1.dp, visualStyle.borderColor), shape)
           // 按钮启用时添加点击事件
-        .then(if (enabled) Modifier.clickable(onClick = onClick) else Modifier)
+        .then(if (isClickable) Modifier.clickable(onClick = onClick) else Modifier)
         .defaultMinSize(minHeight = minHeight)
         .then(modifier)
     ) {
       ZButtonContent(
-        buttonStyle = buttonStyle,
+        buttonStyle = visualStyle,
         contentPadding = contentPadding,
-        icon = icon,
+        icon = resolvedIcon,
+        loading = loading,
         content = content,
         circle = false
       )
@@ -151,7 +178,7 @@ fun ZButton(
       contentAlignment = contentAlignment,
       modifier = Modifier
           // 按钮启用时添加点击事件
-        .then(if (enabled) Modifier.clickable(onClick = onClick) else Modifier)
+        .then(if (isClickable) Modifier.clickable(onClick = onClick) else Modifier)
         .defaultMinSize(minHeight = minHeight)
         .then(modifier)
     ) {
@@ -160,19 +187,19 @@ fun ZButton(
         if (type == DEFAULT) {
           // DEFAULT类型只绘制边框圆形
           drawCircle(
-            color = buttonStyle.borderColor,
+            color = visualStyle.borderColor,
             style = Stroke(1.dp.toPx())
           )
         } else {
           // 非DEFAULT类型绘制背景圆形
           drawCircle(
-            color = buttonStyle.backgroundColor
+            color = visualStyle.backgroundColor
           )
 
           // 如果是plain类型，也绘制边框
           if (plain) {
             drawCircle(
-              color = buttonStyle.borderColor,
+              color = visualStyle.borderColor,
               style = Stroke(1.dp.toPx())
             )
           }
@@ -180,9 +207,10 @@ fun ZButton(
       }
 
       ZButtonContent(
-        buttonStyle = buttonStyle,
+        buttonStyle = visualStyle,
         contentPadding = contentPadding,
-        icon = icon,
+        icon = resolvedIcon,
+        loading = loading,
         content = content,
         circle = true
       )
@@ -195,9 +223,29 @@ private fun ZButtonContent(
   buttonStyle: ZButtonStyle,
   contentPadding: PaddingValues,
   icon: (@Composable (() -> Unit))? = null,
+  loading: Boolean = false,
   content: (@Composable RowScope.() -> Unit)? = null,
   circle: Boolean = false
 ) {
+  val loadingRotation = if (loading) {
+    val transition = rememberInfiniteTransition(label = "z_button_loading_rotation")
+    val angle by transition.animateFloat(
+      initialValue = 0f,
+      targetValue = 360f,
+      animationSpec = infiniteRepeatable(
+        animation = tween(
+          durationMillis = ZButtonDefaults.LoadingRotationDurationMillis,
+          easing = LinearEasing
+        ),
+        repeatMode = RepeatMode.Restart
+      ),
+      label = "z_button_loading_rotation_angle"
+    )
+    angle
+  } else {
+    0f
+  }
+
   // 提供内容颜色的上下文，使所有子组件继承此颜色
   CompositionLocalProvider(LocalContentColor provides buttonStyle.textColor) {
     Row(
@@ -206,12 +254,19 @@ private fun ZButtonContent(
     ) {
       if (icon != null) {
         Box(
-          modifier = Modifier.then(
-            if (!circle && content != null) Modifier.padding(end = ZButtonDefaults.IconSpacing)
-            else Modifier
-          ).size(ZButtonDefaults.IconSize)
+          modifier = Modifier
+            .size(ZButtonDefaults.IconSize)
+            .graphicsLayer {
+              rotationZ = if (loading) loadingRotation else 0f
+              transformOrigin = TransformOrigin.Center
+              clip = loading
+            },
+          contentAlignment = Alignment.Center
         ) {
           icon()
+        }
+        if (!circle && content != null) {
+          Spacer(modifier = Modifier.width(ZButtonDefaults.IconSpacing))
         }
       }
       // 圆形按钮没有图标也要占位
@@ -224,6 +279,36 @@ private fun ZButtonContent(
   }
 }
 
+@Composable
+private fun ZButtonDefaultLoadingIcon() {
+  val color = LocalContentColor.current
+  Canvas(modifier = Modifier.fillMaxSize()) {
+    val center = center
+    val rayCount = 8
+    val innerRadius = size.minDimension * 0.15f
+    val outerRadius = size.minDimension * 0.47f
+    val strokeWidth = size.minDimension * 0.14f
+    repeat(rayCount) { index ->
+      val angle = ((2.0 * PI) / rayCount * index - PI / 2.0).toFloat()
+      val start = Offset(
+        x = center.x + cos(angle) * innerRadius,
+        y = center.y + sin(angle) * innerRadius
+      )
+      val end = Offset(
+        x = center.x + cos(angle) * outerRadius,
+        y = center.y + sin(angle) * outerRadius
+      )
+      drawLine(
+        color = color.copy(alpha = 0.35f + 0.65f * (index + 1) / rayCount.toFloat()),
+        start = start,
+        end = end,
+        strokeWidth = strokeWidth,
+        cap = StrokeCap.Round
+      )
+    }
+  }
+}
+
 /**
  * ZButton 样式类
  */
@@ -232,6 +317,26 @@ private data class ZButtonStyle(
   var borderColor: Color,
   var textColor: Color
 )
+
+private fun getLoadingButtonStyle(
+  baseStyle: ZButtonStyle,
+  type: ZColorType,
+  isPlain: Boolean,
+  isDarkTheme: Boolean
+): ZButtonStyle {
+  if (type == PRIMARY && !isPlain) {
+    val loadingColor = if (isDarkTheme) {
+      ZButtonDefaults.LoadingPrimaryDarkColor
+    } else {
+      ZButtonDefaults.LoadingPrimaryLightColor
+    }
+    return baseStyle.copy(
+      backgroundColor = loadingColor,
+      borderColor = loadingColor
+    )
+  }
+  return baseStyle
+}
 
 /**
  * 根据按钮类型、悬停状态和主题模式获取按钮样式
@@ -720,6 +825,9 @@ object ZButtonDefaults {
    */
   val IconSpacing = 2.dp
   val GroupItemSpacing = 0.8.dp
+  val LoadingPrimaryLightColor = Color(0xff7abbff)
+  val LoadingPrimaryDarkColor = Color(0xff2d6eb2)
+  const val LoadingRotationDurationMillis = 900
 
   /**
    * 圆角形状
