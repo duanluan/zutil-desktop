@@ -15,6 +15,30 @@ import compose.icons.FeatherIcons
 import compose.icons.feathericons.ChevronDown
 import compose.icons.feathericons.XCircle
 
+enum class ZDropdownMenuSize {
+  Large,
+  Default,
+  Small
+}
+
+object ZDropdownMenuDefaults {
+  fun fromFormSize(size: ZFormSize?): ZDropdownMenuSize {
+    return when (size) {
+      ZFormSize.LARGE -> ZDropdownMenuSize.Large
+      ZFormSize.SMALL -> ZDropdownMenuSize.Small
+      else -> ZDropdownMenuSize.Default
+    }
+  }
+
+  fun toFormSize(size: ZDropdownMenuSize): ZFormSize {
+    return when (size) {
+      ZDropdownMenuSize.Large -> ZFormSize.LARGE
+      ZDropdownMenuSize.Small -> ZFormSize.SMALL
+      ZDropdownMenuSize.Default -> ZFormSize.DEFAULT
+    }
+  }
+}
+
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun ZDropdownMenu(
@@ -25,7 +49,7 @@ fun ZDropdownMenu(
   fontSize: TextUnit = 12.sp,
   modifier: Modifier = Modifier,
   enabled: Boolean = true,
-  size: ZFormSize? = null,
+  size: ZDropdownMenuSize? = null,
   // 受控值。非 null 时，组件显示由外部状态完全控制。
   value: String? = null,
   // 非受控模式下的初始值（兼容旧调用）。
@@ -62,8 +86,9 @@ fun ZDropdownMenu(
   }
 
   val selectedOption = value ?: internalSelectedOption
-  val resolvedSize = size ?: LocalZFormSize.current
-  val optionHeight = ZFormDefaults.resolveControlHeight(resolvedSize, ZTextFieldDefaults.MinHeight)
+  val resolvedSize = size ?: ZDropdownMenuDefaults.fromFormSize(LocalZFormSize.current)
+  val resolvedFormSize = ZDropdownMenuDefaults.toFormSize(resolvedSize)
+  val optionHeight = ZFormDefaults.resolveControlHeight(resolvedFormSize, ZTextFieldDefaults.MinHeight)
   val showClearIcon = clearable && enabled && selectedOption.isNotEmpty() && isHovered && !expanded
 
   ExposedDropdownMenuBox(
@@ -79,7 +104,7 @@ fun ZDropdownMenu(
     }
   ) {
     ZTextField(
-      size = resolvedSize,
+      size = resolvedFormSize,
       value = selectedOption,
       onValueChange = {},
       enabled = enabled,

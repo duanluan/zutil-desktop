@@ -580,6 +580,26 @@ private fun ZuiComponentDemoContent(
           value = dropdownClearableValue,
           onOptionSelected = { dropdownClearableValue = it }
         )
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+          ZDropdownMenu(
+            options = listOf("Option1", "Option2", "Option3", "Option4", "Option5"),
+            placeholder = "Select",
+            size = ZDropdownMenuSize.Large,
+            modifier = Modifier.width(160.dp)
+          )
+          ZDropdownMenu(
+            options = listOf("Option1", "Option2", "Option3", "Option4", "Option5"),
+            placeholder = "Select",
+            size = ZDropdownMenuSize.Default,
+            modifier = Modifier.width(160.dp)
+          )
+          ZDropdownMenu(
+            options = listOf("Option1", "Option2", "Option3", "Option4", "Option5"),
+            placeholder = "Select",
+            size = ZDropdownMenuSize.Small,
+            modifier = Modifier.width(160.dp)
+          )
+        }
       }
     },
     ZTabPane(label = "Form 表单", name = "form") {
