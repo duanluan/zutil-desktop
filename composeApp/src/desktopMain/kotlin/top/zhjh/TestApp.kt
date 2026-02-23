@@ -1,6 +1,7 @@
 package top.zhjh
 
 import ZLink
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.Icon
@@ -12,10 +13,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import compose.icons.FeatherIcons
 import compose.icons.feathericons.*
+import kotlinx.coroutines.delay
 import top.zhjh.common.composable.ToastContainer
 import top.zhjh.common.composable.ToastManager
 import top.zhjh.zui.composable.*
@@ -72,6 +76,35 @@ fun ZuiComponentShowcase(
 }
 
 @Composable
+private fun ZDropdownDotsLoadingIcon() {
+  Canvas(modifier = Modifier.fillMaxSize()) {
+    val radius = size.minDimension * 0.16f
+    val orbit = size.minDimension * 0.30f
+    val center = center
+    val dotCenters = listOf(
+      Offset(center.x, center.y - orbit),
+      Offset(center.x + orbit, center.y),
+      Offset(center.x, center.y + orbit),
+      Offset(center.x - orbit, center.y)
+    )
+    val dotColors = listOf(
+      Color(0xff409eff),
+      Color(0xff8bc2ff),
+      Color(0xffb6d7ff),
+      Color(0xff7cb9ff)
+    )
+
+    dotCenters.forEachIndexed { index, dotCenter ->
+      drawCircle(
+        color = dotColors[index],
+        radius = radius,
+        center = dotCenter
+      )
+    }
+  }
+}
+
+@Composable
 private fun ZuiComponentDemoContent(
   isDarkTheme: Boolean,
   onToggleTheme: () -> Unit,
@@ -98,6 +131,10 @@ private fun ZuiComponentDemoContent(
   var dropdownClearableValue by remember { mutableStateOf("Option1") }
   var dropdownFilterableValue by remember { mutableStateOf("") }
   var dropdownAllowCreateValues by remember { mutableStateOf(emptyList<String>()) }
+  var dropdownLoadingIcon1 by remember { mutableStateOf(false) }
+  var dropdownLoadingIcon2 by remember { mutableStateOf(false) }
+  var dropdownLoadingIcon1Trigger by remember { mutableStateOf(0) }
+  var dropdownLoadingIcon2Trigger by remember { mutableStateOf(0) }
   var dropdownMultiDefaultValue by remember { mutableStateOf(listOf("Option1", "Option2")) }
   var dropdownMultiCollapseValue by remember { mutableStateOf(listOf("Option1", "Option2", "Option3")) }
   var dropdownMultiCollapseTooltipValue by remember { mutableStateOf(listOf("Option1", "Option3", "Option4", "Option5")) }
@@ -170,6 +207,18 @@ private fun ZuiComponentDemoContent(
   }
 
   var activeTabName by remember { mutableStateOf("text") }
+  LaunchedEffect(dropdownLoadingIcon1Trigger) {
+    if (dropdownLoadingIcon1Trigger > 0) {
+      delay(3000)
+      dropdownLoadingIcon1 = false
+    }
+  }
+  LaunchedEffect(dropdownLoadingIcon2Trigger) {
+    if (dropdownLoadingIcon2Trigger > 0) {
+      delay(3000)
+      dropdownLoadingIcon2 = false
+    }
+  }
 
   val tabs = listOf(
     ZTabPane(label = "Text 文本", name = "text") {
@@ -889,6 +938,42 @@ private fun ZuiComponentDemoContent(
           values = dropdownAllowCreateValues,
           onOptionsSelected = { dropdownAllowCreateValues = it }
         )
+
+        Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+          Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            ZText("loading icon1")
+            ZDropdownMenu(
+              options = emptyList(),
+              placeholder = "Please enter a keyword",
+              modifier = Modifier.width(360.dp),
+              filterable = true,
+              loading = dropdownLoadingIcon1,
+              onExpandedChange = { expanded ->
+                if (expanded) {
+                  dropdownLoadingIcon1 = true
+                  dropdownLoadingIcon1Trigger += 1
+                }
+              }
+            )
+          }
+          Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            ZText("loading icon2")
+            ZDropdownMenu(
+              options = emptyList(),
+              placeholder = "Please enter a keyword",
+              modifier = Modifier.width(360.dp),
+              filterable = true,
+              loading = dropdownLoadingIcon2,
+              loadingIcon = { ZDropdownDotsLoadingIcon() },
+              onExpandedChange = { expanded ->
+                if (expanded) {
+                  dropdownLoadingIcon2 = true
+                  dropdownLoadingIcon2Trigger += 1
+                }
+              }
+            )
+          }
+        }
       }
     },
     ZTabPane(label = "Form 表单", name = "form") {

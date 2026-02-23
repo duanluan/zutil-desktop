@@ -1,5 +1,12 @@
 package top.zhjh.zui.composable
 
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -17,7 +24,9 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
@@ -118,6 +127,9 @@ fun ZDropdownMenu(
   placeholder: String = "请选择",
   disabledOptions: Set<String> = emptySet(),
   clearable: Boolean = false,
+  loading: Boolean = false,
+  loadingIcon: (@Composable () -> Unit)? = null,
+  noDataText: String = "No data",
   filterable: Boolean = false,
   filterMethod: ((inputValue: String, option: String) -> Boolean)? = null,
   allowCreate: Boolean = false,
@@ -132,7 +144,8 @@ fun ZDropdownMenu(
   optionItems: List<ZDropdownMenuOption> = emptyList(),
   optionGroups: List<ZDropdownMenuOptionGroup> = emptyList(),
   dropdownHeader: (@Composable () -> Unit)? = null,
-  dropdownFooter: (@Composable () -> Unit)? = null
+  dropdownFooter: (@Composable () -> Unit)? = null,
+  onExpandedChange: (Boolean) -> Unit = {}
 ) {
   val textStyle = LocalTextStyle.current.copy(
     fontSize = fontSize,
@@ -145,11 +158,19 @@ fun ZDropdownMenu(
   var suppressNextToggle by remember { mutableStateOf(false) }
   var filterKeyword by remember { mutableStateOf("") }
   val multiFilterInputFocusRequester = remember { FocusRequester() }
+  val setExpanded: (Boolean) -> Unit = { nextExpanded ->
+    if (expanded != nextExpanded) {
+      expanded = nextExpanded
+      onExpandedChange(nextExpanded)
+    } else {
+      expanded = nextExpanded
+    }
+  }
   val hoverInteractionSource = remember { MutableInteractionSource() }
   val isHovered by hoverInteractionSource.collectIsHoveredAsState()
   LaunchedEffect(enabled) {
     if (!enabled) {
-      expanded = false
+      setExpanded(false)
     }
   }
 
@@ -431,10 +452,10 @@ fun ZDropdownMenu(
           updateMultiSelection(selectedOptions + optionToSelect.value)
         }
         filterKeyword = ""
-        expanded = true
+        setExpanded(true)
       } else {
         updateSingleSelection(optionToSelect.value)
-        expanded = false
+        setExpanded(false)
       }
       return@submit
     }
@@ -449,10 +470,10 @@ fun ZDropdownMenu(
           updateMultiSelection(selectedOptions + keyword)
         }
         filterKeyword = ""
-        expanded = true
+        setExpanded(true)
       } else {
         updateSingleSelection(keyword)
-        expanded = false
+        setExpanded(false)
       }
     }
   }
@@ -465,7 +486,7 @@ fun ZDropdownMenu(
         return@ExposedDropdownMenuBox
       }
       if (enabled) {
-        expanded = if (enableFiltering) true else !expanded
+        setExpanded(if (enableFiltering) true else !expanded)
       }
     }
   ) {
@@ -477,7 +498,7 @@ fun ZDropdownMenu(
           if (enableFiltering) {
             filterKeyword = input
             if (enabled && !expanded) {
-              expanded = true
+              setExpanded(true)
             }
           }
         },
@@ -512,7 +533,7 @@ fun ZDropdownMenu(
                 indication = null
               ) {
                 suppressNextToggle = true
-                expanded = false
+                setExpanded(false)
                 updateSingleSelection("")
                 if (enableFiltering) {
                   filterKeyword = ""
@@ -634,7 +655,7 @@ fun ZDropdownMenu(
                     onValueChange = { input ->
                       filterKeyword = input
                       if (enabled && !expanded) {
-                        expanded = true
+                        setExpanded(true)
                       }
                     },
                     enabled = enabled,
@@ -687,7 +708,7 @@ fun ZDropdownMenu(
                   indication = null
                 ) {
                   suppressNextToggle = true
-                  expanded = false
+                  setExpanded(false)
                   updateMultiSelection(emptyList())
                 }
             )
@@ -708,13 +729,16 @@ fun ZDropdownMenu(
     val popupFocusable = dropdownFooter != null && !enableFiltering
     DropdownMenu(
       expanded = expanded && enabled,
-      onDismissRequest = { expanded = false },
+      onDismissRequest = { setExpanded(false) },
       modifier = Modifier.exposedDropdownSize(),
       properties = PopupProperties(focusable = popupFocusable)
     ) {
       val hasHeader = dropdownHeader != null
       val hasFooter = dropdownFooter != null
       val hasOptions = filteredOptions.isNotEmpty()
+      val showLoadingState = loading
+      val showNoDataState = !showLoadingState && !hasOptions
+      val hasBodyContent = hasOptions || showLoadingState || showNoDataState
       val groupLabelColor = if (isDarkTheme) Color(0xff8d9095) else Color(0xff909399)
 
       if (hasHeader) {
@@ -727,83 +751,121 @@ fun ZDropdownMenu(
         }
         Divider()
       }
-      Column(
-        modifier = Modifier
-          .fillMaxWidth()
-          .padding(
-            top = if (hasHeader && hasOptions) 8.dp else 0.dp,
-            bottom = if (hasFooter && hasOptions) 8.dp else 0.dp
-          )
-      ) {
-        val optionItemContent: @Composable (ZDropdownMenuResolvedOption) -> Unit = { option ->
-          val isDisabled = option.value in disabledOptions
-          val isSelected = if (multiple) option.value in selectedOptions else option.value == selectedOption
-          DropdownMenuItem(
-            onClick = {
-              if (multiple) {
-                if (isSelected) {
-                  updateMultiSelection(selectedOptions - option.value)
-                } else {
-                  updateMultiSelection(selectedOptions + option.value)
-                }
-                if (enableFiltering) {
-                  filterKeyword = ""
-                }
-              } else {
-                updateSingleSelection(option.value)
-                expanded = false
-              }
-            },
-            enabled = enabled && !isDisabled,
-            modifier = Modifier.height(optionHeight)
+      when {
+        showLoadingState -> {
+          Box(
+            modifier = Modifier
+              .fillMaxWidth()
+              .heightIn(min = 112.dp)
+              .padding(
+                top = if (hasHeader) 8.dp else 0.dp,
+                bottom = if (hasFooter) 8.dp else 0.dp
+              ),
+            contentAlignment = Alignment.Center
           ) {
-            Row(
-              modifier = Modifier.fillMaxWidth(),
-              horizontalArrangement = Arrangement.SpaceBetween,
-              verticalAlignment = Alignment.CenterVertically
-            ) {
-              Text(
-                text = option.label,
-                style = textStyle,
-                color = if (isSelected && enabled) Color(0xff409eff) else LocalContentColor.current
-              )
-              if (multiple && isSelected) {
-                Icon(
-                  imageVector = FeatherIcons.Check,
-                  contentDescription = "Selected",
-                  tint = Color(0xff409eff),
-                  modifier = Modifier.size(14.dp)
-                )
-              }
-            }
+            ZDropdownLoadingStateIcon(loadingIcon = loadingIcon)
           }
         }
-        if (filteredOptionGroups.isNotEmpty()) {
-          filteredOptionGroups.forEach { group ->
+
+        showNoDataState -> {
+          Box(
+            modifier = Modifier
+              .fillMaxWidth()
+              .padding(
+                top = if (hasHeader) 8.dp else 0.dp,
+                bottom = if (hasFooter) 8.dp else 0.dp
+              )
+              .heightIn(min = optionHeight),
+            contentAlignment = Alignment.Center
+          ) {
             Text(
-              text = group.label,
+              text = noDataText,
               style = compactFieldTextStyle,
-              color = groupLabelColor,
-              modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 16.dp, end = 16.dp, top = 6.dp, bottom = 6.dp)
+              color = if (isDarkTheme) Color(0xff8d9095) else Color(0xff909399)
             )
-            group.options.forEach { option ->
-              key(option.valueKey) {
-                optionItemContent(option)
+          }
+        }
+
+        else -> {
+          Column(
+            modifier = Modifier
+              .fillMaxWidth()
+              .padding(
+                top = if (hasHeader) 8.dp else 0.dp,
+                bottom = if (hasFooter) 8.dp else 0.dp
+              )
+          ) {
+            val optionItemContent: @Composable (ZDropdownMenuResolvedOption) -> Unit = { option ->
+              val isDisabled = option.value in disabledOptions
+              val isSelected = if (multiple) option.value in selectedOptions else option.value == selectedOption
+              DropdownMenuItem(
+                onClick = {
+                  if (multiple) {
+                    if (isSelected) {
+                      updateMultiSelection(selectedOptions - option.value)
+                    } else {
+                      updateMultiSelection(selectedOptions + option.value)
+                    }
+                    if (enableFiltering) {
+                      filterKeyword = ""
+                    }
+                  } else {
+                    updateSingleSelection(option.value)
+                    setExpanded(false)
+                  }
+                },
+                enabled = enabled && !isDisabled,
+                modifier = Modifier.height(optionHeight)
+              ) {
+                Row(
+                  modifier = Modifier.fillMaxWidth(),
+                  horizontalArrangement = Arrangement.SpaceBetween,
+                  verticalAlignment = Alignment.CenterVertically
+                ) {
+                  Text(
+                    text = option.label,
+                    style = textStyle,
+                    color = if (isSelected && enabled) Color(0xff409eff) else LocalContentColor.current
+                  )
+                  if (multiple && isSelected) {
+                    Icon(
+                      imageVector = FeatherIcons.Check,
+                      contentDescription = "Selected",
+                      tint = Color(0xff409eff),
+                      modifier = Modifier.size(14.dp)
+                    )
+                  }
+                }
               }
             }
-          }
-        } else {
-          filteredOptions.forEach { option ->
-            key(option.valueKey) {
-              optionItemContent(option)
+            if (filteredOptionGroups.isNotEmpty()) {
+              filteredOptionGroups.forEach { group ->
+                Text(
+                  text = group.label,
+                  style = compactFieldTextStyle,
+                  color = groupLabelColor,
+                  modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 16.dp, end = 16.dp, top = 6.dp, bottom = 6.dp)
+                )
+                group.options.forEach { option ->
+                  key(option.valueKey) {
+                    optionItemContent(option)
+                  }
+                }
+              }
+            } else {
+              filteredOptions.forEach { option ->
+                key(option.valueKey) {
+                  optionItemContent(option)
+                }
+              }
             }
           }
         }
       }
       if (hasFooter) {
-        if (hasOptions) {
+        if (hasBodyContent) {
           Divider()
         }
         Box(
@@ -815,6 +877,51 @@ fun ZDropdownMenu(
         }
       }
     }
+  }
+}
+
+@Composable
+private fun ZDropdownLoadingStateIcon(
+  loadingIcon: (@Composable () -> Unit)?
+) {
+  val loadingRotation = rememberInfiniteTransition(label = "z_dropdown_loading_rotation")
+  val angle by loadingRotation.animateFloat(
+    initialValue = 0f,
+    targetValue = 360f,
+    animationSpec = infiniteRepeatable(
+      animation = tween(durationMillis = 900, easing = LinearEasing),
+      repeatMode = RepeatMode.Restart
+    ),
+    label = "z_dropdown_loading_rotation_angle"
+  )
+
+  Box(
+    modifier = Modifier
+      .size(20.dp)
+      .graphicsLayer(rotationZ = angle),
+    contentAlignment = Alignment.Center
+  ) {
+    CompositionLocalProvider(LocalContentColor provides Color(0xff409eff)) {
+      if (loadingIcon == null) {
+        ZDropdownDefaultLoadingIcon()
+      } else {
+        loadingIcon()
+      }
+    }
+  }
+}
+
+@Composable
+private fun ZDropdownDefaultLoadingIcon() {
+  val color = LocalContentColor.current
+  Canvas(modifier = Modifier.fillMaxSize()) {
+    drawArc(
+      color = color,
+      startAngle = -90f,
+      sweepAngle = 300f,
+      useCenter = false,
+      style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round)
+    )
   }
 }
 
