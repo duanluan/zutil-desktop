@@ -97,6 +97,7 @@ private fun ZuiComponentDemoContent(
   var buttonGroupDirectionValue by remember { mutableStateOf("horizontal") }
   var dropdownClearableValue by remember { mutableStateOf("Option1") }
   var dropdownFilterableValue by remember { mutableStateOf("") }
+  var dropdownAllowCreateValues by remember { mutableStateOf(emptyList<String>()) }
   var dropdownMultiDefaultValue by remember { mutableStateOf(listOf("Option1", "Option2")) }
   var dropdownMultiCollapseValue by remember { mutableStateOf(listOf("Option1", "Option2", "Option3")) }
   var dropdownMultiCollapseTooltipValue by remember { mutableStateOf(listOf("Option1", "Option3", "Option4", "Option5")) }
@@ -874,6 +875,19 @@ private fun ZuiComponentDemoContent(
           },
           value = dropdownFilterableValue,
           onOptionSelected = { dropdownFilterableValue = it }
+        )
+
+        ZText("allow-create and default-first-option")
+        ZDropdownMenu(
+          options = listOf("HTML", "CSS", "JavaScript"),
+          placeholder = "Choose tags for your article",
+          modifier = Modifier.width(360.dp),
+          multiple = true,
+          filterable = true,
+          allowCreate = true,
+          defaultFirstOption = true,
+          values = dropdownAllowCreateValues,
+          onOptionsSelected = { dropdownAllowCreateValues = it }
         )
       }
     },

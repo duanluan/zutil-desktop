@@ -8,12 +8,21 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.*
 import androidx.compose.ui.window.Popup
@@ -88,6 +97,8 @@ fun ZDropdownMenu(
   clearable: Boolean = false,
   filterable: Boolean = false,
   filterMethod: ((inputValue: String, option: String) -> Boolean)? = null,
+  allowCreate: Boolean = false,
+  defaultFirstOption: Boolean = false,
   multiple: Boolean = false,
   values: List<String>? = null,
   defaultSelectedOptions: List<String> = emptyList(),
@@ -109,6 +120,7 @@ fun ZDropdownMenu(
   // Prevent ExposedDropdownMenuBox from toggling when clicking inner clear/remove controls.
   var suppressNextToggle by remember { mutableStateOf(false) }
   var filterKeyword by remember { mutableStateOf("") }
+  val multiFilterInputFocusRequester = remember { FocusRequester() }
   val hoverInteractionSource = remember { MutableInteractionSource() }
   val isHovered by hoverInteractionSource.collectIsHoveredAsState()
   LaunchedEffect(enabled) {
@@ -117,36 +129,77 @@ fun ZDropdownMenu(
     }
   }
 
+  val resolvedOptionGroups = optionGroups.filter { it.options.isNotEmpty() }
+  val baseResolvedOptions = resolveDropdownMenuOptions(options, resolvedOptionGroups)
+  val allowCreateEnabled = allowCreate && filterable
+  val createdOptions = remember { mutableStateListOf<String>() }
+  val addCreatedOptionIfNeeded: (String) -> Unit = { rawOption ->
+    if (allowCreateEnabled) {
+      val normalizedOption = rawOption.trim()
+      if (
+        normalizedOption.isNotEmpty() &&
+        normalizedOption !in baseResolvedOptions &&
+        normalizedOption !in createdOptions
+      ) {
+        createdOptions.add(normalizedOption)
+      }
+    }
+  }
+  val resolvedOptions = (baseResolvedOptions + createdOptions).distinct()
+
   var internalSelectedOption by remember {
-    mutableStateOf(defaultSelectedOption?.takeIf { it in resolveDropdownMenuOptions(options, optionGroups) } ?: "")
+    mutableStateOf(defaultSelectedOption?.takeIf { it in baseResolvedOptions } ?: "")
   }
   var internalSelectedOptions by remember {
-    mutableStateOf(normalizeDropdownMenuValues(defaultSelectedOptions, resolveDropdownMenuOptions(options, optionGroups)))
+    mutableStateOf(normalizeDropdownMenuValues(defaultSelectedOptions, baseResolvedOptions))
   }
 
-  val resolvedOptionGroups = optionGroups.filter { it.options.isNotEmpty() }
-  val resolvedOptions = resolveDropdownMenuOptions(options, resolvedOptionGroups)
-
-  LaunchedEffect(defaultSelectedOption, value, resolvedOptions) {
+  LaunchedEffect(defaultSelectedOption, value, resolvedOptions, allowCreateEnabled) {
     if (value == null) {
-      internalSelectedOption = defaultSelectedOption?.takeIf { it in resolvedOptions } ?: ""
+      internalSelectedOption = normalizeDropdownMenuSingleValue(defaultSelectedOption, resolvedOptions, allowCreateEnabled)
     }
   }
-  LaunchedEffect(defaultSelectedOptions, values, resolvedOptions) {
+  LaunchedEffect(defaultSelectedOptions, values, resolvedOptions, allowCreateEnabled) {
     if (values == null) {
-      internalSelectedOptions = normalizeDropdownMenuValues(defaultSelectedOptions, resolvedOptions)
+      internalSelectedOptions = normalizeDropdownMenuValues(
+        defaultSelectedOptions,
+        resolvedOptions,
+        allowUnknown = allowCreateEnabled
+      )
     }
   }
 
-  val selectedOption = (value ?: internalSelectedOption).takeIf { it in resolvedOptions } ?: ""
-  val selectedOptions = normalizeDropdownMenuValues(values ?: internalSelectedOptions, resolvedOptions)
-  val enableFiltering = filterable && !multiple
-  LaunchedEffect(enableFiltering, selectedOption, expanded) {
+  val selectedOption = normalizeDropdownMenuSingleValue(value ?: internalSelectedOption, resolvedOptions, allowCreateEnabled)
+  val selectedOptions = normalizeDropdownMenuValues(
+    values ?: internalSelectedOptions,
+    resolvedOptions,
+    allowUnknown = allowCreateEnabled
+  )
+  LaunchedEffect(allowCreateEnabled, baseResolvedOptions, selectedOption, selectedOptions) {
+    if (!allowCreateEnabled) return@LaunchedEffect
+    buildList {
+      if (selectedOption.isNotEmpty()) add(selectedOption)
+      addAll(selectedOptions)
+    }
+      .forEach(addCreatedOptionIfNeeded)
+  }
+
+  val enableFiltering = filterable
+  LaunchedEffect(enableFiltering, selectedOption, expanded, multiple) {
     if (enableFiltering && !expanded) {
-      filterKeyword = selectedOption
+      if (multiple) {
+        filterKeyword = ""
+      } else {
+        filterKeyword = selectedOption
+      }
     }
     if (!enableFiltering) {
       filterKeyword = ""
+    }
+  }
+  LaunchedEffect(expanded, enableFiltering, multiple, enabled) {
+    if (expanded && enableFiltering && multiple && enabled) {
+      multiFilterInputFocusRequester.requestFocus()
     }
   }
   val normalizedFilterKeyword = if (enableFiltering) filterKeyword.trim() else ""
@@ -170,7 +223,7 @@ fun ZDropdownMenu(
     emptyList()
   }
   val filteredOptions = if (resolvedOptionGroups.isNotEmpty()) {
-    filteredOptionGroups.flatMap { it.options }
+    (filteredOptionGroups.flatMap { it.options } + createdOptions.filter(optionMatchesFilter)).distinct()
   } else {
     resolvedOptions.filter(optionMatchesFilter)
   }
@@ -238,7 +291,11 @@ fun ZDropdownMenu(
   )
 
   val updateSingleSelection: (String) -> Unit = { option ->
-    val normalized = option.takeIf { it in resolvedOptions } ?: ""
+    val normalizedInput = option.trim()
+    if (normalizedInput.isNotEmpty()) {
+      addCreatedOptionIfNeeded(normalizedInput)
+    }
+    val normalized = normalizeDropdownMenuSingleValue(normalizedInput, resolvedOptions, allowCreateEnabled)
     if (value == null) {
       internalSelectedOption = normalized
     }
@@ -248,11 +305,66 @@ fun ZDropdownMenu(
     onOptionSelected(normalized)
   }
   val updateMultiSelection: (List<String>) -> Unit = { selections ->
-    val normalized = normalizeDropdownMenuValues(selections, resolvedOptions)
+    if (allowCreateEnabled) {
+      selections.forEach(addCreatedOptionIfNeeded)
+    }
+    val normalized = normalizeDropdownMenuValues(
+      selections,
+      resolvedOptions,
+      allowUnknown = allowCreateEnabled
+    )
     if (values == null) {
       internalSelectedOptions = normalized
     }
     onOptionsSelected(normalized)
+  }
+  val submitFilterKeywordSelection: () -> Unit = submit@{
+    if (!enabled || !enableFiltering) return@submit
+    val keyword = filterKeyword.trim()
+
+    val exactOption = if (keyword.isNotEmpty()) {
+      resolvedOptions.firstOrNull { it == keyword }
+        ?.takeUnless { it in disabledOptions }
+    } else {
+      null
+    }
+    val firstFilteredOption = if (defaultFirstOption) {
+      filteredOptions.firstOrNull { it !in disabledOptions }
+    } else {
+      null
+    }
+    val optionToSelect = exactOption ?: firstFilteredOption
+
+    if (optionToSelect != null) {
+      if (multiple) {
+        if (optionToSelect !in selectedOptions) {
+          updateMultiSelection(selectedOptions + optionToSelect)
+        }
+        filterKeyword = ""
+        expanded = true
+      } else {
+        updateSingleSelection(optionToSelect)
+        expanded = false
+      }
+      return@submit
+    }
+
+    if (keyword.isEmpty()) {
+      return@submit
+    }
+
+    if (allowCreateEnabled && keyword !in disabledOptions) {
+      if (multiple) {
+        if (keyword !in selectedOptions) {
+          updateMultiSelection(selectedOptions + keyword)
+        }
+        filterKeyword = ""
+        expanded = true
+      } else {
+        updateSingleSelection(keyword)
+        expanded = false
+      }
+    }
   }
 
   ExposedDropdownMenuBox(
@@ -281,7 +393,20 @@ fun ZDropdownMenu(
         },
         enabled = enabled,
         readOnly = !enableFiltering,
-        modifier = modifier.hoverable(hoverInteractionSource),
+        modifier = modifier
+          .hoverable(hoverInteractionSource)
+          .onPreviewKeyEvent { keyEvent ->
+            if (
+              enableFiltering &&
+              keyEvent.type == KeyEventType.KeyDown &&
+              keyEvent.key == Key.Enter
+            ) {
+              submitFilterKeywordSelection()
+              true
+            } else {
+              false
+            }
+          },
         placeholder = if (enableFiltering) {
           placeholder
         } else {
@@ -329,7 +454,7 @@ fun ZDropdownMenu(
           verticalAlignment = Alignment.CenterVertically
         ) {
           Box(modifier = Modifier.weight(1f)) {
-            if (selectedOptions.isEmpty()) {
+            if (selectedOptions.isEmpty() && !enableFiltering) {
               Text(
                 text = placeholder,
                 style = compactFieldTextStyle,
@@ -413,6 +538,49 @@ fun ZDropdownMenu(
                     }
                   }
                 }
+                if (enableFiltering) {
+                  BasicTextField(
+                    value = filterKeyword,
+                    onValueChange = { input ->
+                      filterKeyword = input
+                      if (enabled && !expanded) {
+                        expanded = true
+                      }
+                    },
+                    enabled = enabled,
+                    singleLine = true,
+                    textStyle = compactFieldTextStyle.copy(color = fieldStyle.textColor),
+                    cursorBrush = SolidColor(fieldStyle.textColor),
+                    modifier = Modifier
+                      .padding(
+                        start = if (selectedOptions.isEmpty()) 4.dp else 0.dp,
+                        top = 4.dp,
+                        bottom = 4.dp
+                      )
+                      .widthIn(min = 48.dp, max = 220.dp)
+                      .focusRequester(multiFilterInputFocusRequester)
+                      .onPreviewKeyEvent { keyEvent ->
+                        if (keyEvent.type == KeyEventType.KeyDown && keyEvent.key == Key.Enter) {
+                          submitFilterKeywordSelection()
+                          true
+                        } else {
+                          false
+                        }
+                      },
+                    decorationBox = { innerTextField ->
+                      Box(contentAlignment = Alignment.CenterStart) {
+                        innerTextField()
+                        if (selectedOptions.isEmpty() && filterKeyword.isEmpty()) {
+                          Text(
+                            text = placeholder,
+                            style = compactFieldTextStyle,
+                            color = fieldStyle.placeholderColor
+                          )
+                        }
+                      }
+                    }
+                  )
+                }
               }
             }
           }
@@ -487,6 +655,9 @@ fun ZDropdownMenu(
                   updateMultiSelection(selectedOptions - option)
                 } else {
                   updateMultiSelection(selectedOptions + option)
+                }
+                if (enableFiltering) {
+                  filterKeyword = ""
                 }
               } else {
                 updateSingleSelection(option)
@@ -620,11 +791,35 @@ private fun resolveVisibleTagLimit(
 
 private fun normalizeDropdownMenuValues(
   selections: List<String>,
-  options: List<String>
+  options: List<String>,
+  allowUnknown: Boolean = false
 ): List<String> {
-  if (selections.isEmpty() || options.isEmpty()) return emptyList()
-  val selectedSet = selections.toSet()
-  return options.filter { it in selectedSet }
+  if (selections.isEmpty()) return emptyList()
+  val normalizedSelections = selections
+    .map { it.trim() }
+    .filter { it.isNotEmpty() }
+    .distinct()
+  if (normalizedSelections.isEmpty()) return emptyList()
+  if (options.isEmpty()) {
+    return if (allowUnknown) normalizedSelections else emptyList()
+  }
+  val selectedSet = normalizedSelections.toSet()
+  val knownSelections = options.filter { it in selectedSet }
+  if (!allowUnknown) return knownSelections
+  val knownSelectionSet = knownSelections.toSet()
+  val unknownSelections = normalizedSelections.filter { it !in knownSelectionSet }
+  return knownSelections + unknownSelections
+}
+
+private fun normalizeDropdownMenuSingleValue(
+  selection: String?,
+  options: List<String>,
+  allowUnknown: Boolean
+): String {
+  val normalizedSelection = selection?.trim().orEmpty()
+  if (normalizedSelection.isEmpty()) return ""
+  if (normalizedSelection in options) return normalizedSelection
+  return if (allowUnknown) normalizedSelection else ""
 }
 
 private fun resolveDropdownMenuOptions(
