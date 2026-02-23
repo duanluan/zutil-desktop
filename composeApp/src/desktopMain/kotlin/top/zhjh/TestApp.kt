@@ -3,6 +3,7 @@ package top.zhjh
 import ZLink
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.Checkbox
 import androidx.compose.material.Icon
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Surface
@@ -89,6 +90,9 @@ private fun ZuiComponentDemoContent(
   var radioStringValue by remember { mutableStateOf("option1") }
   var radioNumberValue by remember { mutableStateOf(1) }
   var radioBooleanValue by remember { mutableStateOf(true) }
+  var checkboxLargeSelectedOptions by remember { mutableStateOf(setOf("Option 1")) }
+  var checkboxDefaultSelectedOptions by remember { mutableStateOf(emptySet<String>()) }
+  var checkboxSmallSelectedOptions by remember { mutableStateOf(emptySet<String>()) }
   var buttonGroupDirectionValue by remember { mutableStateOf("horizontal") }
   var dropdownClearableValue by remember { mutableStateOf("Option1") }
   var dropdownMultiDefaultValue by remember { mutableStateOf(listOf("Option1", "Option2")) }
@@ -288,6 +292,90 @@ private fun ZuiComponentDemoContent(
             onValueChange = {},
             label = "Small",
             size = ZRadioSize.Small
+          )
+        }
+      }
+    },
+    ZTabPane(label = "Checkbox 多选框", name = "checkbox") {
+      Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(40.dp), verticalAlignment = Alignment.CenterVertically) {
+          ZCheckbox(
+            checked = "Option 1" in checkboxLargeSelectedOptions,
+            onCheckedChange = { checked ->
+              checkboxLargeSelectedOptions = if (checked) {
+                checkboxLargeSelectedOptions + "Option 1"
+              } else {
+                checkboxLargeSelectedOptions - "Option 1"
+              }
+            },
+            label = "Option 1",
+            size = ZCheckboxSize.Large
+          )
+          ZCheckbox(
+            checked = "Option 2" in checkboxLargeSelectedOptions,
+            onCheckedChange = { checked ->
+              checkboxLargeSelectedOptions = if (checked) {
+                checkboxLargeSelectedOptions + "Option 2"
+              } else {
+                checkboxLargeSelectedOptions - "Option 2"
+              }
+            },
+            label = "Option 2",
+            size = ZCheckboxSize.Large
+          )
+        }
+
+        Row(horizontalArrangement = Arrangement.spacedBy(40.dp), verticalAlignment = Alignment.CenterVertically) {
+          ZCheckbox(
+            checked = "Option 1" in checkboxDefaultSelectedOptions,
+            onCheckedChange = { checked ->
+              checkboxDefaultSelectedOptions = if (checked) {
+                checkboxDefaultSelectedOptions + "Option 1"
+              } else {
+                checkboxDefaultSelectedOptions - "Option 1"
+              }
+            },
+            label = "Option 1",
+            size = ZCheckboxSize.Default
+          )
+          ZCheckbox(
+            checked = "Option 2" in checkboxDefaultSelectedOptions,
+            onCheckedChange = { checked ->
+              checkboxDefaultSelectedOptions = if (checked) {
+                checkboxDefaultSelectedOptions + "Option 2"
+              } else {
+                checkboxDefaultSelectedOptions - "Option 2"
+              }
+            },
+            label = "Option 2",
+            size = ZCheckboxSize.Default
+          )
+        }
+
+        Row(horizontalArrangement = Arrangement.spacedBy(40.dp), verticalAlignment = Alignment.CenterVertically) {
+          ZCheckbox(
+            checked = "Option 1" in checkboxSmallSelectedOptions,
+            onCheckedChange = { checked ->
+              checkboxSmallSelectedOptions = if (checked) {
+                checkboxSmallSelectedOptions + "Option 1"
+              } else {
+                checkboxSmallSelectedOptions - "Option 1"
+              }
+            },
+            label = "Option 1",
+            size = ZCheckboxSize.Small
+          )
+          ZCheckbox(
+            checked = "Option 2" in checkboxSmallSelectedOptions,
+            onCheckedChange = { checked ->
+              checkboxSmallSelectedOptions = if (checked) {
+                checkboxSmallSelectedOptions + "Option 2"
+              } else {
+                checkboxSmallSelectedOptions - "Option 2"
+              }
+            },
+            label = "Option 2",
+            size = ZCheckboxSize.Small
           )
         }
       }
