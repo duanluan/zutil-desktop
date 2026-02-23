@@ -3,7 +3,6 @@ package top.zhjh
 import ZLink
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.Checkbox
 import androidx.compose.material.Icon
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Surface
@@ -99,6 +98,8 @@ private fun ZuiComponentDemoContent(
   var dropdownMultiCollapseValue by remember { mutableStateOf(listOf("Option1", "Option2", "Option3")) }
   var dropdownMultiCollapseTooltipValue by remember { mutableStateOf(listOf("Option1", "Option3", "Option4", "Option5")) }
   var dropdownMultiMaxCollapseValue by remember { mutableStateOf(listOf("Option1", "Option2", "Option3", "Option4")) }
+  val dropdownHeaderCityOptions = remember { listOf("Beijing", "Shanghai", "Nanjing", "Chengdu", "Shenzhen", "Guangzhou") }
+  var dropdownHeaderSelectedCities by remember { mutableStateOf(dropdownHeaderCityOptions) }
 
   val formState = rememberZFormState()
   val formModel = remember(username, email, password, confirmPassword) {
@@ -735,6 +736,34 @@ private fun ZuiComponentDemoContent(
           maxCollapseTags = 3,
           values = dropdownMultiMaxCollapseValue,
           onOptionsSelected = { dropdownMultiMaxCollapseValue = it }
+        )
+
+        ZText("custom dropdown header")
+        ZDropdownMenu(
+          options = dropdownHeaderCityOptions,
+          placeholder = "Select",
+          modifier = Modifier.width(360.dp),
+          multiple = true,
+          clearable = true,
+          collapseTags = true,
+          values = dropdownHeaderSelectedCities,
+          onOptionsSelected = { dropdownHeaderSelectedCities = it },
+          dropdownHeader = {
+            val allSelected = dropdownHeaderSelectedCities.size == dropdownHeaderCityOptions.size
+            ZCheckbox(
+              checked = allSelected,
+              onCheckedChange = { checked ->
+                dropdownHeaderSelectedCities = if (checked) {
+                  dropdownHeaderCityOptions
+                } else {
+                  emptyList()
+                }
+              },
+              modifier = Modifier
+                .fillMaxWidth(),
+              label = "All"
+            )
+          }
         )
       }
     },

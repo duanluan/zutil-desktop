@@ -87,7 +87,8 @@ fun ZDropdownMenu(
   onOptionsSelected: (List<String>) -> Unit = {},
   collapseTags: Boolean = false,
   collapseTagsTooltip: Boolean = false,
-  maxCollapseTags: Int? = null
+  maxCollapseTags: Int? = null,
+  dropdownHeader: (@Composable () -> Unit)? = null
 ) {
   val textStyle = LocalTextStyle.current.copy(
     fontSize = fontSize,
@@ -385,42 +386,64 @@ fun ZDropdownMenu(
       expanded = expanded && enabled,
       onDismissRequest = { expanded = false }
     ) {
-      options.forEach { option ->
-        val isDisabled = option in disabledOptions
-        val isSelected = if (multiple) option in selectedOptions else option == selectedOption
-        DropdownMenuItem(
-          onClick = {
-            if (multiple) {
-              if (isSelected) {
-                updateMultiSelection(selectedOptions - option)
-              } else {
-                updateMultiSelection(selectedOptions + option)
-              }
-            } else {
-              updateSingleSelection(option)
-              expanded = false
-            }
-          },
-          enabled = enabled && !isDisabled,
-          modifier = Modifier.height(optionHeight)
+      if (dropdownHeader != null) {
+        Box(
+          modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 12.dp, end = 12.dp, top = 0.dp, bottom = 8.dp)
         ) {
-          Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+          dropdownHeader()
+        }
+        Divider()
+      }
+      Column(
+        modifier = Modifier
+          .fillMaxWidth()
+          .then(
+            if (dropdownHeader != null) {
+              Modifier.padding(top = 8.dp)
+            } else {
+              Modifier
+            }
+          )
+      ) {
+        options.forEach { option ->
+          val isDisabled = option in disabledOptions
+          val isSelected = if (multiple) option in selectedOptions else option == selectedOption
+          DropdownMenuItem(
+            onClick = {
+              if (multiple) {
+                if (isSelected) {
+                  updateMultiSelection(selectedOptions - option)
+                } else {
+                  updateMultiSelection(selectedOptions + option)
+                }
+              } else {
+                updateSingleSelection(option)
+                expanded = false
+              }
+            },
+            enabled = enabled && !isDisabled,
+            modifier = Modifier.height(optionHeight)
           ) {
-            Text(
-              text = option,
-              style = textStyle,
-              color = if (isSelected && enabled) Color(0xff409eff) else LocalContentColor.current
-            )
-            if (multiple && isSelected) {
-              Icon(
-                imageVector = FeatherIcons.Check,
-                contentDescription = "Selected",
-                tint = Color(0xff409eff),
-                modifier = Modifier.size(14.dp)
+            Row(
+              modifier = Modifier.fillMaxWidth(),
+              horizontalArrangement = Arrangement.SpaceBetween,
+              verticalAlignment = Alignment.CenterVertically
+            ) {
+              Text(
+                text = option,
+                style = textStyle,
+                color = if (isSelected && enabled) Color(0xff409eff) else LocalContentColor.current
               )
+              if (multiple && isSelected) {
+                Icon(
+                  imageVector = FeatherIcons.Check,
+                  contentDescription = "Selected",
+                  tint = Color(0xff409eff),
+                  modifier = Modifier.size(14.dp)
+                )
+              }
             }
           }
         }
