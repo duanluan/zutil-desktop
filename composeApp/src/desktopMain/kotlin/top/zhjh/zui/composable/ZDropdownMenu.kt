@@ -62,6 +62,11 @@ private data class ZDropdownMenuFieldStyle(
   val tagRemoveColor: Color
 )
 
+data class ZDropdownMenuOptionGroup(
+  val label: String,
+  val options: List<String>
+)
+
 @OptIn(ExperimentalMaterialApi::class, ExperimentalLayoutApi::class)
 @Composable
 fun ZDropdownMenu(
@@ -88,6 +93,7 @@ fun ZDropdownMenu(
   collapseTags: Boolean = false,
   collapseTagsTooltip: Boolean = false,
   maxCollapseTags: Int? = null,
+  optionGroups: List<ZDropdownMenuOptionGroup> = emptyList(),
   dropdownHeader: (@Composable () -> Unit)? = null,
   dropdownFooter: (@Composable () -> Unit)? = null
 ) {
@@ -109,25 +115,28 @@ fun ZDropdownMenu(
   }
 
   var internalSelectedOption by remember {
-    mutableStateOf(defaultSelectedOption?.takeIf { it in options } ?: "")
+    mutableStateOf(defaultSelectedOption?.takeIf { it in resolveDropdownMenuOptions(options, optionGroups) } ?: "")
   }
   var internalSelectedOptions by remember {
-    mutableStateOf(normalizeDropdownMenuValues(defaultSelectedOptions, options))
+    mutableStateOf(normalizeDropdownMenuValues(defaultSelectedOptions, resolveDropdownMenuOptions(options, optionGroups)))
   }
 
-  LaunchedEffect(defaultSelectedOption, value, options) {
+  val resolvedOptionGroups = optionGroups.filter { it.options.isNotEmpty() }
+  val resolvedOptions = resolveDropdownMenuOptions(options, resolvedOptionGroups)
+
+  LaunchedEffect(defaultSelectedOption, value, resolvedOptions) {
     if (value == null) {
-      internalSelectedOption = defaultSelectedOption?.takeIf { it in options } ?: ""
+      internalSelectedOption = defaultSelectedOption?.takeIf { it in resolvedOptions } ?: ""
     }
   }
-  LaunchedEffect(defaultSelectedOptions, values, options) {
+  LaunchedEffect(defaultSelectedOptions, values, resolvedOptions) {
     if (values == null) {
-      internalSelectedOptions = normalizeDropdownMenuValues(defaultSelectedOptions, options)
+      internalSelectedOptions = normalizeDropdownMenuValues(defaultSelectedOptions, resolvedOptions)
     }
   }
 
-  val selectedOption = (value ?: internalSelectedOption).takeIf { it in options } ?: ""
-  val selectedOptions = normalizeDropdownMenuValues(values ?: internalSelectedOptions, options)
+  val selectedOption = (value ?: internalSelectedOption).takeIf { it in resolvedOptions } ?: ""
+  val selectedOptions = normalizeDropdownMenuValues(values ?: internalSelectedOptions, resolvedOptions)
   val resolvedSize = size ?: ZDropdownMenuDefaults.fromFormSize(LocalZFormSize.current)
   val resolvedFormSize = ZDropdownMenuDefaults.toFormSize(resolvedSize)
   val optionHeight = ZFormDefaults.resolveControlHeight(resolvedFormSize, ZTextFieldDefaults.MinHeight)
@@ -192,14 +201,14 @@ fun ZDropdownMenu(
   )
 
   val updateSingleSelection: (String) -> Unit = { option ->
-    val normalized = option.takeIf { it in options } ?: ""
+    val normalized = option.takeIf { it in resolvedOptions } ?: ""
     if (value == null) {
       internalSelectedOption = normalized
     }
     onOptionSelected(normalized)
   }
   val updateMultiSelection: (List<String>) -> Unit = { selections ->
-    val normalized = normalizeDropdownMenuValues(selections, options)
+    val normalized = normalizeDropdownMenuValues(selections, resolvedOptions)
     if (values == null) {
       internalSelectedOptions = normalized
     }
@@ -392,7 +401,8 @@ fun ZDropdownMenu(
     ) {
       val hasHeader = dropdownHeader != null
       val hasFooter = dropdownFooter != null
-      val hasOptions = options.isNotEmpty()
+      val hasOptions = resolvedOptions.isNotEmpty()
+      val groupLabelColor = if (isDarkTheme) Color(0xff8d9095) else Color(0xff909399)
 
       if (hasHeader) {
         Box(
@@ -412,7 +422,7 @@ fun ZDropdownMenu(
             bottom = if (hasFooter && hasOptions) 8.dp else 0.dp
           )
       ) {
-        options.forEach { option ->
+        val optionItemContent: @Composable (String) -> Unit = { option ->
           val isDisabled = option in disabledOptions
           val isSelected = if (multiple) option in selectedOptions else option == selectedOption
           DropdownMenuItem(
@@ -450,6 +460,25 @@ fun ZDropdownMenu(
                 )
               }
             }
+          }
+        }
+        if (resolvedOptionGroups.isNotEmpty()) {
+          resolvedOptionGroups.forEach { group ->
+            Text(
+              text = group.label,
+              style = compactFieldTextStyle,
+              color = groupLabelColor,
+              modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 16.dp, end = 16.dp, top = 6.dp, bottom = 6.dp)
+            )
+            group.options.forEach { option ->
+              optionItemContent(option)
+            }
+          }
+        } else {
+          resolvedOptions.forEach { option ->
+            optionItemContent(option)
           }
         }
       }
@@ -541,6 +570,18 @@ private fun normalizeDropdownMenuValues(
   if (selections.isEmpty() || options.isEmpty()) return emptyList()
   val selectedSet = selections.toSet()
   return options.filter { it in selectedSet }
+}
+
+private fun resolveDropdownMenuOptions(
+  options: List<String>,
+  optionGroups: List<ZDropdownMenuOptionGroup>
+): List<String> {
+  if (optionGroups.isEmpty()) {
+    return options
+  }
+  return optionGroups
+    .flatMap { it.options }
+    .distinct()
 }
 
 private fun getZDropdownMenuFieldStyle(

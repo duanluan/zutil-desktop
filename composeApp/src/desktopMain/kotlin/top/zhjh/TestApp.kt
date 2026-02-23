@@ -9,9 +9,9 @@ import androidx.compose.material.Surface
 import androidx.compose.material.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import compose.icons.FeatherIcons
@@ -102,6 +102,19 @@ private fun ZuiComponentDemoContent(
   var dropdownMultiMaxCollapseValue by remember { mutableStateOf(listOf("Option1", "Option2", "Option3", "Option4")) }
   val dropdownHeaderCityOptions = remember { listOf("Beijing", "Shanghai", "Nanjing", "Chengdu", "Shenzhen", "Guangzhou") }
   var dropdownHeaderSelectedCities by remember { mutableStateOf(dropdownHeaderCityOptions) }
+  val dropdownGroupedCityOptions = remember {
+    listOf(
+      ZDropdownMenuOptionGroup(
+        label = "Popular cities",
+        options = listOf("Shanghai", "Beijing")
+      ),
+      ZDropdownMenuOptionGroup(
+        label = "City name",
+        options = listOf("Chengdu", "Shenzhen", "Guangzhou", "Dalian")
+      )
+    )
+  }
+  var dropdownGroupedCityValue by remember { mutableStateOf("Shanghai") }
   var dropdownFooterOptions by remember { mutableStateOf(dropdownHeaderCityOptions) }
   var dropdownFooterValue by remember { mutableStateOf("") }
   var dropdownFooterInput by remember { mutableStateOf("") }
@@ -837,6 +850,16 @@ private fun ZuiComponentDemoContent(
               }
             }
           }
+        )
+
+        ZText("grouped options")
+        ZDropdownMenu(
+          options = emptyList(),
+          optionGroups = dropdownGroupedCityOptions,
+          placeholder = "Select",
+          modifier = Modifier.width(360.dp),
+          value = dropdownGroupedCityValue,
+          onOptionSelected = { dropdownGroupedCityValue = it }
         )
       }
     },
