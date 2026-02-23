@@ -73,7 +73,30 @@ private data class ZDropdownMenuFieldStyle(
 
 data class ZDropdownMenuOptionGroup(
   val label: String,
-  val options: List<String>
+  val options: List<String> = emptyList(),
+  val optionItems: List<ZDropdownMenuOption> = emptyList()
+)
+
+data class ZDropdownMenuOption(
+  val label: String,
+  val value: String,
+  val valueKey: String? = null
+)
+
+private data class ZDropdownMenuResolvedOption(
+  val label: String,
+  val value: String,
+  val valueKey: String
+)
+
+private data class ZDropdownMenuResolvedOptionGroup(
+  val label: String,
+  val options: List<ZDropdownMenuResolvedOption>
+)
+
+private data class ZDropdownMenuSelectedTag(
+  val label: String,
+  val value: String
 )
 
 @OptIn(ExperimentalMaterialApi::class, ExperimentalLayoutApi::class)
@@ -106,6 +129,7 @@ fun ZDropdownMenu(
   collapseTags: Boolean = false,
   collapseTagsTooltip: Boolean = false,
   maxCollapseTags: Int? = null,
+  optionItems: List<ZDropdownMenuOption> = emptyList(),
   optionGroups: List<ZDropdownMenuOptionGroup> = emptyList(),
   dropdownHeader: (@Composable () -> Unit)? = null,
   dropdownFooter: (@Composable () -> Unit)? = null
@@ -129,34 +153,72 @@ fun ZDropdownMenu(
     }
   }
 
-  val resolvedOptionGroups = optionGroups.filter { it.options.isNotEmpty() }
-  val baseResolvedOptions = resolveDropdownMenuOptions(options, resolvedOptionGroups)
+  val resolvedOptionGroups = optionGroups
+    .mapNotNull { group ->
+      val resolvedGroupOptions = resolveDropdownMenuOptionsFromGroup(group)
+      if (resolvedGroupOptions.isEmpty()) {
+        null
+      } else {
+        ZDropdownMenuResolvedOptionGroup(
+          label = group.label,
+          options = resolvedGroupOptions
+        )
+      }
+    }
+  val standaloneResolvedOptions = resolveDropdownMenuOptionsFromInputs(options, optionItems)
+  val baseResolvedOptions = if (resolvedOptionGroups.isNotEmpty()) {
+    resolvedOptionGroups.flatMap { it.options }
+  } else {
+    standaloneResolvedOptions
+  }
   val allowCreateEnabled = allowCreate && filterable
-  val createdOptions = remember { mutableStateListOf<String>() }
+  val createdOptions = remember { mutableStateListOf<ZDropdownMenuResolvedOption>() }
   val addCreatedOptionIfNeeded: (String) -> Unit = { rawOption ->
     if (allowCreateEnabled) {
       val normalizedOption = rawOption.trim()
       if (
         normalizedOption.isNotEmpty() &&
-        normalizedOption !in baseResolvedOptions &&
-        normalizedOption !in createdOptions
+        baseResolvedOptions.none { it.value == normalizedOption } &&
+        createdOptions.none { it.value == normalizedOption }
       ) {
-        createdOptions.add(normalizedOption)
+        createdOptions.add(
+          ZDropdownMenuResolvedOption(
+            label = normalizedOption,
+            value = normalizedOption,
+            valueKey = normalizedOption
+          )
+        )
       }
     }
   }
-  val resolvedOptions = (baseResolvedOptions + createdOptions).distinct()
+  val resolvedOptions = mergeDropdownMenuOptions(baseResolvedOptions, createdOptions)
 
   var internalSelectedOption by remember {
-    mutableStateOf(defaultSelectedOption?.takeIf { it in baseResolvedOptions } ?: "")
+    mutableStateOf(
+      normalizeDropdownMenuSingleValue(
+        defaultSelectedOption,
+        baseResolvedOptions,
+        allowUnknown = false
+      )
+    )
   }
   var internalSelectedOptions by remember {
-    mutableStateOf(normalizeDropdownMenuValues(defaultSelectedOptions, baseResolvedOptions))
+    mutableStateOf(
+      normalizeDropdownMenuValues(
+        defaultSelectedOptions,
+        baseResolvedOptions,
+        allowUnknown = false
+      )
+    )
   }
 
   LaunchedEffect(defaultSelectedOption, value, resolvedOptions, allowCreateEnabled) {
     if (value == null) {
-      internalSelectedOption = normalizeDropdownMenuSingleValue(defaultSelectedOption, resolvedOptions, allowCreateEnabled)
+      internalSelectedOption = normalizeDropdownMenuSingleValue(
+        defaultSelectedOption,
+        resolvedOptions,
+        allowUnknown = allowCreateEnabled
+      )
     }
   }
   LaunchedEffect(defaultSelectedOptions, values, resolvedOptions, allowCreateEnabled) {
@@ -169,7 +231,11 @@ fun ZDropdownMenu(
     }
   }
 
-  val selectedOption = normalizeDropdownMenuSingleValue(value ?: internalSelectedOption, resolvedOptions, allowCreateEnabled)
+  val selectedOption = normalizeDropdownMenuSingleValue(
+    value ?: internalSelectedOption,
+    resolvedOptions,
+    allowUnknown = allowCreateEnabled
+  )
   val selectedOptions = normalizeDropdownMenuValues(
     values ?: internalSelectedOptions,
     resolvedOptions,
@@ -180,17 +246,37 @@ fun ZDropdownMenu(
     buildList {
       if (selectedOption.isNotEmpty()) add(selectedOption)
       addAll(selectedOptions)
+    }.forEach(addCreatedOptionIfNeeded)
+  }
+
+  val optionLabelByValue = remember(resolvedOptions) {
+    buildMap {
+      resolvedOptions.forEach { option ->
+        if (!containsKey(option.value)) {
+          put(option.value, option.label)
+        }
+      }
     }
-      .forEach(addCreatedOptionIfNeeded)
+  }
+  val selectedOptionLabel = optionLabelByValue[selectedOption] ?: selectedOption
+  val selectedTags = if (multiple) {
+    selectedOptions.map { selectedValue ->
+      ZDropdownMenuSelectedTag(
+        label = optionLabelByValue[selectedValue] ?: selectedValue,
+        value = selectedValue
+      )
+    }
+  } else {
+    emptyList()
   }
 
   val enableFiltering = filterable
-  LaunchedEffect(enableFiltering, selectedOption, expanded, multiple) {
+  LaunchedEffect(enableFiltering, selectedOptionLabel, expanded, multiple) {
     if (enableFiltering && !expanded) {
       if (multiple) {
         filterKeyword = ""
       } else {
-        filterKeyword = selectedOption
+        filterKeyword = selectedOptionLabel
       }
     }
     if (!enableFiltering) {
@@ -206,24 +292,23 @@ fun ZDropdownMenu(
   val resolvedFilterMethod = filterMethod ?: { keyword: String, option: String ->
     option.contains(keyword, ignoreCase = true)
   }
-  val optionMatchesFilter: (String) -> Boolean = { option ->
-    normalizedFilterKeyword.isEmpty() || resolvedFilterMethod(normalizedFilterKeyword, option)
+  val optionMatchesFilter: (ZDropdownMenuResolvedOption) -> Boolean = { option ->
+    normalizedFilterKeyword.isEmpty() || resolvedFilterMethod(normalizedFilterKeyword, option.label)
   }
   val filteredOptionGroups = if (resolvedOptionGroups.isNotEmpty()) {
     resolvedOptionGroups
       .map { group ->
-        if (normalizedFilterKeyword.isEmpty()) {
-          group
-        } else {
-          group.copy(options = group.options.filter(optionMatchesFilter))
-        }
+        group.copy(options = group.options.filter(optionMatchesFilter))
       }
       .filter { it.options.isNotEmpty() }
   } else {
     emptyList()
   }
   val filteredOptions = if (resolvedOptionGroups.isNotEmpty()) {
-    (filteredOptionGroups.flatMap { it.options } + createdOptions.filter(optionMatchesFilter)).distinct()
+    mergeDropdownMenuOptions(
+      filteredOptionGroups.flatMap { it.options },
+      createdOptions.filter(optionMatchesFilter)
+    )
   } else {
     resolvedOptions.filter(optionMatchesFilter)
   }
@@ -233,9 +318,9 @@ fun ZDropdownMenu(
   val hasSelection = if (multiple) selectedOptions.isNotEmpty() else selectedOption.isNotEmpty()
   val showClearIcon = clearable && enabled && hasSelection && isHovered && !expanded
   val visibleTagLimit = resolveVisibleTagLimit(collapseTags = collapseTags, maxCollapseTags = maxCollapseTags)
-  val visibleTags = if (multiple) selectedOptions.take(visibleTagLimit) else emptyList()
-  val hiddenTags = if (multiple && selectedOptions.size > visibleTags.size) {
-    selectedOptions.drop(visibleTags.size)
+  val visibleTags = if (multiple) selectedTags.take(visibleTagLimit) else emptyList()
+  val hiddenTags = if (multiple && selectedTags.size > visibleTags.size) {
+    selectedTags.drop(visibleTags.size)
   } else {
     emptyList()
   }
@@ -290,8 +375,8 @@ fun ZDropdownMenu(
     enabled = enabled
   )
 
-  val updateSingleSelection: (String) -> Unit = { option ->
-    val normalizedInput = option.trim()
+  val updateSingleSelection: (String) -> Unit = { selectedValue ->
+    val normalizedInput = selectedValue.trim()
     if (normalizedInput.isNotEmpty()) {
       addCreatedOptionIfNeeded(normalizedInput)
     }
@@ -300,7 +385,7 @@ fun ZDropdownMenu(
       internalSelectedOption = normalized
     }
     if (enableFiltering) {
-      filterKeyword = normalized
+      filterKeyword = optionLabelByValue[normalized] ?: normalized
     }
     onOptionSelected(normalized)
   }
@@ -323,13 +408,18 @@ fun ZDropdownMenu(
     val keyword = filterKeyword.trim()
 
     val exactOption = if (keyword.isNotEmpty()) {
-      resolvedOptions.firstOrNull { it == keyword }
-        ?.takeUnless { it in disabledOptions }
+      resolvedOptions.firstOrNull { option ->
+        option.label == keyword || option.value == keyword
+      }?.takeUnless { option ->
+        option.value in disabledOptions
+      }
     } else {
       null
     }
     val firstFilteredOption = if (defaultFirstOption) {
-      filteredOptions.firstOrNull { it !in disabledOptions }
+      filteredOptions.firstOrNull { option ->
+        option.value !in disabledOptions
+      }
     } else {
       null
     }
@@ -337,13 +427,13 @@ fun ZDropdownMenu(
 
     if (optionToSelect != null) {
       if (multiple) {
-        if (optionToSelect !in selectedOptions) {
-          updateMultiSelection(selectedOptions + optionToSelect)
+        if (optionToSelect.value !in selectedOptions) {
+          updateMultiSelection(selectedOptions + optionToSelect.value)
         }
         filterKeyword = ""
         expanded = true
       } else {
-        updateSingleSelection(optionToSelect)
+        updateSingleSelection(optionToSelect.value)
         expanded = false
       }
       return@submit
@@ -382,7 +472,7 @@ fun ZDropdownMenu(
     if (!multiple) {
       ZTextField(
         size = resolvedFormSize,
-        value = if (enableFiltering) filterKeyword else selectedOption,
+        value = if (enableFiltering) filterKeyword else selectedOptionLabel,
         onValueChange = { input ->
           if (enableFiltering) {
             filterKeyword = input
@@ -410,7 +500,7 @@ fun ZDropdownMenu(
         placeholder = if (enableFiltering) {
           placeholder
         } else {
-          if (selectedOption.isEmpty()) placeholder else selectedOption
+          if (selectedOptionLabel.isEmpty()) placeholder else selectedOptionLabel
         },
         trailingIcon = {
           if (showClearIcon) {
@@ -469,14 +559,14 @@ fun ZDropdownMenu(
               ) {
                 visibleTags.forEach { selected ->
                   ZDropdownSelectionTag(
-                    text = selected,
+                    text = selected.label,
                     textStyle = compactFieldTextStyle,
                     fieldStyle = fieldStyle,
                     enabled = enabled,
                     removable = enabled,
                     onRemove = {
                       suppressNextToggle = true
-                      updateMultiSelection(selectedOptions - selected)
+                      updateMultiSelection(selectedOptions - selected.value)
                     }
                   )
                 }
@@ -520,14 +610,14 @@ fun ZDropdownMenu(
                             ) {
                               hiddenTags.forEach { hidden ->
                                 ZDropdownSelectionTag(
-                                  text = hidden,
+                                  text = hidden.label,
                                   textStyle = compactFieldTextStyle,
                                   fieldStyle = fieldStyle,
                                   enabled = enabled,
                                   removable = enabled,
                                   onRemove = {
                                     suppressNextToggle = true
-                                    updateMultiSelection(selectedOptions - hidden)
+                                    updateMultiSelection(selectedOptions - hidden.value)
                                   }
                                 )
                               }
@@ -645,22 +735,22 @@ fun ZDropdownMenu(
             bottom = if (hasFooter && hasOptions) 8.dp else 0.dp
           )
       ) {
-        val optionItemContent: @Composable (String) -> Unit = { option ->
-          val isDisabled = option in disabledOptions
-          val isSelected = if (multiple) option in selectedOptions else option == selectedOption
+        val optionItemContent: @Composable (ZDropdownMenuResolvedOption) -> Unit = { option ->
+          val isDisabled = option.value in disabledOptions
+          val isSelected = if (multiple) option.value in selectedOptions else option.value == selectedOption
           DropdownMenuItem(
             onClick = {
               if (multiple) {
                 if (isSelected) {
-                  updateMultiSelection(selectedOptions - option)
+                  updateMultiSelection(selectedOptions - option.value)
                 } else {
-                  updateMultiSelection(selectedOptions + option)
+                  updateMultiSelection(selectedOptions + option.value)
                 }
                 if (enableFiltering) {
                   filterKeyword = ""
                 }
               } else {
-                updateSingleSelection(option)
+                updateSingleSelection(option.value)
                 expanded = false
               }
             },
@@ -673,7 +763,7 @@ fun ZDropdownMenu(
               verticalAlignment = Alignment.CenterVertically
             ) {
               Text(
-                text = option,
+                text = option.label,
                 style = textStyle,
                 color = if (isSelected && enabled) Color(0xff409eff) else LocalContentColor.current
               )
@@ -699,12 +789,16 @@ fun ZDropdownMenu(
                 .padding(start = 16.dp, end = 16.dp, top = 6.dp, bottom = 6.dp)
             )
             group.options.forEach { option ->
-              optionItemContent(option)
+              key(option.valueKey) {
+                optionItemContent(option)
+              }
             }
           }
         } else {
           filteredOptions.forEach { option ->
-            optionItemContent(option)
+            key(option.valueKey) {
+              optionItemContent(option)
+            }
           }
         }
       }
@@ -791,7 +885,7 @@ private fun resolveVisibleTagLimit(
 
 private fun normalizeDropdownMenuValues(
   selections: List<String>,
-  options: List<String>,
+  options: List<ZDropdownMenuResolvedOption>,
   allowUnknown: Boolean = false
 ): List<String> {
   if (selections.isEmpty()) return emptyList()
@@ -803,8 +897,9 @@ private fun normalizeDropdownMenuValues(
   if (options.isEmpty()) {
     return if (allowUnknown) normalizedSelections else emptyList()
   }
+  val knownValues = options.map { it.value }.distinct()
   val selectedSet = normalizedSelections.toSet()
-  val knownSelections = options.filter { it in selectedSet }
+  val knownSelections = knownValues.filter { it in selectedSet }
   if (!allowUnknown) return knownSelections
   val knownSelectionSet = knownSelections.toSet()
   val unknownSelections = normalizedSelections.filter { it !in knownSelectionSet }
@@ -813,25 +908,82 @@ private fun normalizeDropdownMenuValues(
 
 private fun normalizeDropdownMenuSingleValue(
   selection: String?,
-  options: List<String>,
+  options: List<ZDropdownMenuResolvedOption>,
   allowUnknown: Boolean
 ): String {
   val normalizedSelection = selection?.trim().orEmpty()
   if (normalizedSelection.isEmpty()) return ""
-  if (normalizedSelection in options) return normalizedSelection
+  if (options.any { it.value == normalizedSelection }) return normalizedSelection
   return if (allowUnknown) normalizedSelection else ""
 }
 
-private fun resolveDropdownMenuOptions(
+private fun resolveDropdownMenuOptionsFromInputs(
   options: List<String>,
-  optionGroups: List<ZDropdownMenuOptionGroup>
-): List<String> {
-  if (optionGroups.isEmpty()) {
-    return options
+  optionItems: List<ZDropdownMenuOption>
+): List<ZDropdownMenuResolvedOption> {
+  val sourceOptions = if (optionItems.isNotEmpty()) {
+    optionItems
+  } else {
+    options.map { option ->
+      ZDropdownMenuOption(
+        label = option,
+        value = option,
+        valueKey = option
+      )
+    }
   }
-  return optionGroups
-    .flatMap { it.options }
-    .distinct()
+  return mergeDropdownMenuOptions(sourceOptions.mapNotNull(::toResolvedDropdownMenuOption))
+}
+
+private fun resolveDropdownMenuOptionsFromGroup(
+  group: ZDropdownMenuOptionGroup
+): List<ZDropdownMenuResolvedOption> {
+  val sourceOptions = if (group.optionItems.isNotEmpty()) {
+    group.optionItems
+  } else {
+    group.options.map { option ->
+      ZDropdownMenuOption(
+        label = option,
+        value = option,
+        valueKey = option
+      )
+    }
+  }
+  return mergeDropdownMenuOptions(sourceOptions.mapNotNull(::toResolvedDropdownMenuOption))
+}
+
+private fun toResolvedDropdownMenuOption(
+  option: ZDropdownMenuOption
+): ZDropdownMenuResolvedOption? {
+  val normalizedValue = option.value.trim()
+  if (normalizedValue.isEmpty()) return null
+  val normalizedLabel = option.label.ifBlank { normalizedValue }
+  val normalizedValueKey = option.valueKey
+    ?.trim()
+    ?.takeIf { it.isNotEmpty() }
+    ?: normalizedValue
+  return ZDropdownMenuResolvedOption(
+    label = normalizedLabel,
+    value = normalizedValue,
+    valueKey = normalizedValueKey
+  )
+}
+
+private fun mergeDropdownMenuOptions(
+  first: List<ZDropdownMenuResolvedOption>,
+  second: List<ZDropdownMenuResolvedOption> = emptyList()
+): List<ZDropdownMenuResolvedOption> {
+  if (first.isEmpty() && second.isEmpty()) return emptyList()
+  val mergedOptions = buildList {
+    addAll(first)
+    addAll(second)
+  }
+  if (mergedOptions.isEmpty()) return emptyList()
+
+  val seenValueKeys = mutableSetOf<String>()
+  return mergedOptions.filter { option ->
+    seenValueKeys.add(option.valueKey)
+  }
 }
 
 private fun getZDropdownMenuFieldStyle(
