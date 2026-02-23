@@ -88,12 +88,14 @@ fun ZDropdownMenu(
   collapseTags: Boolean = false,
   collapseTagsTooltip: Boolean = false,
   maxCollapseTags: Int? = null,
-  dropdownHeader: (@Composable () -> Unit)? = null
+  dropdownHeader: (@Composable () -> Unit)? = null,
+  dropdownFooter: (@Composable () -> Unit)? = null
 ) {
   val textStyle = LocalTextStyle.current.copy(
     fontSize = fontSize,
     lineHeight = lineHeight.sp
   )
+  val compactFieldTextStyle = textStyle.copy(lineHeight = TextUnit.Unspecified)
 
   var expanded by remember { mutableStateOf(false) }
   // Prevent ExposedDropdownMenuBox from toggling when clicking inner clear/remove controls.
@@ -257,7 +259,7 @@ fun ZDropdownMenu(
           .background(fieldStyle.backgroundColor, ZTextFieldDefaults.Shape)
           .border(1.dp, fieldStyle.borderColor, ZTextFieldDefaults.Shape)
           .defaultMinSize(minHeight = optionHeight)
-          .padding(horizontal = 8.dp, vertical = 4.dp)
+          .padding(start = 4.dp, end = 8.dp, top = 4.dp, bottom = 4.dp)
       ) {
         Row(
           modifier = Modifier.fillMaxWidth(),
@@ -267,7 +269,7 @@ fun ZDropdownMenu(
             if (selectedOptions.isEmpty()) {
               Text(
                 text = placeholder,
-                style = textStyle,
+                style = compactFieldTextStyle,
                 color = fieldStyle.placeholderColor,
                 modifier = Modifier.padding(vertical = 4.dp)
               )
@@ -280,7 +282,7 @@ fun ZDropdownMenu(
                 visibleTags.forEach { selected ->
                   ZDropdownSelectionTag(
                     text = selected,
-                    textStyle = textStyle,
+                    textStyle = compactFieldTextStyle,
                     fieldStyle = fieldStyle,
                     enabled = enabled,
                     removable = enabled,
@@ -300,7 +302,7 @@ fun ZDropdownMenu(
                   ) {
                     ZDropdownSelectionTag(
                       text = "+ ${hiddenTags.size}",
-                      textStyle = textStyle,
+                      textStyle = compactFieldTextStyle,
                       fieldStyle = fieldStyle,
                       enabled = enabled,
                       removable = false
@@ -331,7 +333,7 @@ fun ZDropdownMenu(
                               hiddenTags.forEach { hidden ->
                                 ZDropdownSelectionTag(
                                   text = hidden,
-                                  textStyle = textStyle,
+                                  textStyle = compactFieldTextStyle,
                                   fieldStyle = fieldStyle,
                                   enabled = enabled,
                                   removable = enabled,
@@ -382,29 +384,32 @@ fun ZDropdownMenu(
       }
     }
 
-    ExposedDropdownMenu(
+    DropdownMenu(
       expanded = expanded && enabled,
-      onDismissRequest = { expanded = false }
+      onDismissRequest = { expanded = false },
+      modifier = Modifier.exposedDropdownSize(),
+      properties = PopupProperties(focusable = true)
     ) {
-      if (dropdownHeader != null) {
+      val hasHeader = dropdownHeader != null
+      val hasFooter = dropdownFooter != null
+      val hasOptions = options.isNotEmpty()
+
+      if (hasHeader) {
         Box(
           modifier = Modifier
             .fillMaxWidth()
             .padding(start = 12.dp, end = 12.dp, top = 0.dp, bottom = 8.dp)
         ) {
-          dropdownHeader()
+          dropdownHeader?.invoke()
         }
         Divider()
       }
       Column(
         modifier = Modifier
           .fillMaxWidth()
-          .then(
-            if (dropdownHeader != null) {
-              Modifier.padding(top = 8.dp)
-            } else {
-              Modifier
-            }
+          .padding(
+            top = if (hasHeader && hasOptions) 8.dp else 0.dp,
+            bottom = if (hasFooter && hasOptions) 8.dp else 0.dp
           )
       ) {
         options.forEach { option ->
@@ -446,6 +451,18 @@ fun ZDropdownMenu(
               }
             }
           }
+        }
+      }
+      if (hasFooter) {
+        if (hasOptions) {
+          Divider()
+        }
+        Box(
+          modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 12.dp, end = 12.dp, top = 8.dp, bottom = 0.dp)
+        ) {
+          dropdownFooter?.invoke()
         }
       }
     }

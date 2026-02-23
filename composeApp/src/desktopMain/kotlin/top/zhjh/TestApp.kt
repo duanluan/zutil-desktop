@@ -9,6 +9,8 @@ import androidx.compose.material.Surface
 import androidx.compose.material.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -100,6 +102,16 @@ private fun ZuiComponentDemoContent(
   var dropdownMultiMaxCollapseValue by remember { mutableStateOf(listOf("Option1", "Option2", "Option3", "Option4")) }
   val dropdownHeaderCityOptions = remember { listOf("Beijing", "Shanghai", "Nanjing", "Chengdu", "Shenzhen", "Guangzhou") }
   var dropdownHeaderSelectedCities by remember { mutableStateOf(dropdownHeaderCityOptions) }
+  var dropdownFooterOptions by remember { mutableStateOf(dropdownHeaderCityOptions) }
+  var dropdownFooterValue by remember { mutableStateOf("") }
+  var dropdownFooterInput by remember { mutableStateOf("") }
+  var dropdownFooterEditing by remember { mutableStateOf(false) }
+  val dropdownFooterInputFocusRequester = remember { FocusRequester() }
+  LaunchedEffect(dropdownFooterEditing) {
+    if (dropdownFooterEditing) {
+      dropdownFooterInputFocusRequester.requestFocus()
+    }
+  }
 
   val formState = rememberZFormState()
   val formModel = remember(username, email, password, confirmPassword) {
@@ -763,6 +775,67 @@ private fun ZuiComponentDemoContent(
                 .fillMaxWidth(),
               label = "All"
             )
+          }
+        )
+
+        ZText("custom dropdown footer")
+        ZDropdownMenu(
+          options = dropdownFooterOptions,
+          placeholder = "Select",
+          modifier = Modifier.width(360.dp),
+          value = dropdownFooterValue,
+          onOptionSelected = { dropdownFooterValue = it },
+          dropdownFooter = {
+            if (!dropdownFooterEditing) {
+              ZButton(
+                size = ZButtonSize.Small,
+                onClick = { dropdownFooterEditing = true }
+              ) {
+                Text("Add an option")
+              }
+            } else {
+              Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                ZTextField(
+                  value = dropdownFooterInput,
+                  onValueChange = { dropdownFooterInput = it },
+                  placeholder = "input option name",
+                  modifier = Modifier
+                    .fillMaxWidth()
+                    .focusRequester(dropdownFooterInputFocusRequester)
+                )
+                Row(
+                  horizontalArrangement = Arrangement.spacedBy(8.dp),
+                  verticalAlignment = Alignment.CenterVertically
+                ) {
+                  ZButton(
+                    type = ZColorType.PRIMARY,
+                    size = ZButtonSize.Small,
+                    onClick = {
+                      val newOption = dropdownFooterInput.trim()
+                      if (newOption.isNotEmpty()) {
+                        if (newOption !in dropdownFooterOptions) {
+                          dropdownFooterOptions = dropdownFooterOptions + newOption
+                        }
+                        dropdownFooterValue = newOption
+                      }
+                      dropdownFooterInput = ""
+                      dropdownFooterEditing = false
+                    }
+                  ) {
+                    Text("confirm")
+                  }
+                  ZButton(
+                    size = ZButtonSize.Small,
+                    onClick = {
+                      dropdownFooterInput = ""
+                      dropdownFooterEditing = false
+                    }
+                  ) {
+                    Text("cancel")
+                  }
+                }
+              }
+            }
           }
         )
       }
