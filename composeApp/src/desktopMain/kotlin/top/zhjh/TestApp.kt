@@ -96,6 +96,7 @@ private fun ZuiComponentDemoContent(
   var checkboxSmallSelectedOptions by remember { mutableStateOf(emptySet<String>()) }
   var buttonGroupDirectionValue by remember { mutableStateOf("horizontal") }
   var dropdownClearableValue by remember { mutableStateOf("Option1") }
+  var dropdownFilterableValue by remember { mutableStateOf("") }
   var dropdownMultiDefaultValue by remember { mutableStateOf(listOf("Option1", "Option2")) }
   var dropdownMultiCollapseValue by remember { mutableStateOf(listOf("Option1", "Option2", "Option3")) }
   var dropdownMultiCollapseTooltipValue by remember { mutableStateOf(listOf("Option1", "Option3", "Option4", "Option5")) }
@@ -860,6 +861,19 @@ private fun ZuiComponentDemoContent(
           modifier = Modifier.width(360.dp),
           value = dropdownGroupedCityValue,
           onOptionSelected = { dropdownGroupedCityValue = it }
+        )
+
+        ZText("filterable")
+        ZDropdownMenu(
+          options = listOf("Option1", "Option2", "Option3", "Option4", "Option5"),
+          placeholder = "Select",
+          modifier = Modifier.width(360.dp),
+          filterable = true,
+          filterMethod = { inputValue, option ->
+            option.contains(inputValue, ignoreCase = true)
+          },
+          value = dropdownFilterableValue,
+          onOptionSelected = { dropdownFilterableValue = it }
         )
       }
     },

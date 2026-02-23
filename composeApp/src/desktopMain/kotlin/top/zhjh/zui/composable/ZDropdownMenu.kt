@@ -86,6 +86,8 @@ fun ZDropdownMenu(
   placeholder: String = "请选择",
   disabledOptions: Set<String> = emptySet(),
   clearable: Boolean = false,
+  filterable: Boolean = false,
+  filterMethod: ((inputValue: String, option: String) -> Boolean)? = null,
   multiple: Boolean = false,
   values: List<String>? = null,
   defaultSelectedOptions: List<String> = emptyList(),
@@ -106,6 +108,7 @@ fun ZDropdownMenu(
   var expanded by remember { mutableStateOf(false) }
   // Prevent ExposedDropdownMenuBox from toggling when clicking inner clear/remove controls.
   var suppressNextToggle by remember { mutableStateOf(false) }
+  var filterKeyword by remember { mutableStateOf("") }
   val hoverInteractionSource = remember { MutableInteractionSource() }
   val isHovered by hoverInteractionSource.collectIsHoveredAsState()
   LaunchedEffect(enabled) {
@@ -137,6 +140,40 @@ fun ZDropdownMenu(
 
   val selectedOption = (value ?: internalSelectedOption).takeIf { it in resolvedOptions } ?: ""
   val selectedOptions = normalizeDropdownMenuValues(values ?: internalSelectedOptions, resolvedOptions)
+  val enableFiltering = filterable && !multiple
+  LaunchedEffect(enableFiltering, selectedOption, expanded) {
+    if (enableFiltering && !expanded) {
+      filterKeyword = selectedOption
+    }
+    if (!enableFiltering) {
+      filterKeyword = ""
+    }
+  }
+  val normalizedFilterKeyword = if (enableFiltering) filterKeyword.trim() else ""
+  val resolvedFilterMethod = filterMethod ?: { keyword: String, option: String ->
+    option.contains(keyword, ignoreCase = true)
+  }
+  val optionMatchesFilter: (String) -> Boolean = { option ->
+    normalizedFilterKeyword.isEmpty() || resolvedFilterMethod(normalizedFilterKeyword, option)
+  }
+  val filteredOptionGroups = if (resolvedOptionGroups.isNotEmpty()) {
+    resolvedOptionGroups
+      .map { group ->
+        if (normalizedFilterKeyword.isEmpty()) {
+          group
+        } else {
+          group.copy(options = group.options.filter(optionMatchesFilter))
+        }
+      }
+      .filter { it.options.isNotEmpty() }
+  } else {
+    emptyList()
+  }
+  val filteredOptions = if (resolvedOptionGroups.isNotEmpty()) {
+    filteredOptionGroups.flatMap { it.options }
+  } else {
+    resolvedOptions.filter(optionMatchesFilter)
+  }
   val resolvedSize = size ?: ZDropdownMenuDefaults.fromFormSize(LocalZFormSize.current)
   val resolvedFormSize = ZDropdownMenuDefaults.toFormSize(resolvedSize)
   val optionHeight = ZFormDefaults.resolveControlHeight(resolvedFormSize, ZTextFieldDefaults.MinHeight)
@@ -205,6 +242,9 @@ fun ZDropdownMenu(
     if (value == null) {
       internalSelectedOption = normalized
     }
+    if (enableFiltering) {
+      filterKeyword = normalized
+    }
     onOptionSelected(normalized)
   }
   val updateMultiSelection: (List<String>) -> Unit = { selections ->
@@ -223,19 +263,30 @@ fun ZDropdownMenu(
         return@ExposedDropdownMenuBox
       }
       if (enabled) {
-        expanded = !expanded
+        expanded = if (enableFiltering) true else !expanded
       }
     }
   ) {
     if (!multiple) {
       ZTextField(
         size = resolvedFormSize,
-        value = selectedOption,
-        onValueChange = {},
+        value = if (enableFiltering) filterKeyword else selectedOption,
+        onValueChange = { input ->
+          if (enableFiltering) {
+            filterKeyword = input
+            if (enabled && !expanded) {
+              expanded = true
+            }
+          }
+        },
         enabled = enabled,
-        readOnly = true,
+        readOnly = !enableFiltering,
         modifier = modifier.hoverable(hoverInteractionSource),
-        placeholder = if (selectedOption.isEmpty()) placeholder else selectedOption,
+        placeholder = if (enableFiltering) {
+          placeholder
+        } else {
+          if (selectedOption.isEmpty()) placeholder else selectedOption
+        },
         trailingIcon = {
           if (showClearIcon) {
             Icon(
@@ -248,6 +299,9 @@ fun ZDropdownMenu(
                 suppressNextToggle = true
                 expanded = false
                 updateSingleSelection("")
+                if (enableFiltering) {
+                  filterKeyword = ""
+                }
               }
             )
           } else {
@@ -393,15 +447,16 @@ fun ZDropdownMenu(
       }
     }
 
+    val popupFocusable = dropdownFooter != null && !enableFiltering
     DropdownMenu(
       expanded = expanded && enabled,
       onDismissRequest = { expanded = false },
       modifier = Modifier.exposedDropdownSize(),
-      properties = PopupProperties(focusable = true)
+      properties = PopupProperties(focusable = popupFocusable)
     ) {
       val hasHeader = dropdownHeader != null
       val hasFooter = dropdownFooter != null
-      val hasOptions = resolvedOptions.isNotEmpty()
+      val hasOptions = filteredOptions.isNotEmpty()
       val groupLabelColor = if (isDarkTheme) Color(0xff8d9095) else Color(0xff909399)
 
       if (hasHeader) {
@@ -462,8 +517,8 @@ fun ZDropdownMenu(
             }
           }
         }
-        if (resolvedOptionGroups.isNotEmpty()) {
-          resolvedOptionGroups.forEach { group ->
+        if (filteredOptionGroups.isNotEmpty()) {
+          filteredOptionGroups.forEach { group ->
             Text(
               text = group.label,
               style = compactFieldTextStyle,
@@ -477,7 +532,7 @@ fun ZDropdownMenu(
             }
           }
         } else {
-          resolvedOptions.forEach { option ->
+          filteredOptions.forEach { option ->
             optionItemContent(option)
           }
         }
