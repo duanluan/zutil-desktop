@@ -129,6 +129,7 @@ private fun ZuiComponentDemoContent(
   var checkboxSmallSelectedOptions by remember { mutableStateOf(emptySet<String>()) }
   var buttonGroupDirectionValue by remember { mutableStateOf("horizontal") }
   var dropdownClearableValue by remember { mutableStateOf("Option1") }
+  var dropdownEmptyValueConfiguredOutput by remember { mutableStateOf<String?>("") }
   var dropdownFilterableValue by remember { mutableStateOf("") }
   var dropdownAllowCreateValues by remember { mutableStateOf(emptyList<String>()) }
   var dropdownLoadingIcon1 by remember { mutableStateOf(false) }
@@ -151,6 +152,16 @@ private fun ZuiComponentDemoContent(
         label = "City name",
         options = listOf("Chengdu", "Shenzhen", "Guangzhou", "Dalian")
       )
+    )
+  }
+  val dropdownEmptyValueOptionItems = remember {
+    listOf(
+      ZDropdownMenuOption(
+        label = "Empty string (value = \"\")",
+        value = ""
+      ),
+      ZDropdownMenuOption(label = "Option1", value = "Option1"),
+      ZDropdownMenuOption(label = "Option2", value = "Option2")
     )
   }
   var dropdownGroupedCityValue by remember { mutableStateOf("Shanghai") }
@@ -747,7 +758,7 @@ private fun ZuiComponentDemoContent(
           modifier = Modifier.width(220.dp),
           clearable = true,
           value = dropdownClearableValue,
-          onOptionSelected = { dropdownClearableValue = it }
+          onOptionSelected = { dropdownClearableValue = it.orEmpty() }
         )
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
           ZDropdownMenu(
@@ -848,7 +859,7 @@ private fun ZuiComponentDemoContent(
           placeholder = "Select",
           modifier = Modifier.width(360.dp),
           value = dropdownFooterValue,
-          onOptionSelected = { dropdownFooterValue = it },
+          onOptionSelected = { dropdownFooterValue = it.orEmpty() },
           dropdownFooter = {
             if (!dropdownFooterEditing) {
               ZButton(
@@ -910,7 +921,7 @@ private fun ZuiComponentDemoContent(
           placeholder = "Select",
           modifier = Modifier.width(360.dp),
           value = dropdownGroupedCityValue,
-          onOptionSelected = { dropdownGroupedCityValue = it }
+          onOptionSelected = { dropdownGroupedCityValue = it.orEmpty() }
         )
 
         ZText("filterable")
@@ -923,7 +934,7 @@ private fun ZuiComponentDemoContent(
             option.contains(inputValue, ignoreCase = true)
           },
           value = dropdownFilterableValue,
-          onOptionSelected = { dropdownFilterableValue = it }
+          onOptionSelected = { dropdownFilterableValue = it.orEmpty() }
         )
 
         ZText("allow-create and default-first-option")
@@ -974,6 +985,22 @@ private fun ZuiComponentDemoContent(
             )
           }
         }
+        ZText("empty-values + value-on-clear")
+        ZDropdownMenu(
+          options = emptyList(),
+          optionItems = dropdownEmptyValueOptionItems,
+          placeholder = "Select",
+          modifier = Modifier.width(360.dp),
+          clearable = true,
+          defaultSelectedOption = "",
+          emptyValues = listOf(null),
+          valueOnClear = null,
+          onOptionSelected = { dropdownEmptyValueConfiguredOutput = it }
+        )
+        ZText(
+          text = "Current value: ${dropdownEmptyValueConfiguredOutput?.let { "\"$it\"" } ?: "null"}",
+          color = if (isDarkTheme) Color(0xffa3a6ad) else Color(0xff606266)
+        )
       }
     },
     ZTabPane(label = "Form 表单", name = "form") {

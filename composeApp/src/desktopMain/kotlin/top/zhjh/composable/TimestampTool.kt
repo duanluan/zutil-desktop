@@ -121,7 +121,7 @@ fun TimestampTool() {
               options = TimestampViewModel.DATETIME_FORMAT_OPTIONS,
               defaultSelectedOption = viewModel.selectedDatetimeFormatToDatetime,
               onOptionSelected = { selectedFormat ->
-                viewModel.selectedDatetimeFormatToDatetime = selectedFormat
+                viewModel.selectedDatetimeFormatToDatetime = selectedFormat.orEmpty()
                 viewModel.convertTimestampToDatetime()
               },
               placeholder = "请选择输出格式",
@@ -226,7 +226,7 @@ fun TimestampTool() {
               options = TimestampViewModel.DATETIME_FORMAT_OPTIONS,
               defaultSelectedOption = viewModel.selectedDatetimeFormatToTimestamp,
               onOptionSelected = { selectedFormat ->
-                viewModel.selectedDatetimeFormatToTimestamp = selectedFormat
+                viewModel.selectedDatetimeFormatToTimestamp = selectedFormat.orEmpty()
                 viewModel.convertDatetimeToTimestamp()
               },
               placeholder = "请选择输入格式",

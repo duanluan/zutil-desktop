@@ -288,7 +288,7 @@ fun JsonTool() {
             fontSize = 12.sp,
             defaultSelectedOption = selectedIndentOption.value,
             placeholder = "缩进",
-            onOptionSelected = { selectedIndentOption.value = it }
+            onOptionSelected = { selectedIndentOption.value = it.orEmpty() }
           )
 
           ZButton(

@@ -51,6 +51,8 @@ enum class ZDropdownMenuSize {
   Small
 }
 
+private val ZDropdownMenuDefaultEmptyValues = setOf<String?>(null, "")
+
 object ZDropdownMenuDefaults {
   fun fromFormSize(size: ZFormSize?): ZDropdownMenuSize {
     return when (size) {
@@ -123,10 +125,14 @@ fun ZDropdownMenu(
   value: String? = null,
   // 非受控模式下的初始值（兼容旧调用）。
   defaultSelectedOption: String? = null,
-  onOptionSelected: (String) -> Unit = {},
+  onOptionSelected: (String?) -> Unit = {},
   placeholder: String = "请选择",
   disabledOptions: Set<String> = emptySet(),
   clearable: Boolean = false,
+  // 被判定为空值的集合，默认包含 null 和空字符串。
+  emptyValues: List<String?> = listOf(null, ""),
+  // 点击清空图标时回传的值。
+  valueOnClear: String? = "",
   loading: Boolean = false,
   loadingIcon: (@Composable () -> Unit)? = null,
   noDataText: String = "No data",
@@ -152,6 +158,7 @@ fun ZDropdownMenu(
     lineHeight = lineHeight.sp
   )
   val compactFieldTextStyle = textStyle.copy(lineHeight = TextUnit.Unspecified)
+  val resolvedEmptyValues = remember(emptyValues) { resolveDropdownMenuEmptyValues(emptyValues) }
 
   var expanded by remember { mutableStateOf(false) }
   // Prevent ExposedDropdownMenuBox from toggling when clicking inner clear/remove controls.
@@ -219,7 +226,8 @@ fun ZDropdownMenu(
       normalizeDropdownMenuSingleValue(
         defaultSelectedOption,
         baseResolvedOptions,
-        allowUnknown = false
+        allowUnknown = false,
+        emptyValues = resolvedEmptyValues
       )
     )
   }
@@ -228,26 +236,29 @@ fun ZDropdownMenu(
       normalizeDropdownMenuValues(
         defaultSelectedOptions,
         baseResolvedOptions,
-        allowUnknown = false
+        allowUnknown = false,
+        emptyValues = resolvedEmptyValues
       )
     )
   }
 
-  LaunchedEffect(defaultSelectedOption, value, resolvedOptions, allowCreateEnabled) {
+  LaunchedEffect(defaultSelectedOption, value, resolvedOptions, allowCreateEnabled, resolvedEmptyValues) {
     if (value == null) {
       internalSelectedOption = normalizeDropdownMenuSingleValue(
         defaultSelectedOption,
         resolvedOptions,
-        allowUnknown = allowCreateEnabled
+        allowUnknown = allowCreateEnabled,
+        emptyValues = resolvedEmptyValues
       )
     }
   }
-  LaunchedEffect(defaultSelectedOptions, values, resolvedOptions, allowCreateEnabled) {
+  LaunchedEffect(defaultSelectedOptions, values, resolvedOptions, allowCreateEnabled, resolvedEmptyValues) {
     if (values == null) {
       internalSelectedOptions = normalizeDropdownMenuValues(
         defaultSelectedOptions,
         resolvedOptions,
-        allowUnknown = allowCreateEnabled
+        allowUnknown = allowCreateEnabled,
+        emptyValues = resolvedEmptyValues
       )
     }
   }
@@ -255,17 +266,21 @@ fun ZDropdownMenu(
   val selectedOption = normalizeDropdownMenuSingleValue(
     value ?: internalSelectedOption,
     resolvedOptions,
-    allowUnknown = allowCreateEnabled
+    allowUnknown = allowCreateEnabled,
+    emptyValues = resolvedEmptyValues
   )
   val selectedOptions = normalizeDropdownMenuValues(
     values ?: internalSelectedOptions,
     resolvedOptions,
-    allowUnknown = allowCreateEnabled
+    allowUnknown = allowCreateEnabled,
+    emptyValues = resolvedEmptyValues
   )
-  LaunchedEffect(allowCreateEnabled, baseResolvedOptions, selectedOption, selectedOptions) {
+  LaunchedEffect(allowCreateEnabled, baseResolvedOptions, selectedOption, selectedOptions, resolvedEmptyValues) {
     if (!allowCreateEnabled) return@LaunchedEffect
     buildList {
-      if (selectedOption.isNotEmpty()) add(selectedOption)
+      selectedOption
+        ?.takeUnless { isDropdownMenuEmptyValue(it, resolvedEmptyValues) }
+        ?.let(::add)
       addAll(selectedOptions)
     }.forEach(addCreatedOptionIfNeeded)
   }
@@ -279,7 +294,7 @@ fun ZDropdownMenu(
       }
     }
   }
-  val selectedOptionLabel = optionLabelByValue[selectedOption] ?: selectedOption
+  val selectedOptionLabel = selectedOption?.let { optionLabelByValue[it] ?: it }.orEmpty()
   val selectedTags = if (multiple) {
     selectedOptions.map { selectedValue ->
       ZDropdownMenuSelectedTag(
@@ -336,7 +351,11 @@ fun ZDropdownMenu(
   val resolvedSize = size ?: ZDropdownMenuDefaults.fromFormSize(LocalZFormSize.current)
   val resolvedFormSize = ZDropdownMenuDefaults.toFormSize(resolvedSize)
   val optionHeight = ZFormDefaults.resolveControlHeight(resolvedFormSize, ZTextFieldDefaults.MinHeight)
-  val hasSelection = if (multiple) selectedOptions.isNotEmpty() else selectedOption.isNotEmpty()
+  val hasSelection = if (multiple) {
+    selectedOptions.isNotEmpty()
+  } else {
+    !isDropdownMenuEmptyValue(selectedOption, resolvedEmptyValues)
+  }
   val showClearIcon = clearable && enabled && hasSelection && isHovered && !expanded
   val visibleTagLimit = resolveVisibleTagLimit(collapseTags = collapseTags, maxCollapseTags = maxCollapseTags)
   val visibleTags = if (multiple) selectedTags.take(visibleTagLimit) else emptyList()
@@ -396,17 +415,22 @@ fun ZDropdownMenu(
     enabled = enabled
   )
 
-  val updateSingleSelection: (String) -> Unit = { selectedValue ->
-    val normalizedInput = selectedValue.trim()
-    if (normalizedInput.isNotEmpty()) {
+  val updateSingleSelection: (String?) -> Unit = { selectedValue ->
+    val normalizedInput = selectedValue?.trim()
+    if (normalizedInput != null && !isDropdownMenuEmptyValue(normalizedInput, resolvedEmptyValues)) {
       addCreatedOptionIfNeeded(normalizedInput)
     }
-    val normalized = normalizeDropdownMenuSingleValue(normalizedInput, resolvedOptions, allowCreateEnabled)
+    val normalized = normalizeDropdownMenuSingleValue(
+      selection = normalizedInput,
+      options = resolvedOptions,
+      allowUnknown = allowCreateEnabled,
+      emptyValues = resolvedEmptyValues
+    )
     if (value == null) {
       internalSelectedOption = normalized
     }
     if (enableFiltering) {
-      filterKeyword = optionLabelByValue[normalized] ?: normalized
+      filterKeyword = normalized?.let { optionLabelByValue[it] ?: it }.orEmpty()
     }
     onOptionSelected(normalized)
   }
@@ -417,7 +441,8 @@ fun ZDropdownMenu(
     val normalized = normalizeDropdownMenuValues(
       selections,
       resolvedOptions,
-      allowUnknown = allowCreateEnabled
+      allowUnknown = allowCreateEnabled,
+      emptyValues = resolvedEmptyValues
     )
     if (values == null) {
       internalSelectedOptions = normalized
@@ -534,7 +559,7 @@ fun ZDropdownMenu(
               ) {
                 suppressNextToggle = true
                 setExpanded(false)
-                updateSingleSelection("")
+                updateSingleSelection(valueOnClear)
                 if (enableFiltering) {
                   filterKeyword = ""
                 }
@@ -993,12 +1018,13 @@ private fun resolveVisibleTagLimit(
 private fun normalizeDropdownMenuValues(
   selections: List<String>,
   options: List<ZDropdownMenuResolvedOption>,
-  allowUnknown: Boolean = false
+  allowUnknown: Boolean = false,
+  emptyValues: Set<String?> = ZDropdownMenuDefaultEmptyValues
 ): List<String> {
   if (selections.isEmpty()) return emptyList()
   val normalizedSelections = selections
     .map { it.trim() }
-    .filter { it.isNotEmpty() }
+    .filter { !isDropdownMenuEmptyValue(it, emptyValues) }
     .distinct()
   if (normalizedSelections.isEmpty()) return emptyList()
   if (options.isEmpty()) {
@@ -1016,12 +1042,40 @@ private fun normalizeDropdownMenuValues(
 private fun normalizeDropdownMenuSingleValue(
   selection: String?,
   options: List<ZDropdownMenuResolvedOption>,
-  allowUnknown: Boolean
-): String {
-  val normalizedSelection = selection?.trim().orEmpty()
-  if (normalizedSelection.isEmpty()) return ""
+  allowUnknown: Boolean,
+  emptyValues: Set<String?> = ZDropdownMenuDefaultEmptyValues
+): String? {
+  val normalizedSelection = selection?.trim()
+  if (isDropdownMenuEmptyValue(normalizedSelection, emptyValues)) {
+    return normalizedSelection
+  }
+  if (normalizedSelection == null) {
+    return resolveDropdownMenuFallbackEmptyValue(emptyValues)
+  }
   if (options.any { it.value == normalizedSelection }) return normalizedSelection
-  return if (allowUnknown) normalizedSelection else ""
+  return if (allowUnknown) normalizedSelection else resolveDropdownMenuFallbackEmptyValue(emptyValues)
+}
+
+private fun resolveDropdownMenuEmptyValues(
+  emptyValues: List<String?>
+): Set<String?> {
+  if (emptyValues.isEmpty()) return ZDropdownMenuDefaultEmptyValues
+  return emptyValues.mapTo(linkedSetOf()) { it?.trim() }
+}
+
+private fun isDropdownMenuEmptyValue(
+  value: String?,
+  emptyValues: Set<String?>
+): Boolean = value?.trim() in emptyValues
+
+private fun resolveDropdownMenuFallbackEmptyValue(
+  emptyValues: Set<String?>
+): String? {
+  return when {
+    "" in emptyValues -> ""
+    null in emptyValues -> null
+    else -> null
+  }
 }
 
 private fun resolveDropdownMenuOptionsFromInputs(
@@ -1063,7 +1117,6 @@ private fun toResolvedDropdownMenuOption(
   option: ZDropdownMenuOption
 ): ZDropdownMenuResolvedOption? {
   val normalizedValue = option.value.trim()
-  if (normalizedValue.isEmpty()) return null
   val normalizedLabel = option.label.ifBlank { normalizedValue }
   val normalizedValueKey = option.valueKey
     ?.trim()

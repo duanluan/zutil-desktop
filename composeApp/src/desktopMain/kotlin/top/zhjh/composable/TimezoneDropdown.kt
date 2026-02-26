@@ -46,7 +46,7 @@ fun TimezoneDropdown(
   ZDropdownMenu(
     options = timezones,
     defaultSelectedOption = selectedTimezone,
-    onOptionSelected = onTimezoneSelected,
+    onOptionSelected = { selected -> selected?.let(onTimezoneSelected) },
     placeholder = "请选择时区",
     modifier = Modifier.width(220.dp)
   )

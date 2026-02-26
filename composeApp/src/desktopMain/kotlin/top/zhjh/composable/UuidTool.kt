@@ -81,7 +81,7 @@ fun UuidTool() {
                   options = viewModel.versionOptions,
                   defaultSelectedOption = viewModel.selectedVersion,
                   modifier = Modifier.width(170.dp),
-                  onOptionSelected = { viewModel.selectedVersion = it }
+                  onOptionSelected = { viewModel.selectedVersion = it.orEmpty() }
                 )
               }
             )
@@ -105,7 +105,7 @@ fun UuidTool() {
                   options = viewModel.formatOptions,
                   defaultSelectedOption = viewModel.selectedFormat,
                   modifier = Modifier.width(170.dp),
-                  onOptionSelected = { viewModel.selectedFormat = it }
+                  onOptionSelected = { viewModel.selectedFormat = it.orEmpty() }
                 )
               }
             )
