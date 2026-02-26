@@ -147,6 +147,9 @@ fun ZDropdownMenu(
   collapseTags: Boolean = false,
   collapseTagsTooltip: Boolean = false,
   maxCollapseTags: Int? = null,
+  // 自定义多选标签渲染（仅 multiple=true 生效）。
+  // 参数依次为：label、value、enabled、onRemove。
+  tagContent: (@Composable (String, String, Boolean, () -> Unit) -> Unit)? = null,
   optionItems: List<ZDropdownMenuOption> = emptyList(),
   optionGroups: List<ZDropdownMenuOptionGroup> = emptyList(),
   dropdownHeader: (@Composable () -> Unit)? = null,
@@ -553,25 +556,31 @@ fun ZDropdownMenu(
             Icon(
               imageVector = FeatherIcons.XCircle,
               contentDescription = "Clear selection",
-              modifier = Modifier.clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null
-              ) {
-                suppressNextToggle = true
-                setExpanded(false)
-                updateSingleSelection(valueOnClear)
-                if (enableFiltering) {
-                  filterKeyword = ""
+              tint = fieldStyle.iconColor,
+              modifier = Modifier
+                .size(ZTextFieldDefaults.IconSize)
+                .clickable(
+                  interactionSource = remember { MutableInteractionSource() },
+                  indication = null
+                ) {
+                  suppressNextToggle = true
+                  setExpanded(false)
+                  updateSingleSelection(valueOnClear)
+                  if (enableFiltering) {
+                    filterKeyword = ""
+                  }
                 }
-              }
             )
           } else {
           Icon(
             imageVector = FeatherIcons.ChevronDown,
             contentDescription = "Toggle options",
-            modifier = Modifier.graphicsLayer(
-              rotationZ = if (expanded) 180f else 0f
-            )
+            tint = fieldStyle.iconColor,
+            modifier = Modifier
+              .size(ZTextFieldDefaults.IconSize)
+              .graphicsLayer(
+                rotationZ = if (expanded) 180f else 0f
+              )
           )
           }
         }
@@ -604,16 +613,20 @@ fun ZDropdownMenu(
                 modifier = Modifier.fillMaxWidth()
               ) {
                 visibleTags.forEach { selected ->
-                  ZDropdownSelectionTag(
-                    text = selected.label,
-                    textStyle = compactFieldTextStyle,
-                    fieldStyle = fieldStyle,
-                    enabled = enabled,
-                    removable = enabled,
-                    onRemove = {
+                  val onRemove = {
+                    if (enabled) {
                       suppressNextToggle = true
                       updateMultiSelection(selectedOptions - selected.value)
                     }
+                  }
+                  ZDropdownMenuSelectionTag(
+                    label = selected.label,
+                    value = selected.value,
+                    enabled = enabled,
+                    textStyle = compactFieldTextStyle,
+                    fieldStyle = fieldStyle,
+                    onRemove = onRemove,
+                    tagContent = tagContent
                   )
                 }
                 if (hiddenTags.isNotEmpty()) {
@@ -655,16 +668,20 @@ fun ZDropdownMenu(
                               verticalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
                               hiddenTags.forEach { hidden ->
-                                ZDropdownSelectionTag(
-                                  text = hidden.label,
-                                  textStyle = compactFieldTextStyle,
-                                  fieldStyle = fieldStyle,
-                                  enabled = enabled,
-                                  removable = enabled,
-                                  onRemove = {
+                                val onRemove = {
+                                  if (enabled) {
                                     suppressNextToggle = true
                                     updateMultiSelection(selectedOptions - hidden.value)
                                   }
+                                }
+                                ZDropdownMenuSelectionTag(
+                                  label = hidden.label,
+                                  value = hidden.value,
+                                  enabled = enabled,
+                                  textStyle = compactFieldTextStyle,
+                                  fieldStyle = fieldStyle,
+                                  onRemove = onRemove,
+                                  tagContent = tagContent
                                 )
                               }
                             }
@@ -902,6 +919,30 @@ fun ZDropdownMenu(
         }
       }
     }
+  }
+}
+
+@Composable
+private fun ZDropdownMenuSelectionTag(
+  label: String,
+  value: String,
+  enabled: Boolean,
+  textStyle: androidx.compose.ui.text.TextStyle,
+  fieldStyle: ZDropdownMenuFieldStyle,
+  onRemove: () -> Unit,
+  tagContent: (@Composable (String, String, Boolean, () -> Unit) -> Unit)?
+) {
+  if (tagContent == null) {
+    ZDropdownSelectionTag(
+      text = label,
+      textStyle = textStyle,
+      fieldStyle = fieldStyle,
+      enabled = enabled,
+      removable = enabled,
+      onRemove = onRemove
+    )
+  } else {
+    tagContent(label, value, enabled, onRemove)
   }
 }
 

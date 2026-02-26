@@ -1,7 +1,6 @@
 package top.zhjh
 
 import ZLink
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.Icon
@@ -140,6 +139,7 @@ private fun ZuiComponentDemoContent(
   var dropdownMultiCollapseValue by remember { mutableStateOf(listOf("Option1", "Option2", "Option3")) }
   var dropdownMultiCollapseTooltipValue by remember { mutableStateOf(listOf("Option1", "Option3", "Option4", "Option5")) }
   var dropdownMultiMaxCollapseValue by remember { mutableStateOf(listOf("Option1", "Option2", "Option3", "Option4")) }
+  var dropdownCustomTagValues by remember { mutableStateOf(listOf("Option1")) }
   val dropdownHeaderCityOptions = remember { listOf("Beijing", "Shanghai", "Nanjing", "Chengdu", "Shenzhen", "Guangzhou") }
   var dropdownHeaderSelectedCities by remember { mutableStateOf(dropdownHeaderCityOptions) }
   val dropdownGroupedCityOptions = remember {
@@ -1000,6 +1000,50 @@ private fun ZuiComponentDemoContent(
         ZText(
           text = "Current value: ${dropdownEmptyValueConfiguredOutput?.let { "\"$it\"" } ?: "null"}",
           color = if (isDarkTheme) Color(0xffa3a6ad) else Color(0xff606266)
+        )
+        ZText("custom tag")
+        ZDropdownMenu(
+          options = listOf("Option1", "Option2", "Option3", "Option4", "Option5"),
+          placeholder = "Select",
+          modifier = Modifier.width(360.dp),
+          multiple = true,
+          clearable = true,
+          values = dropdownCustomTagValues,
+          onOptionsSelected = { dropdownCustomTagValues = it },
+          tagContent = { label, _, enabled, onRemove ->
+            val tagBackgroundColor = if (isDarkTheme) Color(0xff2f3133) else Color(0xfff0f2f5)
+            val tagBorderColor = if (isDarkTheme) Color(0xff4c4d4f) else Color(0xffe4e7ed)
+            val tagTextColor = if (isDarkTheme) Color(0xffcfd3dc) else Color(0xff606266)
+            val tagIconColor = if (enabled) {
+              if (isDarkTheme) Color(0xffa3a6ad) else Color(0xff909399)
+            } else {
+              if (isDarkTheme) Color(0xff73767a) else Color(0xffc0c4cc)
+            }
+            Row(
+              modifier = Modifier
+                .background(tagBackgroundColor, ZCardDefaults.Shape)
+                .border(1.dp, tagBorderColor, ZCardDefaults.Shape)
+                .padding(horizontal = 8.dp, vertical = 4.dp),
+              verticalAlignment = Alignment.CenterVertically
+            ) {
+              Text(
+                text = "Label1: $label",
+                color = tagTextColor,
+                style = MaterialTheme.typography.body2
+              )
+              if (enabled) {
+                Spacer(modifier = Modifier.width(4.dp))
+                Icon(
+                  imageVector = FeatherIcons.X,
+                  contentDescription = "Remove $label",
+                  tint = tagIconColor,
+                  modifier = Modifier
+                    .size(12.dp)
+                    .clickable { onRemove() }
+                )
+              }
+            }
+          }
         )
       }
     },
