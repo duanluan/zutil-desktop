@@ -104,6 +104,37 @@ private fun ZDropdownDotsLoadingIcon() {
 }
 
 @Composable
+private fun ZContainerDemoFrame(
+  modifier: Modifier = Modifier,
+  content: @Composable () -> Unit
+) {
+  Box(
+    modifier = modifier
+  ) {
+    content()
+  }
+}
+
+@Composable
+private fun ZContainerDemoCell(
+  text: String,
+  backgroundColor: Color,
+  textColor: Color = Color(0xff303133)
+) {
+  Box(
+    modifier = Modifier
+      .fillMaxSize()
+      .background(backgroundColor),
+    contentAlignment = Alignment.Center
+  ) {
+    Text(
+      text = text,
+      color = textColor
+    )
+  }
+}
+
+@Composable
 private fun ZuiComponentDemoContent(
   isDarkTheme: Boolean,
   onToggleTheme: () -> Unit,
@@ -1078,6 +1109,211 @@ private fun ZuiComponentDemoContent(
           activeColor = Color(0xff13ce66),
           inactiveColor = Color(0xffff4949)
         )
+      }
+    },
+    ZTabPane(label = "Container 布局容器", name = "container") {
+      val headerColor = if (isDarkTheme) Color(0xff213d5b) else Color(0xffc6e2ff)
+      val footerColor = if (isDarkTheme) Color(0xff213d5b) else Color(0xffc6e2ff)
+      val mainColor = if (isDarkTheme) Color(0xff18222b) else Color(0xffecf5ff)
+      val asideColor = if (isDarkTheme) Color(0xff1d3043) else Color(0xffd9ecff)
+      val textColor = if (isDarkTheme) Color(0xffe5eaf3) else Color(0xff303133)
+
+      Column(
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+        modifier = Modifier.padding(top = 5.dp, bottom = 5.dp)
+      ) {
+        ZText("header / main")
+        ZContainerDemoFrame(
+          modifier = Modifier
+            .fillMaxWidth()
+            .height(180.dp)
+        ) {
+          ZContainer(modifier = Modifier.fillMaxSize()) {
+            ZHeader(height = 44.dp) {
+              ZContainerDemoCell("Header", headerColor, textColor)
+            }
+            ZMain {
+              ZContainerDemoCell("Main", mainColor, textColor)
+            }
+          }
+        }
+
+        ZText("header / main / footer")
+        ZContainerDemoFrame(
+          modifier = Modifier
+            .fillMaxWidth()
+            .height(210.dp)
+        ) {
+          ZContainer(modifier = Modifier.fillMaxSize()) {
+            ZHeader(height = 44.dp) {
+              ZContainerDemoCell("Header", headerColor, textColor)
+            }
+            ZMain {
+              ZContainerDemoCell("Main", mainColor, textColor)
+            }
+            ZFooter(height = 48.dp) {
+              ZContainerDemoCell("Footer", footerColor, textColor)
+            }
+          }
+        }
+
+        ZText("aside / main / aside")
+        ZContainerDemoFrame(
+          modifier = Modifier
+            .fillMaxWidth()
+            .height(170.dp)
+        ) {
+          ZContainer(modifier = Modifier.fillMaxSize()) {
+            ZAside(width = 130.dp) {
+              ZContainerDemoCell("Aside", asideColor, textColor)
+            }
+            ZMain {
+              ZContainerDemoCell("Main", mainColor, textColor)
+            }
+            ZAside(width = 130.dp) {
+              ZContainerDemoCell("Aside", asideColor, textColor)
+            }
+          }
+        }
+
+        ZText("aside / (header + main)")
+        ZContainerDemoFrame(
+          modifier = Modifier
+            .fillMaxWidth()
+            .height(210.dp)
+        ) {
+          ZContainer(modifier = Modifier.fillMaxSize()) {
+            ZAside(width = 130.dp) {
+              ZContainerDemoCell("Aside", asideColor, textColor)
+            }
+            ZContainer(modifier = Modifier.fillMaxSize()) {
+              ZHeader(height = 44.dp) {
+                ZContainerDemoCell("Header", headerColor, textColor)
+              }
+              ZMain {
+                ZContainerDemoCell("Main", mainColor, textColor)
+              }
+            }
+          }
+        }
+
+        ZText("aside / (header + main + footer)")
+        ZContainerDemoFrame(
+          modifier = Modifier
+            .fillMaxWidth()
+            .height(230.dp)
+        ) {
+          ZContainer(modifier = Modifier.fillMaxSize()) {
+            ZAside(width = 130.dp) {
+              ZContainerDemoCell("Aside", asideColor, textColor)
+            }
+            ZContainer(modifier = Modifier.fillMaxSize()) {
+              ZHeader(height = 44.dp) {
+                ZContainerDemoCell("Header", headerColor, textColor)
+              }
+              ZMain {
+                ZContainerDemoCell("Main", mainColor, textColor)
+              }
+              ZFooter(height = 48.dp) {
+                ZContainerDemoCell("Footer", footerColor, textColor)
+              }
+            }
+          }
+        }
+
+        ZText("header / (aside + main)")
+        ZContainerDemoFrame(
+          modifier = Modifier
+            .fillMaxWidth()
+            .height(210.dp)
+        ) {
+          ZContainer(modifier = Modifier.fillMaxSize()) {
+            ZHeader(height = 44.dp) {
+              ZContainerDemoCell("Header", headerColor, textColor)
+            }
+            ZContainer(modifier = Modifier.fillMaxSize()) {
+              ZAside(width = 130.dp) {
+                ZContainerDemoCell("Aside", asideColor, textColor)
+              }
+              ZMain {
+                ZContainerDemoCell("Main", mainColor, textColor)
+              }
+            }
+          }
+        }
+
+        ZText("header / (aside + (main + footer))")
+        ZContainerDemoFrame(
+          modifier = Modifier
+            .fillMaxWidth()
+            .height(230.dp)
+        ) {
+          ZContainer(modifier = Modifier.fillMaxSize()) {
+            ZHeader(height = 44.dp) {
+              ZContainerDemoCell("Header", headerColor, textColor)
+            }
+            ZContainer(modifier = Modifier.fillMaxSize()) {
+              ZAside(width = 130.dp) {
+                ZContainerDemoCell("Aside", asideColor, textColor)
+              }
+              ZContainer(modifier = Modifier.fillMaxSize()) {
+                ZMain {
+                  ZContainerDemoCell("Main", mainColor, textColor)
+                }
+                ZFooter(height = 48.dp) {
+                  ZContainerDemoCell("Footer", footerColor, textColor)
+                }
+              }
+            }
+          }
+        }
+
+        ZText("direction property")
+        Row(
+          horizontalArrangement = Arrangement.spacedBy(10.dp),
+          modifier = Modifier.fillMaxWidth()
+        ) {
+          ZContainerDemoFrame(
+            modifier = Modifier
+              .weight(1f)
+              .height(140.dp)
+          ) {
+            ZContainer(
+              modifier = Modifier.fillMaxSize(),
+              direction = ZContainerDirection.Vertical
+            ) {
+              ZAside(
+                width = 90.dp,
+                modifier = Modifier.height(44.dp)
+              ) {
+                ZContainerDemoCell("Aside", asideColor, textColor)
+              }
+              ZMain {
+                ZContainerDemoCell("Main", mainColor, textColor)
+              }
+            }
+          }
+          ZContainerDemoFrame(
+            modifier = Modifier
+              .weight(1f)
+              .height(140.dp)
+          ) {
+            ZContainer(
+              modifier = Modifier.fillMaxSize(),
+              direction = ZContainerDirection.Horizontal
+            ) {
+              ZHeader(
+                height = 44.dp,
+                modifier = Modifier.width(110.dp)
+              ) {
+                ZContainerDemoCell("Header", headerColor, textColor)
+              }
+              ZMain {
+                ZContainerDemoCell("Main", mainColor, textColor)
+              }
+            }
+          }
+        }
       }
     },
     ZTabPane(label = "Form 表单", name = "form") {
