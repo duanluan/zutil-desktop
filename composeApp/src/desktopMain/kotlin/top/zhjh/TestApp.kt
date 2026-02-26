@@ -140,6 +140,9 @@ private fun ZuiComponentDemoContent(
   var dropdownMultiCollapseTooltipValue by remember { mutableStateOf(listOf("Option1", "Option3", "Option4", "Option5")) }
   var dropdownMultiMaxCollapseValue by remember { mutableStateOf(listOf("Option1", "Option2", "Option3", "Option4")) }
   var dropdownCustomTagValues by remember { mutableStateOf(listOf("Option1")) }
+  var switchDefaultValue by remember { mutableStateOf(true) }
+  var switchCustomColorValue by remember { mutableStateOf(true) }
+  var switchCustomBackgroundValue by remember { mutableStateOf(false) }
   val dropdownHeaderCityOptions = remember { listOf("Beijing", "Shanghai", "Nanjing", "Chengdu", "Shenzhen", "Guangzhou") }
   var dropdownHeaderSelectedCities by remember { mutableStateOf(dropdownHeaderCityOptions) }
   val dropdownGroupedCityOptions = remember {
@@ -1044,6 +1047,36 @@ private fun ZuiComponentDemoContent(
               }
             }
           }
+        )
+      }
+    },
+    ZTabPane(label = "Switch 开关", name = "switch") {
+      Column(
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+        modifier = Modifier.padding(top = 5.dp, bottom = 5.dp)
+      ) {
+        ZText("basic")
+        Row(
+          horizontalArrangement = Arrangement.spacedBy(12.dp),
+          verticalAlignment = Alignment.CenterVertically
+        ) {
+          ZSwitch(
+            checked = switchDefaultValue,
+            onCheckedChange = { switchDefaultValue = it }
+          )
+          ZSwitch(
+            checked = switchCustomColorValue,
+            onCheckedChange = { switchCustomColorValue = it },
+            activeColor = Color(0xff13ce66)
+          )
+        }
+
+        ZText("custom background color")
+        ZSwitch(
+          checked = switchCustomBackgroundValue,
+          onCheckedChange = { switchCustomBackgroundValue = it },
+          activeColor = Color(0xff13ce66),
+          inactiveColor = Color(0xffff4949)
         )
       }
     },
