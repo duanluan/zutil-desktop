@@ -10,6 +10,7 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
@@ -236,6 +237,30 @@ private fun ZuiComponentDemoContent(
           )
         )
       )
+    )
+  }
+  val menuOffsetItems = remember {
+    listOf<ZMenuNode>(
+      ZMenuItem(index = "1", title = "Processing Center"),
+      ZSubMenu(
+        index = "2",
+        title = "Workspace",
+        children = listOf(
+          ZMenuItem(index = "2-1", title = "item one"),
+          ZMenuItem(index = "2-2", title = "item two"),
+          ZMenuItem(index = "2-3", title = "item three")
+        )
+      ),
+      ZSubMenu(
+        index = "3",
+        title = "Override Popper Offset",
+        children = listOf(
+          ZMenuItem(index = "3-1", title = "item one"),
+          ZMenuItem(index = "3-2", title = "item two"),
+          ZMenuItem(index = "3-3", title = "item three")
+        )
+      ),
+      ZMenuItem(index = "4", title = "Orders")
     )
   }
   val menuVerticalItems = remember(isDarkTheme) {
@@ -1435,7 +1460,7 @@ private fun ZuiComponentDemoContent(
     },
     ZTabPane(label = "Menu 菜单", name = "menu") {
       val panelBackgroundColor = if (isDarkTheme) Color(0xff1d1e1f) else Color.White
-      val panelBorderColor = if (isDarkTheme) Color(0xff414243) else Color(0xffdcdfe6)
+      val panelBorderColor = if (isDarkTheme) Color(0xff4c4d4f) else Color(0xffdcdfe6)
       val customMenuBackground = Color(0xff545c64)
 
       Column(
@@ -1491,15 +1516,18 @@ private fun ZuiComponentDemoContent(
               color = if (isDarkTheme) Color(0xff79bbff) else Color(0xff409eff),
               style = MaterialTheme.typography.h6
             )
-            Spacer(modifier = Modifier.weight(1f))
-            ZMenu(
-              items = menuRightItems,
-              mode = ZMenuMode.Horizontal,
-              activeIndex = menuRightActiveIndex,
-              showHorizontalDivider = false,
-              horizontalFillMaxWidth = false,
-              onSelect = { menuRightActiveIndex = it }
-            )
+            Box(
+              modifier = Modifier.weight(1f),
+              contentAlignment = Alignment.CenterEnd
+            ) {
+              ZMenu(
+                items = menuRightItems,
+                mode = ZMenuMode.Horizontal,
+                activeIndex = menuRightActiveIndex,
+                horizontalFillMaxWidth = false,
+                onSelect = { menuRightActiveIndex = it }
+              )
+            }
           }
         }
 
@@ -1520,7 +1548,17 @@ private fun ZuiComponentDemoContent(
               modifier = Modifier
                 .fillMaxWidth()
                 .background(panelBackgroundColor)
-                .border(1.dp, panelBorderColor)
+                .drawWithContent {
+                  drawContent()
+                  val strokeWidth = 1.dp.toPx()
+                  val x = size.width - strokeWidth
+                  drawLine(
+                    color = panelBorderColor,
+                    start = Offset(x, 0f),
+                    end = Offset(x, size.height),
+                    strokeWidth = strokeWidth
+                  )
+                }
             ) {
               ZMenu(
                 items = menuVerticalItems,
@@ -1543,6 +1581,17 @@ private fun ZuiComponentDemoContent(
               modifier = Modifier
                 .fillMaxWidth()
                 .background(customMenuBackground)
+                .drawWithContent {
+                  drawContent()
+                  val strokeWidth = 1.dp.toPx()
+                  val x = size.width - strokeWidth
+                  drawLine(
+                    color = panelBorderColor,
+                    start = Offset(x, 0f),
+                    end = Offset(x, size.height),
+                    strokeWidth = strokeWidth
+                  )
+                }
             ) {
               ZMenu(
                 items = menuVerticalItems,
@@ -1559,7 +1608,7 @@ private fun ZuiComponentDemoContent(
         }
 
         ZText("vertical collapse")
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        ZButtonGroup(itemSpacing = 0.dp) {
           ZButton(
             type = if (!menuCollapsed) ZColorType.PRIMARY else ZColorType.DEFAULT,
             onClick = { menuCollapsed = false }
@@ -1576,7 +1625,17 @@ private fun ZuiComponentDemoContent(
         Box(
           modifier = Modifier
             .background(panelBackgroundColor)
-            .border(1.dp, panelBorderColor)
+            .drawWithContent {
+              drawContent()
+              val strokeWidth = 1.dp.toPx()
+              val x = size.width - strokeWidth
+              drawLine(
+                color = panelBorderColor,
+                start = Offset(x, 0f),
+                end = Offset(x, size.height),
+                strokeWidth = strokeWidth
+              )
+            }
         ) {
           ZMenu(
             items = menuVerticalItems,
@@ -1589,56 +1648,27 @@ private fun ZuiComponentDemoContent(
         }
 
         ZText("popper offset")
-        Row(
-          horizontalArrangement = Arrangement.spacedBy(16.dp),
+        Column(
+          verticalArrangement = Arrangement.spacedBy(6.dp),
           modifier = Modifier.fillMaxWidth()
         ) {
-          Column(
-            verticalArrangement = Arrangement.spacedBy(6.dp),
-            modifier = Modifier.weight(1f)
+          Text(
+            text = "custom: 16.dp",
+            color = if (isDarkTheme) Color(0xffa3a6ad) else Color(0xff606266)
+          )
+          Box(
+            modifier = Modifier
+              .width(550.dp)
+              .background(panelBackgroundColor)
           ) {
-            Text(
-              text = "default: 6.dp",
-              color = if (isDarkTheme) Color(0xffa3a6ad) else Color(0xff606266)
+            ZMenu(
+              items = menuOffsetItems,
+              mode = ZMenuMode.Horizontal,
+              activeIndex = menuOffsetActiveIndex,
+              popperOffset = 16.dp,
+              onSelect = { menuOffsetActiveIndex = it },
+              modifier = Modifier.fillMaxWidth()
             )
-            Box(
-              modifier = Modifier
-                .fillMaxWidth()
-                .background(panelBackgroundColor)
-                .border(1.dp, panelBorderColor)
-            ) {
-              ZMenu(
-                items = menuTopItems,
-                mode = ZMenuMode.Horizontal,
-                activeIndex = menuOffsetActiveIndex,
-                onSelect = { menuOffsetActiveIndex = it },
-                modifier = Modifier.fillMaxWidth()
-              )
-            }
-          }
-          Column(
-            verticalArrangement = Arrangement.spacedBy(6.dp),
-            modifier = Modifier.weight(1f)
-          ) {
-            Text(
-              text = "custom: 18.dp",
-              color = if (isDarkTheme) Color(0xffa3a6ad) else Color(0xff606266)
-            )
-            Box(
-              modifier = Modifier
-                .fillMaxWidth()
-                .background(panelBackgroundColor)
-                .border(1.dp, panelBorderColor)
-            ) {
-              ZMenu(
-                items = menuTopItems,
-                mode = ZMenuMode.Horizontal,
-                activeIndex = menuOffsetActiveIndex,
-                popperOffset = 18.dp,
-                onSelect = { menuOffsetActiveIndex = it },
-                modifier = Modifier.fillMaxWidth()
-              )
-            }
           }
         }
       }

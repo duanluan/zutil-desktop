@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.*
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupPositionProvider
@@ -22,6 +23,7 @@ import compose.icons.FeatherIcons
 import compose.icons.feathericons.ChevronDown
 import compose.icons.feathericons.ChevronRight
 import kotlinx.coroutines.delay
+import kotlin.math.max
 
 enum class ZMenuMode {
   Vertical,
@@ -45,7 +47,8 @@ data class ZSubMenu(
   val enabled: Boolean = true,
   val icon: (@Composable () -> Unit)? = null,
   val titleContent: (@Composable () -> Unit)? = null,
-  val children: List<ZMenuNode>
+  val children: List<ZMenuNode>,
+  val showIndicator: Boolean = true
 ) : ZMenuNode
 
 data class ZMenuGroup(
@@ -109,6 +112,17 @@ fun ZMenu(
   }
 
   val rootModifier = modifier.background(palette.backgroundColor)
+  val horizontalEntries = remember(items) {
+    flattenHorizontalTopLevelNodes(items).mapIndexed { position, node ->
+      ZMenuHorizontalEntry(
+        key = horizontalNodeKey(node, position),
+        node = node
+      )
+    }
+  }
+  val horizontalNodeWidths = remember(horizontalEntries) { mutableStateMapOf<String, Int>() }
+  var overflowTriggerMeasuredWidthPx by remember(horizontalEntries) { mutableIntStateOf(0) }
+  var horizontalContentWidthPx by remember(horizontalEntries) { mutableIntStateOf(0) }
 
   val rootContent: @Composable () -> Unit = {
     if (mode == ZMenuMode.Horizontal) {
@@ -117,62 +131,151 @@ fun ZMenu(
       } else {
         Modifier
       }
-      Row(
-        modifier = horizontalModifier
-          .height(ZMenuDefaults.HorizontalItemHeight),
-        verticalAlignment = Alignment.CenterVertically
-      ) {
-        items.forEach { node ->
-          when (node) {
-            is ZMenuGroup -> {
-              ZMenuInlineGroup(
-                group = node,
-                mode = mode,
-                collapse = collapse,
-                level = 0,
-                inPopup = false,
-                isTopLevel = true,
-                resolvedActiveIndex = resolvedActiveIndex,
-                palette = palette,
-                openState = openState,
-                setInlineSubMenuExpanded = setInlineSubMenuExpanded,
-                onItemSelect = onItemSelect,
-                popperOffset = popperOffset,
-                closePopupSignal = closePopupSignal
-              )
+      if (horizontalFillMaxWidth) {
+        BoxWithConstraints(
+          modifier = horizontalModifier
+            .height(ZMenuDefaults.HorizontalItemHeight)
+        ) {
+          val density = androidx.compose.ui.platform.LocalDensity.current
+          val availableWidthPx = with(density) { maxWidth.roundToPx() }
+          val overflowTriggerDefaultWidthPx = with(density) {
+            ZMenuDefaults.HorizontalOverflowTriggerMinWidth.roundToPx()
+          }
+          val overflowFallbackItemWidthPx = with(density) {
+            ZMenuDefaults.HorizontalOverflowFallbackItemWidth.roundToPx()
+          }
+          val overflowTriggerWidthPx = max(overflowTriggerDefaultWidthPx, overflowTriggerMeasuredWidthPx)
+          val estimatedNodeWidths = remember(horizontalEntries, density.density, density.fontScale) {
+            horizontalEntries.associate { entry ->
+              entry.key to estimateHorizontalNodeWidthPx(entry.node, density)
             }
+          }
 
-            is ZMenuItem -> {
-              ZMenuItemNode(
-                item = node,
-                mode = mode,
-                collapse = collapse,
-                level = 0,
-                inPopup = false,
-                isTopLevel = true,
-                resolvedActiveIndex = resolvedActiveIndex,
-                palette = palette,
-                onItemSelect = onItemSelect
+          val overflowLayout by remember(
+            horizontalEntries,
+            availableWidthPx,
+            overflowTriggerWidthPx,
+            estimatedNodeWidths
+          ) {
+            derivedStateOf {
+              resolveHorizontalOverflowLayout(
+                entries = horizontalEntries,
+                measuredWidths = horizontalNodeWidths,
+                estimatedWidths = estimatedNodeWidths,
+                availableWidthPx = availableWidthPx,
+                allowOverflow = true,
+                overflowTriggerWidthPx = overflowTriggerWidthPx,
+                fallbackItemWidthPx = overflowFallbackItemWidthPx
               )
             }
+          }
 
-            is ZSubMenu -> {
-              ZSubMenuNode(
-                submenu = node,
-                mode = mode,
-                collapse = collapse,
-                level = 0,
-                inPopup = false,
-                isTopLevel = true,
-                resolvedActiveIndex = resolvedActiveIndex,
-                palette = palette,
-                openState = openState,
-                setInlineSubMenuExpanded = setInlineSubMenuExpanded,
-                onItemSelect = onItemSelect,
-                popperOffset = popperOffset,
-                closePopupSignal = closePopupSignal
-              )
+          if (overflowLayout.hiddenEntries.isEmpty()) {
+            Row(
+              modifier = Modifier.fillMaxSize(),
+              verticalAlignment = Alignment.CenterVertically
+            ) {
+              overflowLayout.visibleEntries.forEach { entry ->
+                Box(
+                  modifier = Modifier.onSizeChanged { size ->
+                    if (size.width > 0) {
+                      horizontalNodeWidths[entry.key] = size.width
+                    }
+                  }
+                ) {
+                  ZMenuHorizontalNode(
+                    node = entry.node,
+                    collapse = collapse,
+                    resolvedActiveIndex = resolvedActiveIndex,
+                    palette = palette,
+                    openState = openState,
+                    setInlineSubMenuExpanded = setInlineSubMenuExpanded,
+                    onItemSelect = onItemSelect,
+                    popperOffset = popperOffset,
+                    closePopupSignal = closePopupSignal
+                  )
+                }
+              }
             }
+          } else {
+            val overflowSubMenu = ZSubMenu(
+              index = ZMenuDefaults.HorizontalOverflowSubMenuIndex,
+              title = "...",
+              children = overflowLayout.hiddenEntries.map { it.node },
+              showIndicator = false
+            )
+            Row(
+              modifier = Modifier.fillMaxSize(),
+              verticalAlignment = Alignment.CenterVertically
+            ) {
+              overflowLayout.visibleEntries.forEach { entry ->
+                Box(
+                  modifier = Modifier.onSizeChanged { size ->
+                    if (size.width > 0) {
+                      horizontalNodeWidths[entry.key] = size.width
+                    }
+                  }
+                ) {
+                  ZMenuHorizontalNode(
+                    node = entry.node,
+                    collapse = collapse,
+                    resolvedActiveIndex = resolvedActiveIndex,
+                    palette = palette,
+                    openState = openState,
+                    setInlineSubMenuExpanded = setInlineSubMenuExpanded,
+                    onItemSelect = onItemSelect,
+                    popperOffset = popperOffset,
+                    closePopupSignal = closePopupSignal
+                  )
+                }
+              }
+              Box(
+                modifier = Modifier.onSizeChanged { size ->
+                  if (size.width > 0) {
+                    overflowTriggerMeasuredWidthPx = size.width
+                  }
+                }
+              ) {
+                ZSubMenuNode(
+                  submenu = overflowSubMenu,
+                  mode = mode,
+                  collapse = collapse,
+                  level = 0,
+                  inPopup = false,
+                  isTopLevel = true,
+                  resolvedActiveIndex = resolvedActiveIndex,
+                  palette = palette,
+                  openState = openState,
+                  setInlineSubMenuExpanded = setInlineSubMenuExpanded,
+                  onItemSelect = onItemSelect,
+                  popperOffset = popperOffset,
+                  closePopupSignal = closePopupSignal
+                )
+              }
+            }
+          }
+        }
+      } else {
+        Row(
+          modifier = horizontalModifier
+            .onSizeChanged { size ->
+              horizontalContentWidthPx = size.width
+            }
+            .height(ZMenuDefaults.HorizontalItemHeight),
+          verticalAlignment = Alignment.CenterVertically
+        ) {
+          horizontalEntries.forEach { entry ->
+            ZMenuHorizontalNode(
+              node = entry.node,
+              collapse = collapse,
+              resolvedActiveIndex = resolvedActiveIndex,
+              palette = palette,
+              openState = openState,
+              setInlineSubMenuExpanded = setInlineSubMenuExpanded,
+              onItemSelect = onItemSelect,
+              popperOffset = popperOffset,
+              closePopupSignal = closePopupSignal
+            )
           }
         }
       }
@@ -242,9 +345,235 @@ fun ZMenu(
   ) {
     rootContent()
     if (mode == ZMenuMode.Horizontal && showHorizontalDivider) {
-      Divider(color = palette.borderColor)
+      if (horizontalFillMaxWidth) {
+        Divider(color = palette.borderColor)
+      } else if (horizontalContentWidthPx > 0) {
+        val density = androidx.compose.ui.platform.LocalDensity.current
+        Box(
+          modifier = Modifier
+            .width(with(density) { horizontalContentWidthPx.toDp() })
+            .height(1.dp)
+            .background(palette.borderColor)
+        )
+      }
     }
   }
+}
+
+@Composable
+private fun ZMenuHorizontalNode(
+  node: ZMenuNode,
+  collapse: Boolean,
+  resolvedActiveIndex: String,
+  palette: ZMenuPalette,
+  openState: Map<String, Boolean>,
+  setInlineSubMenuExpanded: (String, Boolean) -> Unit,
+  onItemSelect: (String) -> Unit,
+  popperOffset: Dp,
+  closePopupSignal: Int
+) {
+  when (node) {
+    is ZMenuGroup -> {
+      ZMenuInlineGroup(
+        group = node,
+        mode = ZMenuMode.Horizontal,
+        collapse = collapse,
+        level = 0,
+        inPopup = false,
+        isTopLevel = true,
+        resolvedActiveIndex = resolvedActiveIndex,
+        palette = palette,
+        openState = openState,
+        setInlineSubMenuExpanded = setInlineSubMenuExpanded,
+        onItemSelect = onItemSelect,
+        popperOffset = popperOffset,
+        closePopupSignal = closePopupSignal
+      )
+    }
+
+    is ZMenuItem -> {
+      ZMenuItemNode(
+        item = node,
+        mode = ZMenuMode.Horizontal,
+        collapse = collapse,
+        level = 0,
+        inPopup = false,
+        isTopLevel = true,
+        resolvedActiveIndex = resolvedActiveIndex,
+        palette = palette,
+        onItemSelect = onItemSelect
+      )
+    }
+
+    is ZSubMenu -> {
+      ZSubMenuNode(
+        submenu = node,
+        mode = ZMenuMode.Horizontal,
+        collapse = collapse,
+        level = 0,
+        inPopup = false,
+        isTopLevel = true,
+        resolvedActiveIndex = resolvedActiveIndex,
+        palette = palette,
+        openState = openState,
+        setInlineSubMenuExpanded = setInlineSubMenuExpanded,
+        onItemSelect = onItemSelect,
+        popperOffset = popperOffset,
+        closePopupSignal = closePopupSignal
+      )
+    }
+  }
+}
+
+private data class ZMenuHorizontalEntry(
+  val key: String,
+  val node: ZMenuNode
+)
+
+private data class ZMenuHorizontalOverflowLayout(
+  val visibleEntries: List<ZMenuHorizontalEntry>,
+  val hiddenEntries: List<ZMenuHorizontalEntry>
+)
+
+private fun flattenHorizontalTopLevelNodes(nodes: List<ZMenuNode>): List<ZMenuNode> {
+  val result = mutableListOf<ZMenuNode>()
+  nodes.forEach { node ->
+    when (node) {
+      is ZMenuGroup -> result += flattenHorizontalTopLevelNodes(node.children)
+      else -> result += node
+    }
+  }
+  return result
+}
+
+private fun horizontalNodeKey(
+  node: ZMenuNode,
+  position: Int
+): String {
+  return when (node) {
+    is ZMenuItem -> "item:${node.index}:$position"
+    is ZSubMenu -> "submenu:${node.index}:$position"
+    is ZMenuGroup -> "group:$position"
+  }
+}
+
+private fun resolveHorizontalOverflowLayout(
+  entries: List<ZMenuHorizontalEntry>,
+  measuredWidths: Map<String, Int>,
+  estimatedWidths: Map<String, Int>,
+  availableWidthPx: Int,
+  allowOverflow: Boolean,
+  overflowTriggerWidthPx: Int,
+  fallbackItemWidthPx: Int
+): ZMenuHorizontalOverflowLayout {
+  if (!allowOverflow || availableWidthPx == Int.MAX_VALUE || entries.isEmpty()) {
+    return ZMenuHorizontalOverflowLayout(
+      visibleEntries = entries,
+      hiddenEntries = emptyList()
+    )
+  }
+
+  val resolvedFallbackItemWidthPx = fallbackItemWidthPx.coerceAtLeast(1)
+  val totalWidthPx = entries.sumOf { entry ->
+    resolveHorizontalEntryWidth(
+      measuredWidths = measuredWidths,
+      estimatedWidths = estimatedWidths,
+      key = entry.key,
+      fallbackWidthPx = resolvedFallbackItemWidthPx
+    )
+  }
+  if (totalWidthPx <= availableWidthPx) {
+    return ZMenuHorizontalOverflowLayout(
+      visibleEntries = entries,
+      hiddenEntries = emptyList()
+    )
+  }
+
+  var usedWidthPx = 0
+  var visibleCount = 0
+  for (entry in entries) {
+    val widthPx = resolveHorizontalEntryWidth(
+      measuredWidths = measuredWidths,
+      estimatedWidths = estimatedWidths,
+      key = entry.key,
+      fallbackWidthPx = resolvedFallbackItemWidthPx
+    )
+    if (usedWidthPx + widthPx + overflowTriggerWidthPx <= availableWidthPx) {
+      usedWidthPx += widthPx
+      visibleCount += 1
+    } else {
+      break
+    }
+  }
+
+  val resolvedVisibleCount = visibleCount.coerceIn(0, entries.size)
+  return ZMenuHorizontalOverflowLayout(
+    visibleEntries = entries.take(resolvedVisibleCount),
+    hiddenEntries = entries.drop(resolvedVisibleCount)
+  )
+}
+
+private fun resolveHorizontalEntryWidth(
+  measuredWidths: Map<String, Int>,
+  estimatedWidths: Map<String, Int>,
+  key: String,
+  fallbackWidthPx: Int
+): Int {
+  val measuredWidthPx = measuredWidths[key]?.takeIf { it > 0 } ?: 0
+  val estimatedWidthPx = estimatedWidths[key]?.takeIf { it > 0 } ?: 0
+  return when {
+    measuredWidthPx > 0 || estimatedWidthPx > 0 -> max(measuredWidthPx, estimatedWidthPx)
+    else -> fallbackWidthPx
+  }
+}
+
+private fun estimateHorizontalNodeWidthPx(
+  node: ZMenuNode,
+  density: Density
+): Int {
+  val title = when (node) {
+    is ZMenuItem -> node.title.orEmpty()
+    is ZSubMenu -> node.title.orEmpty()
+    is ZMenuGroup -> ""
+  }
+  val textWidthPx = estimateMenuTitleWidthPx(title, density)
+  val startPaddingPx = with(density) { 16.dp.roundToPx() }
+  val endPaddingPx = with(density) { 14.dp.roundToPx() }
+  val iconWidthPx = when (node) {
+    is ZMenuItem -> {
+      if (node.icon != null) with(density) { (ZMenuDefaults.IconSlotSize + 8.dp).roundToPx() } else 0
+    }
+
+    is ZSubMenu -> {
+      if (node.icon != null) with(density) { (ZMenuDefaults.IconSlotSize + 8.dp).roundToPx() } else 0
+    }
+
+    is ZMenuGroup -> 0
+  }
+  val indicatorWidthPx = if (node is ZSubMenu && node.showIndicator) {
+    with(density) { (8.dp + 14.dp).roundToPx() }
+  } else {
+    0
+  }
+  return startPaddingPx + endPaddingPx + iconWidthPx + indicatorWidthPx + textWidthPx
+}
+
+private fun estimateMenuTitleWidthPx(
+  text: String,
+  density: Density
+): Int {
+  if (text.isEmpty()) {
+    return 0
+  }
+  val latinCharWidthPx = with(density) { ZMenuDefaults.HorizontalEstimatedLatinCharWidth.roundToPx() }
+  val wideCharWidthPx = with(density) { ZMenuDefaults.HorizontalEstimatedWideCharWidth.roundToPx() }
+  return text.sumOf { char ->
+    if (isWideCharacter(char)) wideCharWidthPx else latinCharWidthPx
+  }
+}
+
+private fun isWideCharacter(char: Char): Boolean {
+  return char.code >= 0x2E80
 }
 
 @Composable
@@ -590,12 +919,14 @@ private fun ZSubMenuNode(
           )
         }
 
-        Icon(
-          imageVector = if (expanded) FeatherIcons.ChevronDown else FeatherIcons.ChevronRight,
-          contentDescription = "submenu",
-          tint = textColor,
-          modifier = Modifier.size(14.dp)
-        )
+        if (submenu.showIndicator) {
+          Icon(
+            imageVector = if (expanded) FeatherIcons.ChevronDown else FeatherIcons.ChevronRight,
+            contentDescription = "submenu",
+            tint = textColor,
+            modifier = Modifier.size(14.dp)
+          )
+        }
       }
 
       if (expanded) {
@@ -736,14 +1067,22 @@ private fun ZSubMenuPopupTrigger(
   } else {
     Color.Transparent
   }
-  val showRightArrow = placement == ZMenuPopupPlacement.Right && !shouldCollapseTopItem
-  val showDownArrow = placement == ZMenuPopupPlacement.Below && !shouldCollapseTopItem
-  val arrowModifier = if (isHorizontalTopLevel && showDownArrow) {
-    Modifier
-      .padding(start = 8.dp)
-      .size(14.dp)
-  } else {
-    Modifier.size(14.dp)
+  val showRightArrow = submenu.showIndicator && placement == ZMenuPopupPlacement.Right && !shouldCollapseTopItem
+  val showDownArrow = submenu.showIndicator && placement == ZMenuPopupPlacement.Below && !shouldCollapseTopItem
+  val arrowModifier = when {
+    isHorizontalTopLevel && showDownArrow -> {
+      Modifier
+        .padding(start = 8.dp)
+        .size(14.dp)
+    }
+
+    showRightArrow -> {
+      Modifier
+        .padding(start = 8.dp)
+        .size(14.dp)
+    }
+
+    else -> Modifier.size(14.dp)
   }
   val bottomActiveLineColor = if (isHorizontalTopLevel && isActive && submenu.enabled) {
     palette.activeTextColor
@@ -872,8 +1211,7 @@ private fun ZSubMenuPopupTrigger(
         ) {
           Column(
             modifier = Modifier
-              .width(IntrinsicSize.Min)
-              .widthIn(min = 180.dp)
+              .width(IntrinsicSize.Max)
               .padding(vertical = 6.dp)
           ) {
             submenu.children.forEach { child ->
@@ -1085,9 +1423,14 @@ private fun resolveZMenuPalette(
 }
 
 object ZMenuDefaults {
+  const val HorizontalOverflowSubMenuIndex = "__zmenu_overflow__"
   val VerticalItemHeight = 44.dp
   val HorizontalItemHeight = 56.dp
   val HorizontalActiveLineHeight = 2.dp
+  val HorizontalOverflowTriggerMinWidth = 44.dp
+  val HorizontalOverflowFallbackItemWidth = 120.dp
+  val HorizontalEstimatedLatinCharWidth = 7.5.dp
+  val HorizontalEstimatedWideCharWidth = 14.dp
   val IconSlotSize = 18.dp
   val ItemFontSize = 14.sp
   val GroupTitleFontSize = 14.sp
