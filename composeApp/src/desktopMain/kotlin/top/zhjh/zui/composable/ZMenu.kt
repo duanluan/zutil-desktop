@@ -11,6 +11,8 @@ import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.luminance
@@ -67,10 +69,11 @@ fun ZMenu(
   defaultOpeneds: List<String> = emptyList(),
   uniqueOpened: Boolean = false,
   collapse: Boolean = false,
-  backgroundColor: Color = Color(0xffffffff),
-  textColor: Color = Color(0xff303133),
-  activeTextColor: Color = Color(0xff409eff),
+  backgroundColor: Color = Color.Unspecified,
+  textColor: Color = Color.Unspecified,
+  activeTextColor: Color = Color.Unspecified,
   showHorizontalDivider: Boolean = true,
+  showVerticalDivider: Boolean = true,
   horizontalFillMaxWidth: Boolean = true,
   popperOffset: Dp = 6.dp,
   onSelect: (String) -> Unit = {}
@@ -79,11 +82,33 @@ fun ZMenu(
     mutableStateOf(defaultActive)
   }
   val resolvedActiveIndex = activeIndex ?: internalActiveIndex
-  val palette = remember(backgroundColor, textColor, activeTextColor) {
+  val useDarkDefaults = !MaterialTheme.colors.isLight
+  val resolvedBackgroundColor = if (backgroundColor != Color.Unspecified) {
+    backgroundColor
+  } else if (useDarkDefaults) {
+    ZMenuDefaults.DarkDefaultBackgroundColor
+  } else {
+    ZMenuDefaults.LightDefaultBackgroundColor
+  }
+  val resolvedTextColor = if (textColor != Color.Unspecified) {
+    textColor
+  } else if (resolvedBackgroundColor.luminance() < 0.5f) {
+    ZMenuDefaults.DarkDefaultTextColor
+  } else {
+    ZMenuDefaults.LightDefaultTextColor
+  }
+  val resolvedActiveTextColor = if (activeTextColor != Color.Unspecified) {
+    activeTextColor
+  } else {
+    ZMenuDefaults.DefaultActiveTextColor
+  }
+
+  val palette = remember(resolvedBackgroundColor, resolvedTextColor, resolvedActiveTextColor, useDarkDefaults) {
     resolveZMenuPalette(
-      backgroundColor = backgroundColor,
-      textColor = textColor,
-      activeTextColor = activeTextColor
+      backgroundColor = resolvedBackgroundColor,
+      textColor = resolvedTextColor,
+      activeTextColor = resolvedActiveTextColor,
+      darkTheme = useDarkDefaults
     )
   }
   val openState = remember(items, defaultOpeneds) {
@@ -111,7 +136,25 @@ fun ZMenu(
     openState[index] = expanded
   }
 
-  val rootModifier = modifier.background(palette.backgroundColor)
+  val rootModifier = modifier
+    .background(palette.backgroundColor)
+    .then(
+      if (mode == ZMenuMode.Vertical && showVerticalDivider) {
+        Modifier.drawWithContent {
+          drawContent()
+          val strokeWidth = 1.dp.toPx()
+          val x = size.width - strokeWidth
+          drawLine(
+            color = palette.borderColor,
+            start = Offset(x, 0f),
+            end = Offset(x, size.height),
+            strokeWidth = strokeWidth
+          )
+        }
+      } else {
+        Modifier
+      }
+    )
   val horizontalEntries = remember(items) {
     flattenHorizontalTopLevelNodes(items).mapIndexed { position, node ->
       ZMenuHorizontalEntry(
@@ -576,6 +619,12 @@ private fun isWideCharacter(char: Char): Boolean {
   return char.code >= 0x2E80
 }
 
+private fun shouldShowHorizontalTopLevelActiveBackground(
+  palette: ZMenuPalette
+): Boolean {
+  return palette.backgroundColor.luminance() < 0.2f
+}
+
 @Composable
 private fun ZMenuInlineGroup(
   group: ZMenuGroup,
@@ -692,18 +741,15 @@ private fun ZMenuItemNode(
   val isHovered by interactionSource.collectIsHoveredAsState()
   val shouldCollapseTopItem = mode == ZMenuMode.Vertical && collapse && !inPopup && level == 0
   val isEnabled = item.enabled
+  val isHorizontalMode = mode == ZMenuMode.Horizontal
 
   val textColor = when {
     !isEnabled -> palette.disabledTextColor
     isActive -> palette.activeTextColor
+    isHorizontalMode && isHovered -> palette.hoverTextColor
     else -> palette.textColor
   }
   val isHorizontalTopLevel = mode == ZMenuMode.Horizontal && isTopLevel && !inPopup
-  val itemHeight = if (isHorizontalTopLevel) {
-    ZMenuDefaults.HorizontalItemHeight - ZMenuDefaults.HorizontalActiveLineHeight
-  } else {
-    ZMenuDefaults.VerticalItemHeight
-  }
   val itemPaddingStart = when {
     mode == ZMenuMode.Horizontal && !inPopup -> 16.dp
     shouldCollapseTopItem -> 0.dp
@@ -711,10 +757,10 @@ private fun ZMenuItemNode(
   }
   val itemPaddingEnd = if (shouldCollapseTopItem) 0.dp else 14.dp
 
+  val showHorizontalActiveBackground = isHorizontalTopLevel && shouldShowHorizontalTopLevelActiveBackground(palette)
   val itemBackground = when {
-    isHorizontalTopLevel -> Color.Transparent
-    isHovered -> palette.hoverBackgroundColor
-    isActive -> palette.activeBackgroundColor
+    isEnabled && isHovered -> palette.hoverBackgroundColor
+    isActive && (!isHorizontalTopLevel || showHorizontalActiveBackground) -> palette.activeBackgroundColor
     else -> Color.Transparent
   }
   val bottomActiveLineColor = if (isHorizontalTopLevel && isActive && isEnabled) {
@@ -722,17 +768,102 @@ private fun ZMenuItemNode(
   } else {
     Color.Transparent
   }
-  Column(
-    modifier = if (isHorizontalTopLevel) {
-      Modifier.width(IntrinsicSize.Max)
-    } else {
-      Modifier.fillMaxWidth()
+
+  val rowContent: @Composable RowScope.() -> Unit = {
+    val iconContent = item.icon
+    if (iconContent != null) {
+      Box(
+        modifier = Modifier.size(ZMenuDefaults.IconSlotSize),
+        contentAlignment = Alignment.Center
+      ) {
+        CompositionLocalProvider(LocalContentColor provides textColor) {
+          iconContent()
+        }
+      }
+      if (!shouldCollapseTopItem) {
+        Spacer(modifier = Modifier.width(8.dp))
+      }
     }
-  ) {
+
+    if (!shouldCollapseTopItem) {
+      val textContent = item.content
+      if (textContent != null) {
+        Box(
+          modifier = if (isHorizontalTopLevel) Modifier else Modifier.weight(1f),
+          contentAlignment = Alignment.CenterStart
+        ) {
+          textContent()
+        }
+      } else {
+        Text(
+          text = item.title.orEmpty(),
+          color = textColor,
+          fontSize = ZMenuDefaults.ItemFontSize,
+          maxLines = if (isHorizontalTopLevel) 1 else Int.MAX_VALUE,
+          softWrap = !isHorizontalTopLevel,
+          modifier = if (isHorizontalTopLevel) Modifier else Modifier.weight(1f)
+        )
+      }
+
+      if (item.trailing != null) {
+        Box(
+          contentAlignment = Alignment.CenterEnd,
+          content = item.trailing
+        )
+      }
+    } else if (iconContent == null) {
+      Text(
+        text = item.title?.take(1).orEmpty(),
+        color = textColor,
+        fontSize = ZMenuDefaults.ItemFontSize
+      )
+    }
+  }
+
+  if (isHorizontalTopLevel) {
+    Box(
+      modifier = Modifier
+        .width(IntrinsicSize.Max)
+        .height(ZMenuDefaults.HorizontalItemHeight)
+        .background(itemBackground)
+    ) {
+      Row(
+        modifier = Modifier
+          .fillMaxSize()
+          .padding(bottom = ZMenuDefaults.HorizontalActiveLineHeight)
+          .then(
+            if (isEnabled) {
+              Modifier
+                .hoverable(interactionSource = interactionSource)
+                .clickable(
+                  interactionSource = interactionSource,
+                  indication = null
+                ) {
+                  onItemSelect(item.index)
+                }
+            } else {
+              Modifier
+            }
+          )
+          .padding(start = itemPaddingStart, end = itemPaddingEnd),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = if (shouldCollapseTopItem) Arrangement.Center else Arrangement.Start,
+        content = rowContent
+      )
+
+      Box(
+        modifier = Modifier
+          .align(Alignment.BottomStart)
+          .fillMaxWidth()
+          .height(ZMenuDefaults.HorizontalActiveLineHeight)
+          .background(bottomActiveLineColor)
+      )
+    }
+  } else {
     Row(
       modifier = Modifier
-        .then(if (isHorizontalTopLevel) Modifier else Modifier.fillMaxWidth())
-        .heightIn(min = itemHeight)
+        .fillMaxWidth()
+        .heightIn(min = ZMenuDefaults.VerticalItemHeight)
         .background(itemBackground)
         .then(
           if (isEnabled) {
@@ -748,68 +879,11 @@ private fun ZMenuItemNode(
             Modifier
           }
         )
-        .padding(start = itemPaddingStart, end = itemPaddingEnd, top = 0.dp, bottom = 0.dp),
+        .padding(start = itemPaddingStart, end = itemPaddingEnd),
       verticalAlignment = Alignment.CenterVertically,
-      horizontalArrangement = if (shouldCollapseTopItem) Arrangement.Center else Arrangement.Start
-    ) {
-      val iconContent = item.icon
-      if (iconContent != null) {
-        Box(
-          modifier = Modifier.size(ZMenuDefaults.IconSlotSize),
-          contentAlignment = Alignment.Center
-        ) {
-          CompositionLocalProvider(LocalContentColor provides textColor) {
-            iconContent()
-          }
-        }
-        if (!shouldCollapseTopItem) {
-          Spacer(modifier = Modifier.width(8.dp))
-        }
-      }
-
-      if (!shouldCollapseTopItem) {
-        val textContent = item.content
-        if (textContent != null) {
-          Box(
-            modifier = if (isHorizontalTopLevel) Modifier else Modifier.weight(1f),
-            contentAlignment = Alignment.CenterStart
-          ) {
-            textContent()
-          }
-        } else {
-          Text(
-            text = item.title.orEmpty(),
-            color = textColor,
-            fontSize = ZMenuDefaults.ItemFontSize,
-            maxLines = if (isHorizontalTopLevel) 1 else Int.MAX_VALUE,
-            softWrap = !isHorizontalTopLevel,
-            modifier = if (isHorizontalTopLevel) Modifier else Modifier.weight(1f)
-          )
-        }
-
-        if (item.trailing != null) {
-          Box(
-            contentAlignment = Alignment.CenterEnd,
-            content = item.trailing
-          )
-        }
-      } else if (iconContent == null) {
-        Text(
-          text = item.title?.take(1).orEmpty(),
-          color = textColor,
-          fontSize = ZMenuDefaults.ItemFontSize
-        )
-      }
-    }
-
-    if (isHorizontalTopLevel) {
-      Box(
-        modifier = Modifier
-          .fillMaxWidth()
-          .height(ZMenuDefaults.HorizontalActiveLineHeight)
-          .background(bottomActiveLineColor)
-      )
-    }
+      horizontalArrangement = if (shouldCollapseTopItem) Arrangement.Center else Arrangement.Start,
+      content = rowContent
+    )
   }
 }
 
@@ -1042,17 +1116,14 @@ private fun ZSubMenuPopupTrigger(
   }
 
   val isActive = isMenuSubtreeActive(submenu.children, resolvedActiveIndex)
+  val isHorizontalMode = mode == ZMenuMode.Horizontal
   val textColor = when {
     !submenu.enabled -> palette.disabledTextColor
     isActive -> palette.activeTextColor
+    isHorizontalMode && isTriggerHovered -> palette.hoverTextColor
     else -> palette.textColor
   }
   val isHorizontalTopLevel = mode == ZMenuMode.Horizontal && isTopLevel && !inPopup
-  val itemHeight = if (isHorizontalTopLevel) {
-    ZMenuDefaults.HorizontalItemHeight - ZMenuDefaults.HorizontalActiveLineHeight
-  } else {
-    ZMenuDefaults.VerticalItemHeight
-  }
   val shouldCollapseTopItem = mode == ZMenuMode.Vertical && collapse && !inPopup && level == 0
   val titlePaddingStart = when {
     mode == ZMenuMode.Horizontal && !inPopup -> 16.dp
@@ -1060,12 +1131,19 @@ private fun ZSubMenuPopupTrigger(
     else -> (16.dp + (level * 12).dp)
   }
   val titlePaddingEnd = if (shouldCollapseTopItem) 0.dp else 14.dp
-  val itemBackground = if (isHorizontalTopLevel) {
-    Color.Transparent
-  } else if (isTriggerHovered) {
-    palette.hoverBackgroundColor
-  } else {
-    Color.Transparent
+  val showHorizontalActiveBackground = isHorizontalTopLevel && shouldShowHorizontalTopLevelActiveBackground(palette)
+  val itemBackground = when {
+    isHorizontalMode -> {
+      if (isActive && showHorizontalActiveBackground) {
+        palette.activeBackgroundColor
+      } else {
+        Color.Transparent
+      }
+    }
+
+    isTriggerHovered -> palette.hoverBackgroundColor
+    isActive -> palette.activeBackgroundColor
+    else -> Color.Transparent
   }
   val showRightArrow = submenu.showIndicator && placement == ZMenuPopupPlacement.Right && !shouldCollapseTopItem
   val showDownArrow = submenu.showIndicator && placement == ZMenuPopupPlacement.Below && !shouldCollapseTopItem
@@ -1090,18 +1168,109 @@ private fun ZSubMenuPopupTrigger(
     Color.Transparent
   }
 
-  Box {
-    Column(
-      modifier = if (isHorizontalTopLevel) {
-        Modifier.width(IntrinsicSize.Max)
-      } else {
-        Modifier.fillMaxWidth()
+  val triggerRowContent: @Composable RowScope.() -> Unit = {
+    if (submenu.icon != null) {
+      Box(
+        modifier = Modifier.size(ZMenuDefaults.IconSlotSize),
+        contentAlignment = Alignment.Center
+      ) {
+        CompositionLocalProvider(LocalContentColor provides textColor) {
+          submenu.icon.invoke()
+        }
       }
-    ) {
+      if (!shouldCollapseTopItem) {
+        Spacer(modifier = Modifier.width(8.dp))
+      }
+    }
+
+    if (!shouldCollapseTopItem) {
+      if (submenu.titleContent != null) {
+        Box(
+          modifier = if (isHorizontalTopLevel) Modifier else Modifier.weight(1f)
+        ) {
+          submenu.titleContent.invoke()
+        }
+      } else {
+        Text(
+          text = submenu.title.orEmpty(),
+          color = textColor,
+          fontSize = ZMenuDefaults.ItemFontSize,
+          lineHeight = if (isHorizontalTopLevel) ZMenuDefaults.ItemFontSize else TextUnit.Unspecified,
+          maxLines = if (isHorizontalTopLevel) 1 else Int.MAX_VALUE,
+          softWrap = !isHorizontalTopLevel,
+          modifier = if (isHorizontalTopLevel) Modifier else Modifier.weight(1f)
+        )
+      }
+    } else if (submenu.icon == null) {
+      Text(
+        text = submenu.title?.take(1).orEmpty(),
+        color = textColor,
+        fontSize = ZMenuDefaults.ItemFontSize
+      )
+    }
+
+    if (showDownArrow) {
+      Icon(
+        imageVector = FeatherIcons.ChevronDown,
+        contentDescription = "submenu",
+        tint = textColor,
+        modifier = arrowModifier
+      )
+    } else if (showRightArrow) {
+      Icon(
+        imageVector = FeatherIcons.ChevronRight,
+        contentDescription = "submenu",
+        tint = textColor,
+        modifier = arrowModifier
+      )
+    }
+  }
+
+  Box {
+    if (isHorizontalTopLevel) {
+      Box(
+        modifier = Modifier
+          .width(IntrinsicSize.Max)
+          .height(ZMenuDefaults.HorizontalItemHeight)
+          .background(itemBackground)
+      ) {
+        Row(
+          modifier = Modifier
+            .fillMaxSize()
+            .padding(bottom = ZMenuDefaults.HorizontalActiveLineHeight)
+            .then(
+              if (submenu.enabled) {
+                Modifier
+                  .hoverable(triggerInteractionSource)
+                  .clickable(
+                    interactionSource = triggerInteractionSource,
+                    indication = null
+                  ) {
+                    popupVisible = !popupVisible
+                  }
+              } else {
+                Modifier
+              }
+            )
+            .padding(start = titlePaddingStart, end = titlePaddingEnd),
+          verticalAlignment = Alignment.CenterVertically,
+          horizontalArrangement = if (shouldCollapseTopItem) Arrangement.Center else Arrangement.Start,
+          content = triggerRowContent
+        )
+
+        Box(
+          modifier = Modifier
+            .align(Alignment.BottomStart)
+            .fillMaxWidth()
+            .height(ZMenuDefaults.HorizontalActiveLineHeight)
+            .background(bottomActiveLineColor)
+        )
+      }
+    } else {
       Row(
         modifier = Modifier
-          .then(if (isHorizontalTopLevel) Modifier else Modifier.fillMaxWidth())
-          .height(itemHeight)
+          .fillMaxWidth()
+          .height(ZMenuDefaults.VerticalItemHeight)
           .background(itemBackground)
           .then(
             if (submenu.enabled) {
@@ -1119,73 +1288,9 @@ private fun ZSubMenuPopupTrigger(
           )
           .padding(start = titlePaddingStart, end = titlePaddingEnd),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = if (shouldCollapseTopItem) Arrangement.Center else Arrangement.Start
-      ) {
-        if (submenu.icon != null) {
-          Box(
-            modifier = Modifier.size(ZMenuDefaults.IconSlotSize),
-            contentAlignment = Alignment.Center
-          ) {
-            CompositionLocalProvider(LocalContentColor provides textColor) {
-              submenu.icon.invoke()
-            }
-          }
-          if (!shouldCollapseTopItem) {
-            Spacer(modifier = Modifier.width(8.dp))
-          }
-        }
-
-        if (!shouldCollapseTopItem) {
-          if (submenu.titleContent != null) {
-            Box(
-              modifier = if (isHorizontalTopLevel) Modifier else Modifier.weight(1f)
-            ) {
-              submenu.titleContent.invoke()
-            }
-          } else {
-            Text(
-              text = submenu.title.orEmpty(),
-              color = textColor,
-              fontSize = ZMenuDefaults.ItemFontSize,
-              lineHeight = if (isHorizontalTopLevel) ZMenuDefaults.ItemFontSize else TextUnit.Unspecified,
-              maxLines = if (isHorizontalTopLevel) 1 else Int.MAX_VALUE,
-              softWrap = !isHorizontalTopLevel,
-              modifier = if (isHorizontalTopLevel) Modifier else Modifier.weight(1f)
-            )
-          }
-        } else if (submenu.icon == null) {
-          Text(
-            text = submenu.title?.take(1).orEmpty(),
-            color = textColor,
-            fontSize = ZMenuDefaults.ItemFontSize
-          )
-        }
-
-        if (showDownArrow) {
-          Icon(
-            imageVector = FeatherIcons.ChevronDown,
-            contentDescription = "submenu",
-            tint = textColor,
-            modifier = arrowModifier
-          )
-        } else if (showRightArrow) {
-          Icon(
-            imageVector = FeatherIcons.ChevronRight,
-            contentDescription = "submenu",
-            tint = textColor,
-            modifier = arrowModifier
-          )
-        }
-      }
-
-      if (isHorizontalTopLevel) {
-        Box(
-          modifier = Modifier
-            .fillMaxWidth()
-            .height(ZMenuDefaults.HorizontalActiveLineHeight)
-            .background(bottomActiveLineColor)
-        )
-      }
+        horizontalArrangement = if (shouldCollapseTopItem) Arrangement.Center else Arrangement.Start,
+        content = triggerRowContent
+      )
     }
 
     if (popupVisible && submenu.enabled) {
@@ -1370,6 +1475,7 @@ private data class ZMenuPalette(
   val popupBackgroundColor: Color,
   val textColor: Color,
   val activeTextColor: Color,
+  val hoverTextColor: Color,
   val disabledTextColor: Color,
   val hoverBackgroundColor: Color,
   val activeBackgroundColor: Color,
@@ -1380,19 +1486,38 @@ private data class ZMenuPalette(
 private fun resolveZMenuPalette(
   backgroundColor: Color,
   textColor: Color,
-  activeTextColor: Color
+  activeTextColor: Color,
+  darkTheme: Boolean
 ): ZMenuPalette {
   val darkBackground = backgroundColor.luminance() < 0.5f
+  val veryDarkBackground = backgroundColor.luminance() < 0.2f
   val popupBackgroundColor = backgroundColor
-  val hoverBackgroundColor = if (darkBackground) {
-    lerp(backgroundColor, Color.White, 0.08f)
+  val hoverTextColor = if (activeTextColor == ZMenuDefaults.DefaultActiveTextColor) {
+    if (darkBackground) ZMenuDefaults.DarkHoverTextColor else ZMenuDefaults.LightHoverTextColor
   } else {
-    Color(0xffecf5ff)
+    if (darkBackground) {
+      lerp(textColor, activeTextColor, 0.72f)
+    } else {
+      lerp(textColor, activeTextColor, 0.85f)
+    }
+  }
+  val hoverBackgroundColor = if (darkBackground) {
+    if (veryDarkBackground) {
+      ZMenuDefaults.DarkHoverBackgroundColor
+    } else {
+      lerp(backgroundColor, Color.Black, 0.08f)
+    }
+  } else {
+    ZMenuDefaults.LightHoverBackgroundColor
   }
   val activeBackgroundColor = if (darkBackground) {
-    lerp(backgroundColor, Color.White, 0.12f)
+    if (veryDarkBackground) {
+      ZMenuDefaults.DarkHoverBackgroundColor
+    } else {
+      lerp(backgroundColor, Color.Black, 0.14f)
+    }
   } else {
-    Color(0xffecf5ff)
+    ZMenuDefaults.LightHoverBackgroundColor
   }
   val disabledTextColor = if (darkBackground) {
     textColor.copy(alpha = 0.38f)
@@ -1404,7 +1529,7 @@ private fun resolveZMenuPalette(
   } else {
     Color(0xff909399)
   }
-  val borderColor = if (darkBackground) {
+  val borderColor = if (darkTheme) {
     Color(0xff4c4d4f)
   } else {
     Color(0xffdcdfe6)
@@ -1414,6 +1539,7 @@ private fun resolveZMenuPalette(
     popupBackgroundColor = popupBackgroundColor,
     textColor = textColor,
     activeTextColor = activeTextColor,
+    hoverTextColor = hoverTextColor,
     disabledTextColor = disabledTextColor,
     hoverBackgroundColor = hoverBackgroundColor,
     activeBackgroundColor = activeBackgroundColor,
@@ -1424,6 +1550,15 @@ private fun resolveZMenuPalette(
 
 object ZMenuDefaults {
   const val HorizontalOverflowSubMenuIndex = "__zmenu_overflow__"
+  val LightDefaultBackgroundColor = Color(0xffffffff)
+  val DarkDefaultBackgroundColor = Color(0xff0b0f15)
+  val LightDefaultTextColor = Color(0xff303133)
+  val DarkDefaultTextColor = Color(0xffcfd3dc)
+  val DefaultActiveTextColor = Color(0xff409eff)
+  val LightHoverTextColor = Color(0xff48a2ff)
+  val DarkHoverTextColor = Color(0xff3e99f6)
+  val LightHoverBackgroundColor = Color(0xffecf5ff)
+  val DarkHoverBackgroundColor = Color(0xff18222b)
   val VerticalItemHeight = 44.dp
   val HorizontalItemHeight = 56.dp
   val HorizontalActiveLineHeight = 2.dp

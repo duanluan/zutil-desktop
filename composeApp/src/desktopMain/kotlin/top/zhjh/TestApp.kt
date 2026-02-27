@@ -1459,7 +1459,7 @@ private fun ZuiComponentDemoContent(
       }
     },
     ZTabPane(label = "Menu 菜单", name = "menu") {
-      val panelBackgroundColor = if (isDarkTheme) Color(0xff1d1e1f) else Color.White
+      val panelBackgroundColor = if (isDarkTheme) Color(0xff0b0f15) else Color.White
       val panelBorderColor = if (isDarkTheme) Color(0xff4c4d4f) else Color(0xffdcdfe6)
       val customMenuBackground = Color(0xff545c64)
 
@@ -1490,7 +1490,6 @@ private fun ZuiComponentDemoContent(
             items = menuTopItems,
             mode = ZMenuMode.Horizontal,
             activeIndex = menuTopDarkActiveIndex,
-            showHorizontalDivider = false,
             backgroundColor = customMenuBackground,
             textColor = Color(0xfff4f4f5),
             activeTextColor = Color(0xffffd04b),
@@ -1504,7 +1503,17 @@ private fun ZuiComponentDemoContent(
           modifier = Modifier
             .fillMaxWidth()
             .background(panelBackgroundColor)
-            .border(1.dp, panelBorderColor)
+            .drawWithContent {
+              drawContent()
+              val strokeWidth = 1.dp.toPx()
+              val y = size.height - strokeWidth
+              drawLine(
+                color = panelBorderColor,
+                start = Offset(0f, y),
+                end = Offset(size.width, y),
+                strokeWidth = strokeWidth
+              )
+            }
             .padding(horizontal = 12.dp)
         ) {
           Row(
@@ -1548,17 +1557,6 @@ private fun ZuiComponentDemoContent(
               modifier = Modifier
                 .fillMaxWidth()
                 .background(panelBackgroundColor)
-                .drawWithContent {
-                  drawContent()
-                  val strokeWidth = 1.dp.toPx()
-                  val x = size.width - strokeWidth
-                  drawLine(
-                    color = panelBorderColor,
-                    start = Offset(x, 0f),
-                    end = Offset(x, size.height),
-                    strokeWidth = strokeWidth
-                  )
-                }
             ) {
               ZMenu(
                 items = menuVerticalItems,
@@ -1581,17 +1579,6 @@ private fun ZuiComponentDemoContent(
               modifier = Modifier
                 .fillMaxWidth()
                 .background(customMenuBackground)
-                .drawWithContent {
-                  drawContent()
-                  val strokeWidth = 1.dp.toPx()
-                  val x = size.width - strokeWidth
-                  drawLine(
-                    color = panelBorderColor,
-                    start = Offset(x, 0f),
-                    end = Offset(x, size.height),
-                    strokeWidth = strokeWidth
-                  )
-                }
             ) {
               ZMenu(
                 items = menuVerticalItems,
@@ -1625,17 +1612,6 @@ private fun ZuiComponentDemoContent(
         Box(
           modifier = Modifier
             .background(panelBackgroundColor)
-            .drawWithContent {
-              drawContent()
-              val strokeWidth = 1.dp.toPx()
-              val x = size.width - strokeWidth
-              drawLine(
-                color = panelBorderColor,
-                start = Offset(x, 0f),
-                end = Offset(x, size.height),
-                strokeWidth = strokeWidth
-              )
-            }
         ) {
           ZMenu(
             items = menuVerticalItems,
