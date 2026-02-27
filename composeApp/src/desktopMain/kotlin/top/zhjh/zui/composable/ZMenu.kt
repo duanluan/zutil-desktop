@@ -1,5 +1,6 @@
 package top.zhjh.zui.composable
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.hoverable
@@ -14,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.layout.onSizeChanged
@@ -742,6 +744,32 @@ private fun ZMenuItemNode(
   val shouldCollapseTopItem = mode == ZMenuMode.Vertical && collapse && !inPopup && level == 0
   val isEnabled = item.enabled
   val isHorizontalMode = mode == ZMenuMode.Horizontal
+  val showCollapseTip = shouldCollapseTopItem && !item.title.isNullOrBlank()
+  val isDarkTheme = !MaterialTheme.colors.isLight
+  val collapseTipBackgroundColor = if (isDarkTheme) {
+    ZMenuDefaults.CollapseTipBackgroundColorDarkTheme
+  } else {
+    ZMenuDefaults.CollapseTipBackgroundColorLightTheme
+  }
+  val collapseTipTextColor = if (isDarkTheme) {
+    ZMenuDefaults.CollapseTipTextColorDarkTheme
+  } else {
+    ZMenuDefaults.CollapseTipTextColorLightTheme
+  }
+  val interactionModifier = if (isEnabled) {
+    Modifier
+      .hoverable(interactionSource = interactionSource)
+      .clickable(
+        interactionSource = interactionSource,
+        indication = null
+      ) {
+        onItemSelect(item.index)
+      }
+  } else if (showCollapseTip) {
+    Modifier.hoverable(interactionSource = interactionSource)
+  } else {
+    Modifier
+  }
 
   val textColor = when {
     !isEnabled -> palette.disabledTextColor
@@ -831,20 +859,7 @@ private fun ZMenuItemNode(
         modifier = Modifier
           .fillMaxSize()
           .padding(bottom = ZMenuDefaults.HorizontalActiveLineHeight)
-          .then(
-            if (isEnabled) {
-              Modifier
-                .hoverable(interactionSource = interactionSource)
-                .clickable(
-                  interactionSource = interactionSource,
-                  indication = null
-                ) {
-                  onItemSelect(item.index)
-                }
-            } else {
-              Modifier
-            }
-          )
+          .then(interactionModifier)
           .padding(start = itemPaddingStart, end = itemPaddingEnd),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = if (shouldCollapseTopItem) Arrangement.Center else Arrangement.Start,
@@ -860,30 +875,68 @@ private fun ZMenuItemNode(
       )
     }
   } else {
-    Row(
-      modifier = Modifier
-        .fillMaxWidth()
-        .heightIn(min = ZMenuDefaults.VerticalItemHeight)
-        .background(itemBackground)
-        .then(
-          if (isEnabled) {
-            Modifier
-              .hoverable(interactionSource = interactionSource)
-              .clickable(
-                interactionSource = interactionSource,
-                indication = null
-              ) {
-                onItemSelect(item.index)
+    Box {
+      Row(
+        modifier = Modifier
+          .fillMaxWidth()
+          .heightIn(min = ZMenuDefaults.VerticalItemHeight)
+          .background(itemBackground)
+          .then(interactionModifier)
+          .padding(start = itemPaddingStart, end = itemPaddingEnd),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = if (shouldCollapseTopItem) Arrangement.Center else Arrangement.Start,
+        content = rowContent
+      )
+
+      if (showCollapseTip && isHovered) {
+        val collapseTipGapPx = with(androidx.compose.ui.platform.LocalDensity.current) {
+          ZMenuDefaults.CollapseTipGap.roundToPx()
+        }
+        Popup(
+          popupPositionProvider = zMenuCollapseTipPositionProvider(collapseTipGapPx),
+          properties = PopupProperties(
+            focusable = false,
+            dismissOnBackPress = false,
+            dismissOnClickOutside = false
+          )
+        ) {
+          Row(verticalAlignment = Alignment.CenterVertically) {
+            Canvas(
+              modifier = Modifier.size(
+                width = ZMenuDefaults.CollapseTipArrowWidth,
+                height = ZMenuDefaults.CollapseTipArrowHeight
+              )
+            ) {
+              val arrowPath = Path().apply {
+                moveTo(size.width, 0f)
+                lineTo(0f, size.height / 2f)
+                lineTo(size.width, size.height)
+                close()
               }
-          } else {
-            Modifier
+              drawPath(
+                path = arrowPath,
+                color = collapseTipBackgroundColor
+              )
+            }
+            Surface(
+              color = collapseTipBackgroundColor,
+              shape = RoundedCornerShape(4.dp),
+              elevation = 6.dp
+            ) {
+              Text(
+                text = item.title.orEmpty(),
+                color = collapseTipTextColor,
+                fontSize = ZMenuDefaults.ItemFontSize,
+                modifier = Modifier.padding(
+                  horizontal = ZMenuDefaults.CollapseTipHorizontalPadding,
+                  vertical = ZMenuDefaults.CollapseTipVerticalPadding
+                )
+              )
+            }
           }
-        )
-        .padding(start = itemPaddingStart, end = itemPaddingEnd),
-      verticalAlignment = Alignment.CenterVertically,
-      horizontalArrangement = if (shouldCollapseTopItem) Arrangement.Center else Arrangement.Start,
-      content = rowContent
-    )
+        }
+      }
+    }
   }
 }
 
@@ -1391,6 +1444,35 @@ private enum class ZMenuPopupPlacement {
   Right
 }
 
+private fun zMenuCollapseTipPositionProvider(
+  gapPx: Int
+): PopupPositionProvider {
+  return object : PopupPositionProvider {
+    override fun calculatePosition(
+      anchorBounds: IntRect,
+      windowSize: IntSize,
+      layoutDirection: LayoutDirection,
+      popupContentSize: IntSize
+    ): IntOffset {
+      val maxX = (windowSize.width - popupContentSize.width).coerceAtLeast(0)
+      val maxY = (windowSize.height - popupContentSize.height).coerceAtLeast(0)
+
+      val rightX = anchorBounds.right + gapPx
+      val leftX = anchorBounds.left - gapPx - popupContentSize.width
+      val resolvedX = when {
+        rightX + popupContentSize.width <= windowSize.width -> rightX
+        leftX >= 0 -> leftX
+        else -> rightX.coerceIn(0, maxX)
+      }
+
+      val centerY = anchorBounds.top + (anchorBounds.height - popupContentSize.height) / 2
+      val resolvedY = centerY.coerceIn(0, maxY)
+
+      return IntOffset(resolvedX, resolvedY)
+    }
+  }
+}
+
 private fun zMenuPopupPositionProvider(
   placement: ZMenuPopupPlacement,
   gapPx: Int
@@ -1559,6 +1641,15 @@ object ZMenuDefaults {
   val DarkHoverTextColor = Color(0xff3e99f6)
   val LightHoverBackgroundColor = Color(0xffecf5ff)
   val DarkHoverBackgroundColor = Color(0xff18222b)
+  val CollapseTipBackgroundColorLightTheme = Color(0xff303133)
+  val CollapseTipTextColorLightTheme = Color(0xffffffff)
+  val CollapseTipBackgroundColorDarkTheme = Color(0xffe5eaf3)
+  val CollapseTipTextColorDarkTheme = Color(0xff303133)
+  val CollapseTipGap = 10.dp
+  val CollapseTipArrowWidth = 8.dp
+  val CollapseTipArrowHeight = 12.dp
+  val CollapseTipHorizontalPadding = 12.dp
+  val CollapseTipVerticalPadding = 8.dp
   val VerticalItemHeight = 44.dp
   val HorizontalItemHeight = 56.dp
   val HorizontalActiveLineHeight = 2.dp
