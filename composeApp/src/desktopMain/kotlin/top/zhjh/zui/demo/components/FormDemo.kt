@@ -11,124 +11,147 @@ import top.zhjh.zui.enums.ZColorType
 
 @Composable
 fun formDemoContent() {
-  var username by remember { mutableStateOf("") }
-  var email by remember { mutableStateOf("") }
-  var password by remember { mutableStateOf("") }
-  var confirmPassword by remember { mutableStateOf("") }
-
-  val formState = rememberZFormState()
-  val formModel = remember(username, email, password, confirmPassword) {
-    mapOf(
-      "username" to username,
-      "email" to email,
-      "password" to password,
-      "confirmPassword" to confirmPassword
+  val activityZoneOptions = remember {
+    listOf("Zone one", "Zone two", "Zone three", "Zone four")
+  }
+  val activityTypeOptions = remember {
+    listOf(
+      "Online activities",
+      "Promotion activities",
+      "Offline activities",
+      "Simple brand exposure"
     )
   }
-  val formRules = remember {
-    mapOf(
-      "username" to listOf(
-        ZFormRule(required = true, message = "请输入用户名"),
-        ZFormRule(minLength = 3, maxLength = 20, message = "用户名长度需在 3-20 之间")
-      ),
-      "email" to listOf(
-        ZFormRule(required = true, message = "请输入邮箱"),
-        ZFormRule(
-          pattern = Regex(
-            """^([^\x00-\x20\x22\x28\x29\x2c\x2e\x3a-\x3c\x3e\x40\x5b-\x5d\x7f-\xff]+|\x22([^\x0d\x22\x5c\x80-\xff]|\x5c[\x00-\x7f])*\x22)(\x2e([^\x00-\x20\x22\x28\x29\x2c\x2e\x3a-\x3c\x3e\x40\x5b-\x5d\x7f-\xff]+|\x22([^\x0d\x22\x5c\x80-\xff]|\x5c[\x00-\x7f])*\x22))*\x40([^\x00-\x20\x22\x28\x29\x2c\x2e\x3a-\x3c\x3e\x40\x5b-\x5d\x7f-\xff]+|\x5b([^\x0d\x5b-\x5d\x80-\xff]|\x5c[\x00-\x7f])*\x5d)(\x2e([^\x00-\x20\x22\x28\x29\x2c\x2e\x3a-\x3c\x3e\x40\x5b-\x5d\x7f-\xff]+|\x5b([^\x0d\x5b-\x5d\x80-\xff]|\x5c[\x00-\x7f])*\x5d))*${'$'}"""
-          ),
-          message = "邮箱格式不正确"
-        )
-      ),
-      "password" to listOf(
-        ZFormRule(required = true, message = "请输入密码"),
-        ZFormRule(minLength = 6, message = "密码至少 6 位")
-      ),
-      "confirmPassword" to listOf(
-        ZFormRule(required = true, message = "请再次输入密码"),
-        ZFormRule(
-          validator = { value, model ->
-            val current = (value as? String).orEmpty()
-            val target = (model["password"] as? String).orEmpty()
-            if (current == target) null else "两次密码不一致"
-          }
-        )
-      )
-    )
+
+  var activityName by remember { mutableStateOf("") }
+  var activityZone by remember { mutableStateOf("") }
+  var instantDelivery by remember { mutableStateOf(false) }
+  var selectedActivityTypes by remember { mutableStateOf(emptySet<String>()) }
+  var selectedResource by remember { mutableStateOf<String?>(null) }
+  var activityForm by remember { mutableStateOf("") }
+
+  fun resetForm() {
+    activityName = ""
+    activityZone = ""
+    instantDelivery = false
+    selectedActivityTypes = emptySet()
+    selectedResource = null
+    activityForm = ""
   }
 
   Column(
-    verticalArrangement = Arrangement.spacedBy(10.dp),
-    modifier = Modifier.fillMaxWidth()
+    verticalArrangement = Arrangement.spacedBy(16.dp),
+    modifier = Modifier
+      .fillMaxWidth()
+      .widthIn(max = 780.dp)
   ) {
-    ZText("ZForm 验证示例")
     ZForm(
-      state = formState,
-      model = formModel,
-      rules = formRules,
-      labelWidth = 90.dp,
-      statusIcon = true,
+      labelWidth = 130.dp,
       modifier = Modifier.fillMaxWidth()
     ) {
-      ZFormItem(label = "用户名", prop = "username", value = username) {
+      ZFormItem(label = "Activity name") {
         ZTextField(
-          value = username,
-          onValueChange = { username = it },
-          placeholder = "请输入用户名"
+          value = activityName,
+          onValueChange = { activityName = it },
+          modifier = Modifier.fillMaxWidth()
         )
       }
-      ZFormItem(label = "邮箱", prop = "email", value = email) {
-        ZTextField(
-          value = email,
-          onValueChange = { email = it },
-          placeholder = "请输入邮箱"
+      ZFormItem(label = "Activity zone") {
+        ZDropdownMenu(
+          options = activityZoneOptions,
+          value = activityZone,
+          onOptionSelected = { activityZone = it.orEmpty() },
+          placeholder = "please select your zone",
+          clearable = true,
+          modifier = Modifier.fillMaxWidth()
         )
       }
-      ZFormItem(label = "密码", prop = "password", value = password) {
-        ZTextField(
-          value = password,
-          onValueChange = { password = it },
-          type = ZTextFieldType.PASSWORD,
-          showPassword = true,
-          placeholder = "请输入密码"
+      ZFormItem(label = "Instant delivery") {
+        ZSwitch(
+          checked = instantDelivery,
+          onCheckedChange = { instantDelivery = it }
         )
       }
-      ZFormItem(label = "确认密码", prop = "confirmPassword", value = confirmPassword) {
+      ZFormItem(label = "Activity type") {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+          Row(horizontalArrangement = Arrangement.spacedBy(32.dp)) {
+            activityTypeOptions.take(2).forEach { option ->
+              Box(modifier = Modifier.width(210.dp)) {
+                ZCheckbox(
+                  checked = option in selectedActivityTypes,
+                  onCheckedChange = { checked ->
+                    selectedActivityTypes = if (checked) {
+                      selectedActivityTypes + option
+                    } else {
+                      selectedActivityTypes - option
+                    }
+                  },
+                  label = option
+                )
+              }
+            }
+          }
+          Row(horizontalArrangement = Arrangement.spacedBy(32.dp)) {
+            activityTypeOptions.drop(2).forEach { option ->
+              Box(modifier = Modifier.width(210.dp)) {
+                ZCheckbox(
+                  checked = option in selectedActivityTypes,
+                  onCheckedChange = { checked ->
+                    selectedActivityTypes = if (checked) {
+                      selectedActivityTypes + option
+                    } else {
+                      selectedActivityTypes - option
+                    }
+                  },
+                  label = option
+                )
+              }
+            }
+          }
+        }
+      }
+      ZFormItem(label = "Resources") {
+        Row(horizontalArrangement = Arrangement.spacedBy(36.dp)) {
+          ZRadio(
+            value = "Sponsor",
+            selectedValue = selectedResource,
+            onValueChange = { selectedResource = it },
+            label = "Sponsor"
+          )
+          ZRadio(
+            value = "Venue",
+            selectedValue = selectedResource,
+            onValueChange = { selectedResource = it },
+            label = "Venue"
+          )
+        }
+      }
+      ZFormItem(label = "Activity form") {
         ZTextField(
-          value = confirmPassword,
-          onValueChange = { confirmPassword = it },
-          type = ZTextFieldType.PASSWORD,
-          showPassword = true,
-          placeholder = "请再次输入密码"
+          value = activityForm,
+          onValueChange = { activityForm = it },
+          type = ZTextFieldType.TEXTAREA,
+          minLines = 4,
+          placeholder = "Please input activity form",
+          modifier = Modifier.fillMaxWidth()
         )
       }
     }
 
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-      ZButton(type = ZColorType.PRIMARY, onClick = {
-        if (formState.validate()) {
-          ToastManager.success("表单校验通过")
-        } else {
-          ToastManager.error("表单校验失败")
+    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+      ZButton(
+        type = ZColorType.PRIMARY,
+        onClick = { ToastManager.success("Create success") }
+      ) {
+        Text("Create")
+      }
+      ZButton(
+        onClick = {
+          resetForm()
+          ToastManager.success("Canceled")
         }
-      }) {
-        Text("提交校验")
-      }
-      ZButton(onClick = {
-        formState.clearValidate()
-        ToastManager.success("已清除校验状态")
-      }) {
-        Text("清除校验")
-      }
-      ZButton(onClick = {
-        username = ""
-        email = ""
-        password = ""
-        confirmPassword = ""
-        formState.clearValidate()
-        ToastManager.success("已重置表单")
-      }) {
-        Text("重置表单")
+      ) {
+        Text("Cancel")
       }
     }
   }

@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -498,6 +499,7 @@ fun ZFormItem(
     ZFormLabelPosition.RIGHT -> TextAlign.Right
     ZFormLabelPosition.TOP -> TextAlign.Left
   }
+  val controlMinHeight = ZFormDefaults.resolveControlHeight(mergedSize, 30.dp)
 
   CompositionLocalProvider(LocalZFormSize provides mergedSize) {
     key(propKey) {
@@ -511,7 +513,12 @@ fun ZFormItem(
             )
             Spacer(Modifier.height(ZFormDefaults.LabelContentSpacing))
           }
-          ZFormItemContent(content = content, status = status, showStatusIcon = mergedStatusIcon && hasValidatedOnce)
+          ZFormItemContent(
+            content = content,
+            status = status,
+            showStatusIcon = mergedStatusIcon && hasValidatedOnce,
+            minHeight = controlMinHeight
+          )
           if (mergedShowMessage && !errorMessage.isNullOrBlank()) {
             Spacer(Modifier.height(ZFormDefaults.ErrorMessageTopSpacing))
             ZText(text = errorMessage!!, color = ZFormDefaults.ErrorMessageColor, fontSize = 12.sp)
@@ -529,7 +536,7 @@ fun ZFormItem(
               Modifier.wrapContentWidth()
             }
             ZFormItemLabel(
-              modifier = labelModifier.padding(top = 6.dp),
+              modifier = labelModifier.defaultMinSize(minHeight = controlMinHeight),
               label = label,
               required = required || allRules.any { it.required },
               textAlign = labelTextAlign
@@ -538,7 +545,12 @@ fun ZFormItem(
           }
 
           Column(modifier = if (isInline) Modifier.wrapContentWidth() else Modifier.weight(1f, fill = true)) {
-            ZFormItemContent(content = content, status = status, showStatusIcon = mergedStatusIcon && hasValidatedOnce)
+            ZFormItemContent(
+              content = content,
+              status = status,
+              showStatusIcon = mergedStatusIcon && hasValidatedOnce,
+              minHeight = controlMinHeight
+            )
             if (mergedShowMessage && !errorMessage.isNullOrBlank()) {
               Spacer(Modifier.height(ZFormDefaults.ErrorMessageTopSpacing))
               ZText(text = errorMessage!!, color = ZFormDefaults.ErrorMessageColor, fontSize = 12.sp)
@@ -582,9 +594,11 @@ private fun ZFormItemLabel(
 private fun ZFormItemContent(
   content: @Composable () -> Unit,
   status: ZFormValidateStatus,
-  showStatusIcon: Boolean
+  showStatusIcon: Boolean,
+  minHeight: Dp? = null
 ) {
   Row(
+    modifier = if (minHeight != null) Modifier.defaultMinSize(minHeight = minHeight) else Modifier,
     verticalAlignment = Alignment.CenterVertically
   ) {
     content()
