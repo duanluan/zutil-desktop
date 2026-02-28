@@ -10,6 +10,7 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import top.zhjh.common.composable.ToastContainer
@@ -94,14 +95,73 @@ private fun ZuiComponentDemoContent(
     DemoItem(label = "Card 卡片", name = "card") { cardDemoContent() },
     DemoItem(label = "Link 链接", name = "link") { linkDemoContent() }
   )
+  val demoByName = remember(demos) {
+    demos.associateBy { it.name }
+  }
+  fun demoMenuItem(name: String): ZMenuItem {
+    val demo = demoByName.getValue(name)
+    return ZMenuItem(
+      index = demo.name,
+      title = demo.label,
+      enabled = demo.enabled
+    )
+  }
   val menuItems = remember(demos) {
-    demos.map { demo ->
-      ZMenuItem(
-        index = demo.name,
-        title = demo.label,
-        enabled = demo.enabled
+    listOf(
+      ZSubMenu(
+        index = "basic",
+        titleContent = {
+          Text(text = "Basic 基础组件", fontWeight = FontWeight.Bold)
+        },
+        children = listOf(
+          demoMenuItem("button"),
+          demoMenuItem("container"),
+          demoMenuItem("link"),
+          demoMenuItem("text")
+        )
+      ),
+      ZSubMenu(
+        index = "form",
+        titleContent = {
+          Text(text = "Form 表单组件", fontWeight = FontWeight.Bold)
+        },
+        children = listOf(
+          demoMenuItem("form"),
+          demoMenuItem("checkbox"),
+          demoMenuItem("textfield"),
+          demoMenuItem("radio"),
+          demoMenuItem("dropdown"),
+          demoMenuItem("switch")
+        )
+      ),
+      ZSubMenu(
+        index = "data",
+        titleContent = {
+          Text(text = "Data 数据展示", fontWeight = FontWeight.Bold)
+        },
+        children = listOf(
+          demoMenuItem("card")
+        )
+      ),
+      ZSubMenu(
+        index = "navigation",
+        titleContent = {
+          Text(text = "Navigation 导航", fontWeight = FontWeight.Bold)
+        },
+        children = listOf(
+          demoMenuItem("menu")
+        )
+      ),
+      ZSubMenu(
+        index = "feedback",
+        titleContent = {
+          Text(text = "Feedback 反馈组件", fontWeight = FontWeight.Bold)
+        },
+        children = listOf(
+          ZMenuItem(index = "feedback-empty", title = "暂无", enabled = false)
+        )
       )
-    }
+    )
   }
 
   Column(
@@ -124,6 +184,7 @@ private fun ZuiComponentDemoContent(
             items = menuItems,
             mode = ZMenuMode.Vertical,
             activeIndex = activeTabName,
+            defaultOpeneds = listOf("basic", "form", "data", "navigation", "feedback"),
             onSelect = { activeTabName = it },
             modifier = Modifier.fillMaxWidth()
           )
