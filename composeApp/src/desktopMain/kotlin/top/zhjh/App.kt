@@ -36,6 +36,7 @@ import top.zhjh.util.ModelDownloadSettings
 import top.zhjh.zui.composable.ZButton
 import top.zhjh.zui.composable.ZCard
 import top.zhjh.zui.composable.ZTextField
+import top.zhjh.zui.demo.ZuiComponentShowcase
 import top.zhjh.zui.enums.ZCardShadow
 import top.zhjh.zui.enums.ZColorType
 import top.zhjh.zui.theme.ZTheme
@@ -88,7 +89,11 @@ fun ApplicationScope.AppRoot(onExitRequest: () -> Unit) {
   Window(
     onCloseRequest = onExitRequest,
     title = "ZUtil 工具箱",
-    state = rememberWindowState(position = WindowPosition(Alignment.Center)),
+    state = rememberWindowState(
+      width = 1200.dp,
+      height = 800.dp,
+      position = WindowPosition(Alignment.Center)
+    ),
     icon = painterResource(Res.drawable.icon)
   ) {
     // 统一缩放与主题入口

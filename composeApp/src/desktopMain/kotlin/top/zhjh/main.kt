@@ -2,10 +2,10 @@ package top.zhjh
 
 import androidx.compose.ui.window.application
 import top.zhjh.util.SingleInstanceGuard
+import java.awt.GraphicsEnvironment
 import java.io.File
 import java.io.PrintWriter
 import java.io.StringWriter
-import java.awt.GraphicsEnvironment
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import javax.swing.JOptionPane
@@ -65,7 +65,6 @@ fun main() {
           this@application.exitApplication()
         }
       )
-      // TestApp()
     }
   } catch (e: Throwable) {
     logCrash(e)
