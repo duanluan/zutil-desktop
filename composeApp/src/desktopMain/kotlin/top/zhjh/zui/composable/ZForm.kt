@@ -281,7 +281,7 @@ fun rememberZFormState(): ZFormState {
  * @param model 当前表单模型（传给自定义 validator）。
  * @param rules 全局规则：key 对应 `ZFormItem.prop`。
  * @param inline 是否启用行内表单布局。
- * @param labelPosition 全局标签位置。
+ * @param labelPosition 全局标签位置。`ZFormItem.labelPosition` 为空时使用该值。
  * @param labelWidth 全局标签宽度（`TOP` 模式可忽略）。
  * @param showMessage 是否显示错误文本。
  * @param statusIcon 是否显示状态图标（成功/失败）。
@@ -356,6 +356,7 @@ fun ZForm(
  * - 承载 label + 输入控件；
  * - 绑定 prop 与 rules；
  * - 管理错误提示和状态图标；
+ * - `labelPosition` 为空时继承 `ZForm.labelPosition`；
  * - 向 `ZFormState` 注册字段，以支持全局 validate/reset。
  */
 @Composable
@@ -453,6 +454,7 @@ fun ZFormItem(
 
   val formState = context?.state
   val controllerKey = remember(propKey) { UUID.randomUUID().toString() }
+  val compositionKey = if (propKey.isNotEmpty()) propKey else controllerKey
   DisposableEffect(formState, propKey, controllerKey) {
     if (formState != null && propKey.isNotEmpty()) {
       formState.registerField(
@@ -502,7 +504,7 @@ fun ZFormItem(
   val controlMinHeight = ZFormDefaults.resolveControlHeight(mergedSize, 30.dp)
 
   CompositionLocalProvider(LocalZFormSize provides mergedSize) {
-    key(propKey) {
+    key(compositionKey) {
       if (mergedLabelPosition == ZFormLabelPosition.TOP) {
         Column(modifier = fieldModifier) {
           if (!label.isNullOrBlank()) {
