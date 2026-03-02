@@ -25,6 +25,9 @@ fun formDemoContent() {
       "Simple brand exposure"
     )
   }
+  val activityCountOptions = remember {
+    listOf("Count one", "Count two", "Count three", "Count four")
+  }
   val formAlignOptions = remember {
     listOf(
       "Left" to ZFormLabelPosition.LEFT,
@@ -54,6 +57,40 @@ fun formDemoContent() {
   var selectedActivityTypes by remember { mutableStateOf(emptySet<String>()) }
   var selectedResource by remember { mutableStateOf<String?>(null) }
   var activityForm by remember { mutableStateOf("") }
+  val validateFormState = rememberZFormState()
+  val validateRules = remember {
+    mapOf(
+      "activityName" to listOf(
+        ZFormRule(required = true, message = "Please input activity name")
+      ),
+      "activityZone" to listOf(
+        ZFormRule(required = true, message = "Please select activity zone")
+      ),
+      "activityCount" to listOf(
+        ZFormRule(required = true, message = "Please select activity count")
+      ),
+      "activityType" to listOf(
+        ZFormRule(
+          required = true,
+          type = ZFormRuleType.ARRAY,
+          message = "Please select at least one activity type"
+        )
+      ),
+      "resource" to listOf(
+        ZFormRule(required = true, message = "Please select a resource")
+      ),
+      "activityForm" to listOf(
+        ZFormRule(required = true, message = "Please input activity form")
+      )
+    )
+  }
+  var validateActivityName by remember { mutableStateOf("Hello") }
+  var validateActivityZone by remember { mutableStateOf("") }
+  var validateActivityCount by remember { mutableStateOf("") }
+  var validateInstantDelivery by remember { mutableStateOf(false) }
+  var validateActivityTypes by remember { mutableStateOf(emptySet<String>()) }
+  var validateResource by remember { mutableStateOf<String?>(null) }
+  var validateActivityForm by remember { mutableStateOf("") }
 
   fun resetForm() {
     activityName = ""
@@ -78,6 +115,7 @@ fun formDemoContent() {
         fontWeight = FontWeight.SemiBold
       )
       ZForm(
+        itemSpacing = 18.dp,
         labelWidth = 130.dp,
         modifier = Modifier.fillMaxWidth()
       ) {
@@ -170,7 +208,10 @@ fun formDemoContent() {
         }
       }
 
-      Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+      Row(
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        modifier = Modifier.padding(top = 2.dp)
+      ) {
         ZButton(
           type = ZColorType.PRIMARY,
           onClick = { ToastManager.success("Create success") }
@@ -199,6 +240,7 @@ fun formDemoContent() {
       )
       ZForm(
         inline = true,
+        itemSpacing = 18.dp,
         labelPosition = ZFormLabelPosition.LEFT,
         labelWidth = null,
         modifier = Modifier.fillMaxWidth()
@@ -256,6 +298,7 @@ fun formDemoContent() {
         buttonWidth = 76.dp
       )
       ZForm(
+        itemSpacing = 18.dp,
         labelPosition = alignFormPosition,
         labelWidth = if (
           alignFormPosition == ZFormLabelPosition.TOP &&
@@ -287,6 +330,194 @@ fun formDemoContent() {
             onValueChange = { alignActivityForm = it },
             modifier = Modifier.fillMaxWidth()
           )
+        }
+      }
+    }
+
+    Column(
+      verticalArrangement = Arrangement.spacedBy(0.dp),
+      modifier = Modifier.widthIn(max = 780.dp)
+    ) {
+      ZText(
+        text = "表单校验",
+        size = ZTextSize.Large,
+        fontWeight = FontWeight.SemiBold
+      )
+      Spacer(Modifier.height(16.dp))
+      ZForm(
+        state = validateFormState,
+        model = mapOf(
+          "activityName" to validateActivityName,
+          "activityZone" to validateActivityZone,
+          "activityCount" to validateActivityCount,
+          "instantDelivery" to validateInstantDelivery,
+          "activityType" to validateActivityTypes,
+          "resource" to validateResource,
+          "activityForm" to validateActivityForm
+        ),
+        rules = validateRules,
+        itemSpacing = 0.dp,
+        messageReserveHeight = 18.dp,
+        labelWidth = 130.dp,
+        modifier = Modifier.fillMaxWidth()
+      ) {
+        ZFormItem(
+          label = "Activity name",
+          prop = "activityName",
+          value = validateActivityName,
+          onReset = { validateActivityName = "" }
+        ) {
+          ZTextField(
+            value = validateActivityName,
+            onValueChange = { validateActivityName = it },
+            modifier = Modifier.fillMaxWidth()
+          )
+        }
+        ZFormItem(
+          label = "Activity zone",
+          prop = "activityZone",
+          value = validateActivityZone,
+          onReset = { validateActivityZone = "" }
+        ) {
+          ZDropdownMenu(
+            options = activityZoneOptions,
+            value = validateActivityZone,
+            onOptionSelected = { validateActivityZone = it.orEmpty() },
+            placeholder = "Activity zone",
+            clearable = true,
+            modifier = Modifier.fillMaxWidth()
+          )
+        }
+        ZFormItem(
+          label = "Activity count",
+          prop = "activityCount",
+          value = validateActivityCount,
+          onReset = { validateActivityCount = "" }
+        ) {
+          ZDropdownMenu(
+            options = activityCountOptions,
+            value = validateActivityCount,
+            onOptionSelected = { validateActivityCount = it.orEmpty() },
+            placeholder = "Activity count",
+            clearable = true,
+            modifier = Modifier.fillMaxWidth()
+          )
+        }
+        ZFormItem(
+          label = "Instant delivery",
+          prop = "instantDelivery",
+          value = validateInstantDelivery,
+          onReset = { validateInstantDelivery = false }
+        ) {
+          ZSwitch(
+            checked = validateInstantDelivery,
+            onCheckedChange = { validateInstantDelivery = it }
+          )
+        }
+        ZFormItem(
+          label = "Activity type",
+          prop = "activityType",
+          value = validateActivityTypes,
+          onReset = { validateActivityTypes = emptySet() }
+        ) {
+          Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(32.dp)) {
+              activityTypeOptions.take(2).forEach { option ->
+                Box(modifier = Modifier.width(210.dp)) {
+                  ZCheckbox(
+                    checked = option in validateActivityTypes,
+                    onCheckedChange = { checked ->
+                      validateActivityTypes = if (checked) {
+                        validateActivityTypes + option
+                      } else {
+                        validateActivityTypes - option
+                      }
+                    },
+                    label = option
+                  )
+                }
+              }
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(32.dp)) {
+              activityTypeOptions.drop(2).forEach { option ->
+                Box(modifier = Modifier.width(210.dp)) {
+                  ZCheckbox(
+                    checked = option in validateActivityTypes,
+                    onCheckedChange = { checked ->
+                      validateActivityTypes = if (checked) {
+                        validateActivityTypes + option
+                      } else {
+                        validateActivityTypes - option
+                      }
+                    },
+                    label = option
+                  )
+                }
+              }
+            }
+          }
+        }
+        ZFormItem(
+          label = "Resources",
+          prop = "resource",
+          value = validateResource,
+          onReset = { validateResource = null }
+        ) {
+          Row(horizontalArrangement = Arrangement.spacedBy(36.dp)) {
+            ZRadio(
+              value = "Sponsorship",
+              selectedValue = validateResource,
+              onValueChange = { validateResource = it },
+              label = "Sponsorship"
+            )
+            ZRadio(
+              value = "Venue",
+              selectedValue = validateResource,
+              onValueChange = { validateResource = it },
+              label = "Venue"
+            )
+          }
+        }
+        ZFormItem(
+          label = "Activity form",
+          prop = "activityForm",
+          value = validateActivityForm,
+          onReset = { validateActivityForm = "" }
+        ) {
+          ZTextField(
+            value = validateActivityForm,
+            onValueChange = { validateActivityForm = it },
+            type = ZTextFieldType.TEXTAREA,
+            minLines = 3,
+            placeholder = "Please input activity form",
+            modifier = Modifier.fillMaxWidth()
+          )
+        }
+      }
+
+      Row(
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+      ) {
+        ZButton(
+          type = ZColorType.PRIMARY,
+          onClick = {
+            val valid = validateFormState.validate()
+            if (valid) {
+              ToastManager.success("Create success")
+            } else {
+              ToastManager.error("Please complete required fields")
+            }
+          }
+        ) {
+          Text("Create")
+        }
+        ZButton(
+          onClick = {
+            validateFormState.resetFields()
+            validateFormState.clearValidate()
+          }
+        ) {
+          Text("Reset")
         }
       }
     }
@@ -326,3 +557,4 @@ private fun <T> LabelPositionSelectorRow(
     }
   }
 }
+

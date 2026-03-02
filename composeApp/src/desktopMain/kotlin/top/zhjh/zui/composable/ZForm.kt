@@ -1,6 +1,7 @@
 package top.zhjh.zui.composable
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -172,6 +173,7 @@ private data class ZFormContext(
   val rules: Map<String, List<ZFormRule>>,
   val labelPosition: ZFormLabelPosition,
   val labelWidth: Dp?,
+  val messageReserveHeight: Dp,
   val showMessage: Boolean,
   val statusIcon: Boolean,
   val size: ZFormSize,
@@ -187,6 +189,7 @@ private data class ZFormContext(
  * - 非 Form 场景保持原默认尺寸。
  */
 internal val LocalZFormSize = compositionLocalOf<ZFormSize?> { null }
+internal val LocalZFormValidateStatus = compositionLocalOf { ZFormValidateStatus.NONE }
 
 private val LocalZFormContext = compositionLocalOf<ZFormContext?> { null }
 
@@ -295,6 +298,8 @@ fun ZForm(
   model: Map<String, Any?> = emptyMap(),
   rules: Map<String, List<ZFormRule>> = emptyMap(),
   inline: Boolean = false,
+  itemSpacing: Dp = ZFormDefaults.ItemVerticalSpacing,
+  messageReserveHeight: Dp = 0.dp,
   labelPosition: ZFormLabelPosition = ZFormLabelPosition.RIGHT,
   labelWidth: Dp? = ZFormDefaults.DefaultLabelWidthDp.dp,
   showMessage: Boolean = true,
@@ -309,6 +314,7 @@ fun ZForm(
     rules,
     labelPosition,
     labelWidth,
+    messageReserveHeight,
     showMessage,
     statusIcon,
     size
@@ -319,6 +325,7 @@ fun ZForm(
       rules = rules,
       labelPosition = labelPosition,
       labelWidth = labelWidth,
+      messageReserveHeight = messageReserveHeight,
       showMessage = showMessage,
       statusIcon = statusIcon,
       size = size,
@@ -330,18 +337,23 @@ fun ZForm(
     LocalZFormContext provides formContext,
     LocalZFormSize provides size
   ) {
+    val inlineVerticalSpacing = if (itemSpacing == ZFormDefaults.ItemVerticalSpacing) {
+      ZFormDefaults.InlineVerticalSpacing
+    } else {
+      itemSpacing
+    }
     if (inline) {
       FlowRow(
         modifier = modifier,
         horizontalArrangement = Arrangement.spacedBy(ZFormDefaults.InlineHorizontalSpacing),
-        verticalArrangement = Arrangement.spacedBy(ZFormDefaults.InlineVerticalSpacing)
+        verticalArrangement = Arrangement.spacedBy(inlineVerticalSpacing)
       ) {
         content()
       }
     } else {
       Column(
         modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(ZFormDefaults.ItemVerticalSpacing)
+        verticalArrangement = Arrangement.spacedBy(itemSpacing)
       ) {
         content()
       }
@@ -369,6 +381,7 @@ fun ZFormItem(
   rules: List<ZFormRule> = emptyList(),
   labelPosition: ZFormLabelPosition? = null,
   labelWidth: Dp? = null,
+  messageReserveHeight: Dp? = null,
   showMessage: Boolean? = null,
   statusIcon: Boolean? = null,
   size: ZFormSize? = null,
@@ -378,6 +391,7 @@ fun ZFormItem(
   val context = LocalZFormContext.current
   val mergedLabelPosition = labelPosition ?: context?.labelPosition ?: ZFormLabelPosition.RIGHT
   val mergedLabelWidth = labelWidth ?: context?.labelWidth
+  val mergedMessageReserveHeight = messageReserveHeight ?: context?.messageReserveHeight ?: 0.dp
   val mergedShowMessage = showMessage ?: context?.showMessage ?: true
   val mergedStatusIcon = statusIcon ?: context?.statusIcon ?: false
   val mergedSize = size ?: context?.size ?: ZFormSize.DEFAULT
@@ -502,6 +516,7 @@ fun ZFormItem(
     ZFormLabelPosition.TOP -> TextAlign.Left
   }
   val controlMinHeight = ZFormDefaults.resolveControlHeight(mergedSize, 30.dp)
+  val fieldValidateStatus = if (hasValidatedOnce) status else ZFormValidateStatus.NONE
 
   CompositionLocalProvider(LocalZFormSize provides mergedSize) {
     key(compositionKey) {
@@ -517,14 +532,15 @@ fun ZFormItem(
           }
           ZFormItemContent(
             content = content,
-            status = status,
+            status = fieldValidateStatus,
             showStatusIcon = mergedStatusIcon && hasValidatedOnce,
             minHeight = controlMinHeight
           )
-          if (mergedShowMessage && !errorMessage.isNullOrBlank()) {
-            Spacer(Modifier.height(ZFormDefaults.ErrorMessageTopSpacing))
-            ZText(text = errorMessage!!, color = ZFormDefaults.ErrorMessageColor, fontSize = 12.sp)
-          }
+          ZFormItemMessage(
+            showMessage = mergedShowMessage,
+            errorMessage = errorMessage,
+            reserveHeight = mergedMessageReserveHeight
+          )
         }
       } else {
         Row(
@@ -549,14 +565,15 @@ fun ZFormItem(
           Column(modifier = if (isInline) Modifier.wrapContentWidth() else Modifier.weight(1f, fill = true)) {
             ZFormItemContent(
               content = content,
-              status = status,
+              status = fieldValidateStatus,
               showStatusIcon = mergedStatusIcon && hasValidatedOnce,
               minHeight = controlMinHeight
             )
-            if (mergedShowMessage && !errorMessage.isNullOrBlank()) {
-              Spacer(Modifier.height(ZFormDefaults.ErrorMessageTopSpacing))
-              ZText(text = errorMessage!!, color = ZFormDefaults.ErrorMessageColor, fontSize = 12.sp)
-            }
+            ZFormItemMessage(
+              showMessage = mergedShowMessage,
+              errorMessage = errorMessage,
+              reserveHeight = mergedMessageReserveHeight
+            )
           }
         }
       }
@@ -603,7 +620,9 @@ private fun ZFormItemContent(
     modifier = if (minHeight != null) Modifier.defaultMinSize(minHeight = minHeight) else Modifier,
     verticalAlignment = Alignment.CenterVertically
   ) {
-    content()
+    CompositionLocalProvider(LocalZFormValidateStatus provides status) {
+      content()
+    }
     if (showStatusIcon) {
       val (icon, tint) = when (status) {
         ZFormValidateStatus.SUCCESS -> FeatherIcons.CheckCircle to ZFormDefaults.SuccessColor
@@ -619,6 +638,33 @@ private fun ZFormItemContent(
         )
       }
     }
+  }
+}
+
+@Composable
+private fun ZFormItemMessage(
+  showMessage: Boolean,
+  errorMessage: String?,
+  reserveHeight: Dp
+) {
+  if (!showMessage) return
+
+  if (reserveHeight > 0.dp) {
+    Box(
+      modifier = Modifier
+        .fillMaxWidth()
+        .height(reserveHeight)
+    ) {
+      if (!errorMessage.isNullOrBlank()) {
+        ZText(text = errorMessage, color = ZFormDefaults.ErrorMessageColor, fontSize = 12.sp)
+      }
+    }
+    return
+  }
+
+  if (!errorMessage.isNullOrBlank()) {
+    Spacer(Modifier.height(ZFormDefaults.ErrorMessageTopSpacing))
+    ZText(text = errorMessage, color = ZFormDefaults.ErrorMessageColor, fontSize = 12.sp)
   }
 }
 

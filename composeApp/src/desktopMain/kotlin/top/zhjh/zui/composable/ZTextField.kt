@@ -130,7 +130,14 @@ fun ZTextField(
   }
 
   // 获取样式
-  val textFieldStyle = getZTextFieldStyle(isDarkTheme, isHovered, isFocused, enabled)
+  val validateStatus = LocalZFormValidateStatus.current
+  val textFieldStyle = getZTextFieldStyle(
+    isDarkTheme = isDarkTheme,
+    isHovered = isHovered,
+    isFocused = isFocused,
+    enabled = enabled,
+    validateStatus = validateStatus
+  )
   // 应用字体颜色
   val finalTextStyle = textStyle.copy(color = textFieldStyle.textColor)
   val finalKeyboardOptions = if (numericOnly) {
@@ -411,7 +418,13 @@ private data class ZTextFieldStyle(
  * @param isFocused 是否聚焦状态
  *
  */
-private fun getZTextFieldStyle(isDarkTheme: Boolean, isHovered: Boolean, isFocused: State<Boolean>, enabled: Boolean): ZTextFieldStyle {
+private fun getZTextFieldStyle(
+  isDarkTheme: Boolean,
+  isHovered: Boolean,
+  isFocused: State<Boolean>,
+  enabled: Boolean,
+  validateStatus: ZFormValidateStatus
+): ZTextFieldStyle {
   // 定义图标颜色常量
   val iconDefault = if (isDarkTheme) Color(0xff8d9095) else Color(0xffa8abb2)
   val iconHover = if (isDarkTheme) Color(0xffa3a6ad) else Color(0xff909399)
@@ -429,6 +442,17 @@ private fun getZTextFieldStyle(isDarkTheme: Boolean, isHovered: Boolean, isFocus
     )
   }
   // 聚焦时
+  if (validateStatus == ZFormValidateStatus.ERROR) {
+    return ZTextFieldStyle(
+      backgroundColor = Color.Transparent,
+      borderColor = ZFormDefaults.ErrorMessageColor,
+      textColor = if (isDarkTheme) Color(0xffcfd3dc) else Color(0xff606266),
+      placeholderColor = placeholderColor,
+      cursorColor = if (isDarkTheme) Color(0xffcfd3dc) else Color(0xff606266),
+      iconColor = iconDefault,
+      iconHoverColor = iconHover
+    )
+  }
   if (isFocused.value) {
     return ZTextFieldStyle(
       backgroundColor = Color.Transparent,

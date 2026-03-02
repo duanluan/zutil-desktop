@@ -390,6 +390,7 @@ fun ZDropdownMenu(
     }
   }
   val isDarkTheme = isAppInDarkTheme()
+  val validateStatus = LocalZFormValidateStatus.current
   val popupGapPx = with(LocalDensity.current) { 6.dp.roundToPx() }
   val collapsedTagPopupPositionProvider = remember(popupGapPx) {
     object : PopupPositionProvider {
@@ -415,7 +416,8 @@ fun ZDropdownMenu(
     isDarkTheme = isDarkTheme,
     isHovered = isHovered,
     isFocused = expanded,
-    enabled = enabled
+    enabled = enabled,
+    validateStatus = validateStatus
   )
 
   val updateSingleSelection: (String?) -> Unit = { selectedValue ->
@@ -1191,7 +1193,8 @@ private fun getZDropdownMenuFieldStyle(
   isDarkTheme: Boolean,
   isHovered: Boolean,
   isFocused: Boolean,
-  enabled: Boolean
+  enabled: Boolean,
+  validateStatus: ZFormValidateStatus
 ): ZDropdownMenuFieldStyle {
   if (!enabled) {
     return if (isDarkTheme) {
@@ -1215,6 +1218,32 @@ private fun getZDropdownMenuFieldStyle(
         tagBackgroundColor = Color(0xffebeef5),
         tagTextColor = Color(0xffa8abb2),
         tagRemoveColor = Color(0xffa8abb2)
+      )
+    }
+  }
+
+  if (validateStatus == ZFormValidateStatus.ERROR) {
+    return if (isDarkTheme) {
+      ZDropdownMenuFieldStyle(
+        backgroundColor = Color.Transparent,
+        borderColor = ZFormDefaults.ErrorMessageColor,
+        textColor = Color(0xffcfd3dc),
+        placeholderColor = Color(0xff8d9095),
+        iconColor = Color(0xffa3a6ad),
+        tagBackgroundColor = Color(0xff2f3133),
+        tagTextColor = Color(0xffcfd3dc),
+        tagRemoveColor = Color(0xffa3a6ad)
+      )
+    } else {
+      ZDropdownMenuFieldStyle(
+        backgroundColor = Color.Transparent,
+        borderColor = ZFormDefaults.ErrorMessageColor,
+        textColor = Color(0xff606266),
+        placeholderColor = Color(0xffa8abb2),
+        iconColor = Color(0xff909399),
+        tagBackgroundColor = Color(0xfff0f2f5),
+        tagTextColor = Color(0xff909399),
+        tagRemoveColor = Color(0xff909399)
       )
     }
   }
