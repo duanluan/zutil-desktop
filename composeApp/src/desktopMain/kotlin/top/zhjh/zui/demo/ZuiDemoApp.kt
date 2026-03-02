@@ -1,6 +1,7 @@
 package top.zhjh.zui.demo
 
 import androidx.compose.foundation.VerticalScrollbar
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.rememberScrollbarAdapter
@@ -42,9 +43,8 @@ fun ZuiComponentShowcase(
           ZuiComponentDemoContent(
             isDarkTheme = isDarkTheme,
             onToggleTheme = { isDarkTheme = !isDarkTheme },
-            modifier = Modifier
-              .fillMaxSize()
-              .verticalScroll(scrollState)
+            modifier = Modifier.fillMaxSize(),
+            contentScrollState = scrollState
           )
           VerticalScrollbar(
             adapter = rememberScrollbarAdapter(scrollState),
@@ -53,11 +53,11 @@ fun ZuiComponentShowcase(
           ToastContainer()
         }
       } else {
-        Box(modifier = Modifier.fillMaxWidth()) {
+        Box(modifier = Modifier.fillMaxSize()) {
           ZuiComponentDemoContent(
             isDarkTheme = isDarkTheme,
             onToggleTheme = { isDarkTheme = !isDarkTheme },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxSize()
           )
           ToastContainer()
         }
@@ -70,7 +70,8 @@ fun ZuiComponentShowcase(
 private fun ZuiComponentDemoContent(
   isDarkTheme: Boolean,
   onToggleTheme: () -> Unit,
-  modifier: Modifier = Modifier
+  modifier: Modifier = Modifier,
+  contentScrollState: ScrollState? = null
 ) {
   var activeTabName by remember { mutableStateOf("text") }
 
@@ -164,20 +165,28 @@ private fun ZuiComponentDemoContent(
     )
   }
 
-  Column(
-    modifier = modifier.fillMaxWidth(),
-    verticalArrangement = Arrangement.spacedBy(10.dp)
+  ZContainer(
+    modifier = modifier.fillMaxSize()
   ) {
-    ZButton(onClick = onToggleTheme) {
-      Text(if (isDarkTheme) "切换到日间模式" else "切换到夜间模式")
-    }
-
-    ZContainer(
-      modifier = Modifier.fillMaxWidth()
-    ) {
-      ZAside(width = 240.dp) {
+    ZAside(width = 240.dp) {
+      Column(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.Top
+      ) {
         Box(
-          modifier = Modifier.fillMaxSize(),
+          modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 12.dp, end = 12.dp, top = 12.dp, bottom = 8.dp),
+          contentAlignment = Alignment.CenterStart
+        ) {
+          ZButton(onClick = onToggleTheme) {
+            Text(if (isDarkTheme) "切换到日间模式" else "切换到夜间模式")
+          }
+        }
+        Box(
+          modifier = Modifier
+            .weight(1f)
+            .fillMaxWidth(),
           contentAlignment = Alignment.TopStart
         ) {
           ZMenu(
@@ -186,19 +195,27 @@ private fun ZuiComponentDemoContent(
             activeIndex = activeTabName,
             defaultOpeneds = listOf("basic", "form", "data", "navigation", "feedback"),
             onSelect = { activeTabName = it },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxSize()
           )
         }
       }
-      ZMain {
-        Box(
-          modifier = Modifier
-            .fillMaxSize()
-            .padding(ZTabsDefaults.ContentPadding),
-          contentAlignment = Alignment.TopStart
-        ) {
-          demos.firstOrNull { it.name == activeTabName }?.content?.invoke()
-        }
+    }
+    ZMain {
+      val mainContentModifier = Modifier
+        .fillMaxSize()
+        .then(
+          if (contentScrollState != null) {
+            Modifier.verticalScroll(contentScrollState)
+          } else {
+            Modifier
+          }
+        )
+        .padding(ZTabsDefaults.ContentPadding)
+      Box(
+        modifier = mainContentModifier,
+        contentAlignment = Alignment.TopStart
+      ) {
+        demos.firstOrNull { it.name == activeTabName }?.content?.invoke()
       }
     }
   }
