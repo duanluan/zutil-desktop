@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentWidth
-import androidx.compose.material.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
@@ -36,9 +35,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import compose.icons.FeatherIcons
-import compose.icons.feathericons.AlertCircle
-import compose.icons.feathericons.CheckCircle
 import java.util.UUID
 
 /**
@@ -190,6 +186,7 @@ private data class ZFormContext(
  */
 internal val LocalZFormSize = compositionLocalOf<ZFormSize?> { null }
 internal val LocalZFormValidateStatus = compositionLocalOf { ZFormValidateStatus.NONE }
+internal val LocalZFormStatusIconEnabled = compositionLocalOf { false }
 
 private val LocalZFormContext = compositionLocalOf<ZFormContext?> { null }
 
@@ -620,23 +617,11 @@ private fun ZFormItemContent(
     modifier = if (minHeight != null) Modifier.defaultMinSize(minHeight = minHeight) else Modifier,
     verticalAlignment = Alignment.CenterVertically
   ) {
-    CompositionLocalProvider(LocalZFormValidateStatus provides status) {
+    CompositionLocalProvider(
+      LocalZFormValidateStatus provides status,
+      LocalZFormStatusIconEnabled provides (showStatusIcon && status != ZFormValidateStatus.NONE)
+    ) {
       content()
-    }
-    if (showStatusIcon) {
-      val (icon, tint) = when (status) {
-        ZFormValidateStatus.SUCCESS -> FeatherIcons.CheckCircle to ZFormDefaults.SuccessColor
-        ZFormValidateStatus.ERROR -> FeatherIcons.AlertCircle to ZFormDefaults.ErrorIconColor
-        ZFormValidateStatus.NONE -> null to Color.Unspecified
-      }
-      if (icon != null) {
-        Spacer(Modifier.width(6.dp))
-        Icon(
-          imageVector = icon,
-          contentDescription = null,
-          tint = tint
-        )
-      }
     }
   }
 }

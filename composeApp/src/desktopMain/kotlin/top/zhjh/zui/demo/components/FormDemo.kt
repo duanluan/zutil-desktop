@@ -91,6 +91,49 @@ fun formDemoContent() {
   var validateActivityTypes by remember { mutableStateOf(emptySet<String>()) }
   var validateResource by remember { mutableStateOf<String?>(null) }
   var validateActivityForm by remember { mutableStateOf("") }
+  val customRuleFormState = rememberZFormState()
+  val customRuleRules = remember {
+    mapOf(
+      "pass" to listOf(
+        ZFormRule(
+          validator = { value, _ ->
+            val pass = (value as? String).orEmpty()
+            if (pass.isBlank()) "Please input the password" else null
+          }
+        )
+      ),
+      "checkPass" to listOf(
+        ZFormRule(
+          validator = { value, model ->
+            val checkPass = (value as? String).orEmpty()
+            val pass = (model["pass"] as? String).orEmpty()
+            when {
+              checkPass.isBlank() -> "Please input the password again"
+              checkPass != pass -> "Two inputs don't match!"
+              else -> null
+            }
+          }
+        )
+      ),
+      "age" to listOf(
+        ZFormRule(
+          validator = { value, _ ->
+            val ageText = (value as? String).orEmpty()
+            val ageValue = ageText.toIntOrNull()
+            when {
+              ageText.isBlank() -> "Please input the age"
+              ageValue == null -> "Please input digits"
+              ageValue < 18 -> "Age must be greater than 18"
+              else -> null
+            }
+          }
+        )
+      )
+    )
+  }
+  var customPass by remember { mutableStateOf("") }
+  var customCheckPass by remember { mutableStateOf("") }
+  var customAge by remember { mutableStateOf("") }
 
   fun resetForm() {
     activityName = ""
@@ -515,6 +558,101 @@ fun formDemoContent() {
           onClick = {
             validateFormState.resetFields()
             validateFormState.clearValidate()
+          }
+        ) {
+          Text("Reset")
+        }
+      }
+    }
+
+    Column(
+      verticalArrangement = Arrangement.spacedBy(0.dp),
+      modifier = Modifier.widthIn(max = 600.dp)
+    ) {
+      ZText(
+        text = "自定义校验规则",
+        size = ZTextSize.Large,
+        fontWeight = FontWeight.SemiBold
+      )
+      Spacer(Modifier.height(16.dp))
+      ZForm(
+        state = customRuleFormState,
+        model = mapOf(
+          "pass" to customPass,
+          "checkPass" to customCheckPass,
+          "age" to customAge
+        ),
+        rules = customRuleRules,
+        statusIcon = true,
+        itemSpacing = 0.dp,
+        messageReserveHeight = 18.dp,
+        labelPosition = ZFormLabelPosition.LEFT,
+        labelWidth = 100.dp,
+        modifier = Modifier.fillMaxWidth()
+      ) {
+        ZFormItem(
+          label = "Password",
+          prop = "pass",
+          value = customPass,
+          onReset = { customPass = "" }
+        ) {
+          ZTextField(
+            value = customPass,
+            onValueChange = {
+              customPass = it
+              if (customCheckPass.isNotBlank()) {
+                customRuleFormState.validateField("checkPass", ZFormValidateTrigger.CHANGE)
+              }
+            },
+            type = ZTextFieldType.PASSWORD,
+            modifier = Modifier.fillMaxWidth()
+          )
+        }
+        ZFormItem(
+          label = "Confirm",
+          prop = "checkPass",
+          value = customCheckPass,
+          onReset = { customCheckPass = "" }
+        ) {
+          ZTextField(
+            value = customCheckPass,
+            onValueChange = { customCheckPass = it },
+            type = ZTextFieldType.PASSWORD,
+            modifier = Modifier.fillMaxWidth()
+          )
+        }
+        ZFormItem(
+          label = "Age",
+          prop = "age",
+          value = customAge,
+          onReset = { customAge = "" }
+        ) {
+          ZTextField(
+            value = customAge,
+            onValueChange = { customAge = it },
+            modifier = Modifier.fillMaxWidth()
+          )
+        }
+      }
+
+      Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        ZButton(
+          type = ZColorType.PRIMARY,
+          onClick = {
+            val valid = customRuleFormState.validate()
+            if (valid) {
+              ToastManager.success("Submit success")
+            } else {
+              ToastManager.error("Please check form items")
+            }
+          }
+        ) {
+          Text("Submit")
+        }
+        ZButton(
+          onClick = {
+            customRuleFormState.resetFields()
+            customRuleFormState.clearValidate()
           }
         ) {
           Text("Reset")
