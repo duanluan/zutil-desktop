@@ -207,3 +207,17 @@ tasks.withType<ComposeHotRun>().configureEach {
     }
   }
 }
+
+// Gradle 8.14+ validates task dependencies strictly.
+// Compose packaging tasks consume the app-image output, so wire explicit dependencies
+// to avoid implicit dependency validation errors in CI (e.g. packageDmg on macOS).
+val jpackageTasksThatConsumeAppImage = setOf(
+  "packageDmg",
+  "packageMsi",
+  "packageExe",
+  "packageDeb",
+  "packageRpm"
+)
+tasks.matching { it.name in jpackageTasksThatConsumeAppImage }.configureEach {
+  dependsOn("packageAppImage")
+}
