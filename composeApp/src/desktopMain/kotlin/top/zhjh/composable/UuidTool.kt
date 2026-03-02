@@ -21,7 +21,6 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Icon
 import androidx.compose.material.MaterialTheme
-import androidx.compose.material.RadioButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -44,6 +43,10 @@ import top.zhjh.viewmodel.UuidViewModel
 import top.zhjh.zui.composable.ZButton
 import top.zhjh.zui.composable.ZCard
 import top.zhjh.zui.composable.ZDropdownMenu
+import top.zhjh.zui.composable.ZForm
+import top.zhjh.zui.composable.ZFormItem
+import top.zhjh.zui.composable.ZFormLabelPosition
+import top.zhjh.zui.composable.ZRadio
 import top.zhjh.zui.composable.ZText
 import top.zhjh.zui.composable.ZTextField
 import top.zhjh.zui.composable.ZTextFieldType
@@ -54,6 +57,8 @@ import java.awt.Cursor
 import java.awt.FileDialog
 import java.io.File
 import javax.swing.JFrame
+
+private val UuidFormColumnWidth = 274.dp
 
 @Composable
 fun UuidTool() {
@@ -112,7 +117,7 @@ fun UuidTool() {
           }
 
           Row(
-            horizontalArrangement = Arrangement.spacedBy(24.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
             verticalAlignment = Alignment.CenterVertically
           ) {
             UuidRadioGroup(
@@ -308,17 +313,16 @@ private fun UuidField(
   label: String,
   content: @Composable () -> Unit
 ) {
-  Row(verticalAlignment = Alignment.CenterVertically) {
-    ZButton(
-      type = ZColorType.DEFAULT,
-      enabled = false,
-      modifier = Modifier.width(96.dp),
-      onClick = {}
-    ) {
-      ZText(label)
+  ZForm(
+    inline = true,
+    itemSpacing = 0.dp,
+    labelPosition = ZFormLabelPosition.RIGHT,
+    labelWidth = 96.dp,
+    modifier = Modifier.width(UuidFormColumnWidth)
+  ) {
+    ZFormItem(label = label) {
+      content()
     }
-    Spacer(modifier = Modifier.width(8.dp))
-    content()
   }
 }
 
@@ -332,22 +336,38 @@ private fun UuidRadioGroup(
   rightSelected: Boolean,
   onRightSelected: () -> Unit
 ) {
-  Row(verticalAlignment = Alignment.CenterVertically) {
-    ZButton(
-      type = ZColorType.DEFAULT,
-      enabled = false,
-      modifier = Modifier.width(96.dp),
-      onClick = {}
-    ) {
-      ZText(label)
+  val selectedValue = when {
+    leftSelected -> true
+    rightSelected -> false
+    else -> null
+  }
+  ZForm(
+    inline = true,
+    itemSpacing = 0.dp,
+    labelPosition = ZFormLabelPosition.RIGHT,
+    labelWidth = 96.dp,
+    modifier = Modifier.width(UuidFormColumnWidth)
+  ) {
+    ZFormItem(label = label) {
+      Row(
+        modifier = Modifier.height(30.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        verticalAlignment = Alignment.CenterVertically
+      ) {
+        ZRadio(
+          value = true,
+          selectedValue = selectedValue,
+          onValueChange = { onLeftSelected() },
+          label = leftLabel
+        )
+        ZRadio(
+          value = false,
+          selectedValue = selectedValue,
+          onValueChange = { onRightSelected() },
+          label = rightLabel
+        )
+      }
     }
-    Spacer(modifier = Modifier.width(8.dp))
-
-    RadioButton(selected = leftSelected, onClick = onLeftSelected)
-    ZText(leftLabel)
-    Spacer(modifier = Modifier.width(12.dp))
-    RadioButton(selected = rightSelected, onClick = onRightSelected)
-    ZText(rightLabel)
   }
 }
 

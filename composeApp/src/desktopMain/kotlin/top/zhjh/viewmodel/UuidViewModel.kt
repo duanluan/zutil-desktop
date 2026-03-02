@@ -21,10 +21,16 @@ private const val FORMAT_HEX = "Hex"
 private const val FORMAT_BASE64 = "Base64"
 
 private val UUID_VERSION_TYPES = UuidUtil.UuidType.entries
+private val UUID_VERSION_PRIORITY = listOf("V4", "V7", "V1", "V6", "V5", "V3", "V2")
+private val UUID_VERSION_PRIORITY_MAP = UUID_VERSION_PRIORITY
+  .withIndex()
+  .associate { it.value to it.index }
 
 class UuidViewModel : ViewModel() {
-  val versionOptions = UUID_VERSION_TYPES.map { it.name }
-  val formatOptions = listOf(FORMAT_STRING, FORMAT_BINARY, FORMAT_HEX, FORMAT_BASE64)
+  val versionOptions = UUID_VERSION_TYPES
+    .map { it.name }
+    .sortedWith(compareBy({ UUID_VERSION_PRIORITY_MAP[it] ?: Int.MAX_VALUE }, { it }))
+  val formatOptions = listOf(FORMAT_STRING, FORMAT_HEX, FORMAT_BASE64, FORMAT_BINARY)
 
   var selectedVersion by mutableStateOf(UuidUtil.UuidType.V4.name)
   var generateCountInput by mutableStateOf(DEFAULT_GENERATE_COUNT.toString())
