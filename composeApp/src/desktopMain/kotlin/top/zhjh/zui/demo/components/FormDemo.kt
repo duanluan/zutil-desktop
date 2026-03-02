@@ -12,6 +12,11 @@ import top.zhjh.common.composable.ToastManager
 import top.zhjh.zui.composable.*
 import top.zhjh.zui.enums.ZColorType
 
+private data class DynamicDomainField(
+  val id: Int,
+  val value: String = ""
+)
+
 @Composable
 fun formDemoContent() {
   val activityZoneOptions = remember {
@@ -134,6 +139,24 @@ fun formDemoContent() {
   var customPass by remember { mutableStateOf("") }
   var customCheckPass by remember { mutableStateOf("") }
   var customAge by remember { mutableStateOf("") }
+  val addRemoveFormState = rememberZFormState()
+  var dynamicEmail by remember { mutableStateOf("") }
+  var dynamicDomains by remember { mutableStateOf(emptyList<DynamicDomainField>()) }
+  var dynamicDomainSeed by remember { mutableStateOf(0) }
+  val addRemoveRules = remember(dynamicDomains) {
+    buildMap<String, List<ZFormRule>> {
+      put(
+        "email",
+        listOf(ZFormRule(required = true, message = "Please input email address"))
+      )
+      dynamicDomains.forEach { domain ->
+        put(
+          "domain_${domain.id}",
+          listOf(ZFormRule(required = true, message = "domain can not be null"))
+        )
+      }
+    }
+  }
 
   fun resetForm() {
     activityName = ""
@@ -659,6 +682,120 @@ fun formDemoContent() {
         }
       }
     }
+
+    Column(
+      verticalArrangement = Arrangement.spacedBy(0.dp),
+      modifier = Modifier.widthIn(max = 600.dp)
+    ) {
+      ZText(
+        text = "添加/删除表单项",
+        size = ZTextSize.Large,
+        fontWeight = FontWeight.SemiBold
+      )
+      Spacer(Modifier.height(16.dp))
+
+      val addRemoveModel = remember(dynamicEmail, dynamicDomains) {
+        buildMap<String, Any?> {
+          put("email", dynamicEmail)
+          dynamicDomains.forEach { domain ->
+            put("domain_${domain.id}", domain.value)
+          }
+        }
+      }
+
+      ZForm(
+        state = addRemoveFormState,
+        model = addRemoveModel,
+        rules = addRemoveRules,
+        itemSpacing = 0.dp,
+        messageReserveHeight = 18.dp,
+        labelPosition = ZFormLabelPosition.LEFT,
+        labelWidth = 100.dp,
+        modifier = Modifier.fillMaxWidth()
+      ) {
+        ZFormItem(
+          label = "Email",
+          prop = "email",
+          value = dynamicEmail,
+          onReset = { dynamicEmail = "" }
+        ) {
+          ZTextField(
+            value = dynamicEmail,
+            onValueChange = { dynamicEmail = it },
+            modifier = Modifier.fillMaxWidth()
+          )
+        }
+
+        dynamicDomains.forEachIndexed { index, domain ->
+          key(domain.id) {
+            val prop = "domain_${domain.id}"
+            ZFormItem(
+              label = "Domain$index",
+              prop = prop,
+              value = domain.value,
+              onReset = {
+                dynamicDomains = dynamicDomains.map {
+                  if (it.id == domain.id) it.copy(value = "") else it
+                }
+              }
+            ) {
+              Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                ZTextField(
+                  value = domain.value,
+                  onValueChange = { newValue ->
+                    dynamicDomains = dynamicDomains.map {
+                      if (it.id == domain.id) it.copy(value = newValue) else it
+                    }
+                  },
+                  modifier = Modifier.fillMaxWidth()
+                )
+                ZButton(
+                  onClick = {
+                    dynamicDomains = dynamicDomains.filterNot { it.id == domain.id }
+                    addRemoveFormState.clearValidate(prop)
+                  }
+                ) {
+                  Text("Delete")
+                }
+              }
+            }
+          }
+        }
+      }
+
+      Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+        ZButton(
+          type = ZColorType.PRIMARY,
+          onClick = {
+            val valid = addRemoveFormState.validate()
+            if (valid) {
+              ToastManager.success("Submit success")
+            } else {
+              ToastManager.error("Please check form items")
+            }
+          }
+        ) {
+          Text("Submit")
+        }
+        ZButton(
+          onClick = {
+            dynamicDomains = dynamicDomains + DynamicDomainField(id = dynamicDomainSeed)
+            dynamicDomainSeed += 1
+          }
+        ) {
+          Text("New domain")
+        }
+        ZButton(
+          onClick = {
+            dynamicEmail = ""
+            dynamicDomains = emptyList()
+            addRemoveFormState.clearValidate()
+          }
+        ) {
+          Text("Reset")
+        }
+      }
+    }
   }
 }
 
@@ -695,4 +832,3 @@ private fun <T> LabelPositionSelectorRow(
     }
   }
 }
-
