@@ -1,6 +1,16 @@
 rootProject.name = "zutil-desktop"
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
+val useLocalZuiComposeDesktop = providers
+  .gradleProperty("useLocalZuiComposeDesktop")
+  .map { it.equals("true", ignoreCase = true) }
+  .orElse(false)
+  .get()
+val localZuiComposeDesktopDir = providers
+  .gradleProperty("localZuiComposeDesktopDir")
+  .orElse("../zui-compose-desktop")
+  .get()
+
 pluginManagement {
   repositories {
     google {
@@ -26,6 +36,20 @@ dependencyResolutionManagement {
       }
     }
     mavenCentral()
+  }
+}
+
+if (useLocalZuiComposeDesktop) {
+  val localZuiComposeDesktop = file(localZuiComposeDesktopDir)
+  if (localZuiComposeDesktop.isDirectory) {
+    includeBuild(localZuiComposeDesktop) {
+      dependencySubstitution {
+        substitute(module("top.zhjh:zui-compose-desktop")).using(project(":zui"))
+      }
+    }
+    println("Using local zui-compose-desktop from: ${localZuiComposeDesktop.absolutePath}")
+  } else {
+    println("Local zui-compose-desktop not found at: ${localZuiComposeDesktop.absolutePath}, fallback to remote dependency.")
   }
 }
 
