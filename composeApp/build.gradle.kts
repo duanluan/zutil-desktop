@@ -16,7 +16,14 @@ kotlin {
   jvmToolchain(17)
 
   sourceSets {
-    val desktopMain by getting
+    val desktopMain by getting {
+      kotlin {
+        // Keep demo in this repo, but consume component implementation from published dependency.
+        exclude("top/zhjh/zui/composable/**")
+        exclude("top/zhjh/zui/theme/**")
+        exclude("top/zhjh/zui/enums/**")
+      }
+    }
 
     commonMain.dependencies {
       implementation(libs.compose.runtime)
@@ -34,6 +41,7 @@ kotlin {
       implementation(libs.kotlinx.coroutines.swing)
       implementation(libs.icons.feather)
       implementation(libs.icons.simple)
+      implementation(libs.zui.compose.desktop)
       implementation(libs.zutil.all)
       implementation(libs.zutil.id)
       implementation(libs.zutil.awt)

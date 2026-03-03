@@ -8,6 +8,7 @@ androidx-lifecycle = "2.9.0"
 kotlinx-coroutines = "1.10.1"
 devsrsouza-compose-icons = "1.1.1"
 zutil = "2.0.0-beta4"
+zui-compose-desktop = "0.1.0"
 commons-compress = "1.26.1"
 
 [libraries]
@@ -29,6 +30,7 @@ icons-simple = { module = "br.com.devsrsouza.compose.icons:simple-icons", versio
 zutil-all = { module = "top.csaf:zutil-all", version.ref = "zutil" }
 zutil-id = { module = "top.csaf:zutil-id", version.ref = "zutil" }
 zutil-awt = { module = "top.csaf:zutil-awt", version.ref = "zutil" }
+zui-compose-desktop = { module = "top.zhjh:zui-compose-desktop", version.ref = "zui-compose-desktop" }
 commons-compress = { module = "org.apache.commons:commons-compress", version.ref = "commons-compress" }
 
 [plugins]

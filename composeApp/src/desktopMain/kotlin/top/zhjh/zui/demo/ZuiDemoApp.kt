@@ -74,6 +74,7 @@ private fun ZuiComponentDemoContent(
   contentScrollState: ScrollState? = null
 ) {
   var activeTabName by remember { mutableStateOf("text") }
+  val asideScrollState = rememberScrollState()
 
   data class DemoItem(
     val label: String,
@@ -189,14 +190,27 @@ private fun ZuiComponentDemoContent(
             .fillMaxWidth(),
           contentAlignment = Alignment.TopStart
         ) {
-          ZMenu(
-            items = menuItems,
-            mode = ZMenuMode.Vertical,
-            activeIndex = activeTabName,
-            defaultOpeneds = listOf("basic", "form", "data", "navigation", "feedback"),
-            onSelect = { activeTabName = it },
-            modifier = Modifier.fillMaxSize()
-          )
+          Box(modifier = Modifier.fillMaxSize()) {
+            Box(
+              modifier = Modifier
+                .fillMaxSize()
+                .padding(end = 6.dp)
+                .verticalScroll(asideScrollState)
+            ) {
+              ZMenu(
+                items = menuItems,
+                mode = ZMenuMode.Vertical,
+                activeIndex = activeTabName,
+                defaultOpeneds = listOf("basic", "form", "data", "navigation", "feedback"),
+                onSelect = { activeTabName = it },
+                modifier = Modifier.fillMaxWidth()
+              )
+            }
+            VerticalScrollbar(
+              adapter = rememberScrollbarAdapter(asideScrollState),
+              modifier = Modifier.align(Alignment.CenterEnd).fillMaxHeight()
+            )
+          }
         }
       }
     }
