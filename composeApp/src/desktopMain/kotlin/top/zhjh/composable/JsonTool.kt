@@ -59,7 +59,7 @@ import top.zhjh.zui.theme.isAppInDarkTheme
  * - 输入区支持 `Ctrl/Cmd + Enter` 快捷格式化；
  * - 点击历史记录会回填左侧并自动格式化；
  * - 树形视图下可展开/收缩节点，源码视图下可直接编辑结果文本；
- * - 复制按钮始终复制“当前右侧结果”，并按下拉缩进策略重排后再写入剪贴板。
+ * - 复制按钮默认“保持当前右侧结果原样”，也可通过下拉主动指定复制缩进风格。
  */
 @Composable
 fun JsonTool() {
@@ -67,8 +67,8 @@ fun JsonTool() {
   val viewModel: JsonViewModel = viewModel { JsonViewModel() }
   // 用于主动清理输入焦点（点击按钮时收起光标状态）
   val focusManager = LocalFocusManager.current
-  // 复制时使用的缩进选项，默认 2 空格
-  val selectedIndentOption = remember { mutableStateOf(JSON_INDENT_OPTION_2_SPACES) }
+  // 复制时使用的缩进选项，默认保持原样（与右侧显示文本一致）
+  val selectedIndentOption = remember { mutableStateOf(JSON_INDENT_OPTION_KEEP_ORIGINAL) }
 
   Box(modifier = Modifier.fillMaxSize()) {
     Row(
@@ -283,7 +283,7 @@ fun JsonTool() {
           ZDropdownMenu(
             // 复制缩进风格选择，仅影响“复制到剪贴板”的结果文本
             options = JSON_INDENT_OPTIONS,
-            modifier = Modifier.width(88.dp),
+            modifier = Modifier.width(96.dp),
             lineHeight = 20,
             fontSize = 12.sp,
             defaultSelectedOption = selectedIndentOption.value,
@@ -295,13 +295,18 @@ fun JsonTool() {
             type = ZColorType.SUCCESS, plain = true,
             icon = { Icon(FeatherIcons.Copy, null, modifier = Modifier.size(14.dp)) },
             onClick = {
-              // 复制前按选中缩进重新排版，避免外部粘贴时仍是默认 Tab 风格
+              // 规则：
+              // 1. 单行结果视为压缩态，强制按原样复制（忽略缩进选项）；
+              // 2. 多行结果时，按用户缩进选项决定是否重排。
               val raw = viewModel.outputJson
-              val indentUnit = indentUnitFromOption(selectedIndentOption.value)
-              val copied = reindentJsonForCopy(raw, indentUnit, viewModel.isUnicodeDisplay)
+              val copied = buildCopyTextByOption(
+                raw = raw,
+                option = selectedIndentOption.value,
+                forceUnicodeEscaped = viewModel.isUnicodeDisplay
+              )
               val clipboard = java.awt.Toolkit.getDefaultToolkit().systemClipboard
               clipboard.setContents(java.awt.datatransfer.StringSelection(copied), null)
-              ToastManager.success("已复制结果（${selectedIndentOption.value}）")
+              ToastManager.success("已复制结果")
             }
           )
         }
@@ -616,13 +621,18 @@ private fun isTokenBoundary(ch: Char?): Boolean {
 /**
  * 复制缩进选项（右侧复制按钮左侧下拉）。
  *
- * 注意：这组常量只影响“复制动作”的文本重排，不会直接改动右侧编辑器中的显示内容。
+ * 注意：
+ * 1. 默认“保持原样”会直接复制右侧当前文本（例如压缩结果保持单行）。
+ * 2. 单行结果会强制按原样复制，忽略 2/4 空格或 1 Tab 选项。
+ * 3. 不会直接改动右侧编辑器中的显示内容。
  */
+private const val JSON_INDENT_OPTION_KEEP_ORIGINAL = "保持原样"
 private const val JSON_INDENT_OPTION_2_SPACES = "2 空格"
 private const val JSON_INDENT_OPTION_4_SPACES = "4 空格"
 private const val JSON_INDENT_OPTION_1_TAB = "1 Tab"
 
 private val JSON_INDENT_OPTIONS = listOf(
+  JSON_INDENT_OPTION_KEEP_ORIGINAL,
   JSON_INDENT_OPTION_2_SPACES,
   JSON_INDENT_OPTION_4_SPACES,
   JSON_INDENT_OPTION_1_TAB
@@ -637,6 +647,22 @@ private fun indentUnitFromOption(option: String): String {
     JSON_INDENT_OPTION_1_TAB -> "\t"
     else -> "  "
   }
+}
+
+/**
+ * 根据复制选项构建最终写入剪贴板的文本。
+ */
+private fun buildCopyTextByOption(raw: String, option: String, forceUnicodeEscaped: Boolean): String {
+  // 单行视为“压缩态”：无论下拉选项是什么，都强制原样复制。
+  if (isSingleLineResult(raw) || option == JSON_INDENT_OPTION_KEEP_ORIGINAL) {
+    return if (forceUnicodeEscaped) toUnicodeEscapedText(raw) else raw
+  }
+  val indentUnit = indentUnitFromOption(option)
+  return reindentJsonForCopy(raw, indentUnit, forceUnicodeEscaped)
+}
+
+private fun isSingleLineResult(raw: String): Boolean {
+  return !raw.contains('\n') && !raw.contains('\r')
 }
 
 /**
