@@ -63,6 +63,18 @@ private data class AudioMeta(
   val durationSeconds: Double
 )
 
+/**
+ * 语音转文本页面 ViewModel。
+ *
+ * 核心职责：
+ * 1. 管理“模型目录 + 音频文件 + 识别结果”的页面状态。
+ * 2. 在后台线程串联完整识别流程：模型检测 -> 音频解码/转码 -> Sherpa 推理。
+ * 3. 对失败场景给出可读提示，并保证 JNI/流对象及时释放。
+ *
+ * 并发约束：
+ * - 识别过程在 `Dispatchers.IO` 执行；
+ * - Compose State 写入统一走 [updateState]，避免跨线程写状态导致快照冲突。
+ */
 class SpeechToTextViewModel : ViewModel() {
   var audioPath by mutableStateOf("")
     private set
@@ -129,6 +141,7 @@ class SpeechToTextViewModel : ViewModel() {
   }
 
   fun convert() {
+    // 每次识别前重新校验输入状态，避免用户在上一次校验后又改了路径。
     refreshModelState()
     refreshAudioState()
 
@@ -153,6 +166,7 @@ class SpeechToTextViewModel : ViewModel() {
       var stream: OfflineStream? = null
 
       try {
+        // 先配置并预加载本地 native 库，避免真正初始化识别器时才抛链路错误。
         configureSherpaNativePathIfNeeded()
         logDebug("build-model-config-start")
         val modelConfig = createModelConfig(modelDir)
@@ -172,6 +186,7 @@ class SpeechToTextViewModel : ViewModel() {
 
         updateState { progressInfo = "正在加载模型文件..." }
         logDebug("recognizer-init-start")
+        // 识别器初始化是重操作，且可能被底层库阻塞，因此带超时保护。
         recognizer = createRecognizerWithTimeout(config)
         logDebug("recognizer-init-ok")
 
@@ -180,6 +195,7 @@ class SpeechToTextViewModel : ViewModel() {
 
         updateState { progressInfo = "正在读取音频..." }
         logDebug("audio-stream-start")
+        // 自动走“JavaSound 直读 -> FFmpeg 转码兜底”双路径。
         streamAudioFile(File(audioPath), stream)
         logDebug("audio-stream-ok")
 
@@ -209,6 +225,7 @@ class SpeechToTextViewModel : ViewModel() {
         updateState { progressInfo = "识别失败: $message" }
         ToastManager.error("识别失败: $message")
       } finally {
+        // release 失败不影响主流程，采用 runCatching 防止 finally 再抛异常覆盖原始错误。
         runCatching { stream?.release() }
         runCatching { recognizer?.release() }
         updateState { isConverting = false }
@@ -369,6 +386,7 @@ class SpeechToTextViewModel : ViewModel() {
       }
 
       AsrModelType.WHISPER -> {
+        // Whisper 需要 encoder/decoder 双模型，二者缺一不可。
         val encoder = findFile(path, "tiny-encoder.int8.onnx", "tiny-encoder.onnx", "encoder.int8.onnx", "encoder.onnx")
           ?: return null
         val decoder = findFile(path, "tiny-decoder.int8.onnx", "tiny-decoder.onnx", "decoder.int8.onnx", "decoder.onnx")
@@ -502,6 +520,8 @@ class SpeechToTextViewModel : ViewModel() {
   }
 
   private fun createRecognizerWithTimeout(config: OfflineRecognizerConfig): OfflineRecognizer {
+    // 首次初始化失败时，仅对“像是 onnxruntime 装载失败”的场景做一次清理后重试。
+    // 避免在任何异常上都盲目重试，导致问题定位困难。
     val firstAttempt = runCatching { createRecognizerWithTimeoutOnce(config) }
     if (firstAttempt.isSuccess) {
       return firstAttempt.getOrThrow()
@@ -538,7 +558,10 @@ class SpeechToTextViewModel : ViewModel() {
       append(" ")
       append(error.cause?.message.orEmpty())
     }.lowercase(Locale.getDefault())
-    return message.contains("onnxruntime.dll")
+    return message.contains("onnxruntime.dll") ||
+      message.contains("onnxruntime.so") ||
+      message.contains("onnxruntime.dylib") ||
+      message.contains("libonnxruntime")
   }
 
   private fun cleanupSherpaTempDirs() {
@@ -599,6 +622,7 @@ class SpeechToTextViewModel : ViewModel() {
   }
 
   private fun streamAudioFile(file: File, stream: OfflineStream) {
+    // 优先尝试 JavaSound：跨平台依赖最少，且可直接在 JVM 内完成重采样。
     val handledByJavaSound = tryStreamByJavaSound(file, stream)
     if (handledByJavaSound) {
       return
@@ -610,6 +634,7 @@ class SpeechToTextViewModel : ViewModel() {
 
     updateState { progressInfo = "正在调用 FFmpeg 转码..." }
     logDebug("ffmpeg-transcode-start file=${file.absolutePath}")
+    // 转码输出统一为 16kHz / 16bit / mono WAV，确保与识别器输入要求对齐。
     val tempWav = convertAudioToTargetWavWithFfmpeg(file)
     try {
       streamWavFile(tempWav, stream)
@@ -701,7 +726,7 @@ class SpeechToTextViewModel : ViewModel() {
     while (bytesRead > 0) {
       var available = bytesRead
       val data = if (carry != null) {
-        val carryByte = carry ?: 0
+        val carryByte = requireNotNull(carry)
         val combined = ByteArray(bytesRead + 1)
         combined[0] = carryByte
         System.arraycopy(buffer, 0, combined, 1, bytesRead)
@@ -713,6 +738,7 @@ class SpeechToTextViewModel : ViewModel() {
       }
 
       if (available % 2 != 0) {
+        // 16-bit 采样每帧 2 字节。若本批数据落在奇数字节，先留 1 字节到下一轮拼接。
         carry = data[available - 1]
         available -= 1
       }
@@ -730,6 +756,7 @@ class SpeechToTextViewModel : ViewModel() {
           } else {
             (b2 shl 8) or (b1 and 0xFF)
           }
+          // PCM16 归一化到 [-1, 1] 浮点区间，供 Sherpa waveform 接口消费。
           samples[sampleIndex++] = sampleShort.toShort() / 32768.0f
           index += 2
         }
@@ -808,6 +835,7 @@ class SpeechToTextViewModel : ViewModel() {
 
   @Synchronized
   private fun configureSherpaNativePathIfNeeded() {
+    // 多窗口/多次识别可能重复触发该函数；用进程级标记保证只做一次重加载。
     if (sherpaNativePreloaded || System.getProperty(SHERPA_NATIVE_PRELOADED_PROP) == "true") {
       sherpaNativePreloaded = true
       return
@@ -880,6 +908,7 @@ class SpeechToTextViewModel : ViewModel() {
     val targetFile = File(targetDir, fileName)
 
     if (targetFile.exists() && targetFile.length() > 0L) {
+      // 已缓存则复用，减少重复 I/O 与启动耗时。
       return targetFile
     }
 

@@ -46,6 +46,18 @@ data class TaskStatus(
   val speedBytesPerSec: Double = 0.0
 )
 
+/**
+ * 模型下载 ViewModel。
+ *
+ * 关键能力：
+ * 1. 支持断点续传（Range + RandomAccessFile）。
+ * 2. 支持暂停/继续/取消，并保证 UI 状态可预期。
+ * 3. 下载完成后自动解压 `tar.bz2`，并做 ZipSlip 路径校验。
+ *
+ * 线程模型：
+ * - 下载与解压运行在 IO 线程；
+ * - Compose 状态更新通过 [Snapshot.withMutableSnapshot] 执行，确保线程安全。
+ */
 class ModelDownloadViewModel : ViewModel() {
   // 状态映射：模型ID -> 任务状态
   val taskStatuses = mutableStateMapOf<String, TaskStatus>()
@@ -75,7 +87,8 @@ class ModelDownloadViewModel : ViewModel() {
 
     ModelDownloadSettings.ensureDir(downloadDir)
 
-    // 清除暂停标记，立刻切换到下载中，给用户即时反馈
+    // 清除暂停标记，立刻切换到下载中，给用户即时反馈。
+    // 即使后续网络连接还未建立，UI 也能先进入“下载中”状态。
     pausedIds.remove(model.id)
     val targetFile = File(downloadDir, model.fileName)
     val existingBytes = if (targetFile.exists()) targetFile.length() else 0L
@@ -163,6 +176,8 @@ class ModelDownloadViewModel : ViewModel() {
     retryCount: Int? = null,
     speedBytesPerSec: Double? = null
   ) {
+    // 防抖保护：用户已触发暂停后，后台循环可能还有残余进度回调。
+    // 这里统一拦截，避免状态从 PAUSED 被覆盖回 DOWNLOADING。
     if (state == DownloadState.DOWNLOADING && pausedIds.contains(id)) {
       return
     }
@@ -196,6 +211,7 @@ class ModelDownloadViewModel : ViewModel() {
     connection.connectTimeout = 15_000
     connection.readTimeout = 30_000
     if (downloadedLength > 0) {
+      // 断点续传：仅请求剩余区间，减少重复下载。
       connection.setRequestProperty("Range", "bytes=$downloadedLength-")
     }
     connection.setRequestProperty("User-Agent", "ZUtil-Desktop")
@@ -255,6 +271,7 @@ class ModelDownloadViewModel : ViewModel() {
         lastError = e
         val nextAttempt = attempt + 1
         if (nextAttempt > MAX_DOWNLOAD_RETRIES) break
+        // 退避重试：降低短时网络抖动导致的失败率。
         updateStatusSafely(model.id, DownloadState.DOWNLOADING, retryCount = nextAttempt, speedBytesPerSec = 0.0)
         delay(RETRY_BACKOFF_BASE_MS * nextAttempt)
       }
@@ -278,6 +295,7 @@ class ModelDownloadViewModel : ViewModel() {
         var responseCode = connection.responseCode
 
         if (responseCode == HTTP_REQUESTED_RANGE_NOT_SATISFIABLE) {
+          // 本地断点超出远端文件范围（典型于远端文件更新），清空后全量重下。
           targetFile.delete()
           downloadedLength = 0L
           connection.disconnect()
@@ -337,6 +355,7 @@ class ModelDownloadViewModel : ViewModel() {
                 val deltaBytes = currentTotal - lastSpeedBytes
                 if (deltaBytes >= 0) {
                   val instant = deltaBytes * 1000.0 / speedDeltaTime
+                  // 对瞬时速度做指数平滑，避免 UI 文案频繁抖动。
                   lastSpeed = if (lastSpeed <= 0.0) instant else (lastSpeed * 0.7 + instant * 0.3)
                   lastSpeedUpdate = now
                   lastSpeedBytes = currentTotal
@@ -345,6 +364,7 @@ class ModelDownloadViewModel : ViewModel() {
               val shouldUpdate = if (progress == UNKNOWN_PROGRESS) {
                 now - lastProgressUpdate >= 200
               } else {
+                // 进度已知时，按“增量或时间窗口”双条件更新，兼顾流畅和性能。
                 progress - lastProgressValue >= 0.005f || now - lastProgressUpdate >= 200
               }
 
@@ -390,6 +410,7 @@ class ModelDownloadViewModel : ViewModel() {
               if (entry.isDirectory) {
                 safeFile.mkdirs()
               } else if (!entry.isSymbolicLink && !entry.isLink) {
+                // 仅展开普通文件，忽略符号链接/硬链接，避免跨目录写入风险。
                 safeFile.parentFile?.mkdirs()
                 FileOutputStream(safeFile).use { output ->
                   tarIn.copyTo(output)
@@ -407,6 +428,7 @@ class ModelDownloadViewModel : ViewModel() {
     val destFile = File(destDir, entryName)
     val destPath = destFile.canonicalPath
     val basePath = destDir.canonicalPath + File.separator
+    // 路径必须落在目标目录下，防止 `../../` 路径穿越。
     return if (destPath.startsWith(basePath)) destFile else null
   }
 }

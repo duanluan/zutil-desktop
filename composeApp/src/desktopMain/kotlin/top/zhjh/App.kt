@@ -271,8 +271,10 @@ private fun saveWindowState(windowId: String, state: SavedWindowState) {
   val hasPosition = state.xDp != null && state.yDp != null
   windowPrefs.putBoolean(windowKey(windowId, WINDOW_KEY_HAS_POSITION), hasPosition)
   if (hasPosition) {
-    windowPrefs.putFloat(windowKey(windowId, WINDOW_KEY_X), state.xDp!!)
-    windowPrefs.putFloat(windowKey(windowId, WINDOW_KEY_Y), state.yDp!!)
+    val x = requireNotNull(state.xDp)
+    val y = requireNotNull(state.yDp)
+    windowPrefs.putFloat(windowKey(windowId, WINDOW_KEY_X), x)
+    windowPrefs.putFloat(windowKey(windowId, WINDOW_KEY_Y), y)
   } else {
     windowPrefs.remove(windowKey(windowId, WINDOW_KEY_X))
     windowPrefs.remove(windowKey(windowId, WINDOW_KEY_Y))
@@ -781,8 +783,10 @@ private fun detectSystemScale(): ScaleDetection {
     return dpiScale
   }
 
-  // 兜底：如果 awtScale 无效，回退到 1x
-  return ScaleDetection(sanitizeScale(awtScale ?: 1f), "awt: defaultTransform")
+  // 兜底：AWT 返回 0/负数等异常值时，必须回退到 1x，而不是按最小缩放 0.5x 处理。
+  // 否则会出现“在部分环境下启动后界面意外变成 50%”的问题。
+  val fallbackScale = if (awtScale != null && awtScale > 0f) awtScale else 1f
+  return ScaleDetection(sanitizeScale(fallbackScale), "awt: defaultTransform")
 }
 
 /**
