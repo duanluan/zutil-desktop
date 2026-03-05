@@ -1,18 +1,11 @@
 package top.zhjh
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
@@ -22,11 +15,9 @@ import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.WindowPosition
 import androidx.compose.ui.window.rememberWindowState
 import compose.icons.FeatherIcons
-import compose.icons.SimpleIcons
 import compose.icons.feathericons.*
-import compose.icons.simpleicons.Discord
-import compose.icons.simpleicons.Tencentqq
 import org.jetbrains.compose.resources.painterResource
+import top.zhjh.common.composable.ToastContainer
 import top.zhjh.common.composable.ToastManager
 import top.zhjh.composable.ToolContent
 import top.zhjh.enums.ToolCategory
@@ -43,11 +34,8 @@ import top.zhjh.zui.theme.ZTheme
 import zutil_desktop.composeapp.generated.resources.Res
 import zutil_desktop.composeapp.generated.resources.commonly_used
 import zutil_desktop.composeapp.generated.resources.icon
-import java.awt.Desktop
 import java.awt.GraphicsEnvironment
 import java.awt.Toolkit
-import java.io.File
-import java.net.URI
 import java.util.prefs.Preferences
 import kotlin.math.max
 import kotlin.math.roundToInt
@@ -71,6 +59,8 @@ fun ApplicationScope.AppRoot(onExitRequest: () -> Unit) {
   var scalePercent by remember { mutableStateOf(loadUiScalePercent(defaultScalePercent)) }
   // 当前已打开的工具窗口（避免重复打开）
   val openWindows = remember { mutableStateListOf<ToolItem>() }
+  // 退出后待启动命令（用于 Linux portable/AppImage 更新）
+  var pendingPostExitLaunchPlan by remember { mutableStateOf<PostExitLaunchPlan?>(null) }
 
   // 修改缩放比例：规范化并写入配置
   val onScalePercentChange: (Int) -> Unit = { percent ->
@@ -85,9 +75,22 @@ fun ApplicationScope.AppRoot(onExitRequest: () -> Unit) {
     }
   }
 
+  val requestAppExit: () -> Unit = {
+    val pendingPlan = pendingPostExitLaunchPlan
+    if (pendingPlan != null) {
+      launchDetachedCommandAfterDelay(
+        command = pendingPlan.command,
+        delaySeconds = UPDATE_POST_EXIT_LAUNCH_DELAY_SECONDS,
+        workingDirectory = pendingPlan.workingDirectory
+      )
+      pendingPostExitLaunchPlan = null
+    }
+    onExitRequest()
+  }
+
   // 主窗口
   Window(
-    onCloseRequest = onExitRequest,
+    onCloseRequest = requestAppExit,
     title = "ZUtil 工具箱",
     state = rememberWindowState(
       width = 1200.dp,
@@ -103,7 +106,9 @@ fun ApplicationScope.AppRoot(onExitRequest: () -> Unit) {
           autoScale = autoScale,
           scalePercent = scalePercent,
           onScalePercentChange = onScalePercentChange,
-          onToolOpen = onToolOpen
+          onToolOpen = onToolOpen,
+          onExitRequest = requestAppExit,
+          onSchedulePostExitLaunch = { plan -> pendingPostExitLaunchPlan = plan }
         )
       }
     }
@@ -146,7 +151,9 @@ private fun App(
   autoScale: ScaleDetection,
   scalePercent: Int,
   onScalePercentChange: (Int) -> Unit,
-  onToolOpen: (ToolItem) -> Unit
+  onToolOpen: (ToolItem) -> Unit,
+  onExitRequest: () -> Unit,
+  onSchedulePostExitLaunch: (PostExitLaunchPlan?) -> Unit
 ) {
   Row(modifier = Modifier.fillMaxWidth()) {
     // 使用枚举来管理当前选中的分类，默认选中常用
@@ -227,49 +234,53 @@ private fun App(
     }
 
     // --- 右侧内容区域 ---
-    Column(Modifier.fillMaxSize().padding(10.dp)) {
+    Box(Modifier.fillMaxSize().padding(10.dp)) {
+      Column(Modifier.fillMaxSize()) {
+        // 只有在非设置页面显示搜索框
+        if (
+          selectedCategory != ToolCategory.SETTINGS &&
+          selectedCategory != ToolCategory.ZUI &&
+          selectedCategory != ToolCategory.ABOUT
+        ) {
+          ZTextField(
+            value = searchText.value,
+            onValueChange = { searchText.value = it },
+            placeholder = "搜索${selectedCategory.label}工具...",
+            leadingIcon = { Icon(FeatherIcons.Search, contentDescription = null) },
+            modifier = Modifier.fillMaxWidth()
+          )
+          Spacer(modifier = Modifier.height(10.dp))
+        }
 
-      // 只有在非设置页面显示搜索框
-      if (
-        selectedCategory != ToolCategory.SETTINGS &&
-        selectedCategory != ToolCategory.ZUI &&
-        selectedCategory != ToolCategory.ABOUT
-      ) {
-        ZTextField(
-          value = searchText.value,
-          onValueChange = { searchText.value = it },
-          placeholder = "搜索${selectedCategory.label}工具...",
-          leadingIcon = { Icon(FeatherIcons.Search, contentDescription = null) },
-          modifier = Modifier.fillMaxWidth()
-        )
-        Spacer(modifier = Modifier.height(10.dp))
-      }
-
-      // 内容切换逻辑
-      Box(modifier = Modifier.weight(1f)) {
-        if (selectedCategory == ToolCategory.SETTINGS) {
-          SettingsPage(
-            autoScale = autoScale,
-            scalePercent = scalePercent,
-            onScalePercentChange = onScalePercentChange
-          )
-        } else if (selectedCategory == ToolCategory.ZUI) {
-          ZuiComponentShowcase(
-            modifier = Modifier.fillMaxSize(),
-            useInternalScroll = true
-          )
-        } else if (selectedCategory == ToolCategory.ABOUT) {
-          AboutPage()
-        } else {
-          // 工具列表页面
-          ToolListGrid(
-            category = selectedCategory,
-            filterText = searchText.value,
-            onToolClick = onToolOpen
-          )
+        // 内容切换逻辑
+        Box(modifier = Modifier.weight(1f)) {
+          if (selectedCategory == ToolCategory.SETTINGS) {
+            SettingsPage(
+              autoScale = autoScale,
+              scalePercent = scalePercent,
+              onScalePercentChange = onScalePercentChange
+            )
+          } else if (selectedCategory == ToolCategory.ZUI) {
+            ZuiComponentShowcase(
+              modifier = Modifier.fillMaxSize(),
+              useInternalScroll = true
+            )
+          } else if (selectedCategory == ToolCategory.ABOUT) {
+            AboutPage(
+              onExitRequest = onExitRequest,
+              onSchedulePostExitLaunch = onSchedulePostExitLaunch
+            )
+          } else {
+            // 工具列表页面
+            ToolListGrid(
+              category = selectedCategory,
+              filterText = searchText.value,
+              onToolClick = onToolOpen
+            )
+          }
         }
       }
-
+      ToastContainer()
     }
   }
 }
@@ -451,297 +462,6 @@ private fun SettingsPage(
 }
 
 /**
- * 关于页：展示版本信息、贡献者与社区链接。
- */
-@Composable
-private fun AboutPage() {
-  val scrollState = rememberScrollState()
-  // 开发者信息卡片
-  val developerCards = listOf(
-    LinkCardData(
-      title = "duanluan",
-      lines = listOf("Owner / Full Stack"),
-      url = GITHUB_OWNER_URL
-    ),
-    LinkCardData(
-      title = "更多贡献者 >",
-      lines = listOf("查看贡献者列表"),
-      url = GITHUB_CONTRIBUTORS_URL
-    )
-  )
-  // 特别鸣谢卡片
-  val thanksCards = listOf(
-    LinkCardData(
-      title = "zutil",
-      lines = listOf("追求更快更全的 Java 工具类"),
-      url = ZUTIL_PROJECT_URL
-    )
-  )
-  // 社区入口卡片
-  val communityCards = listOf(
-    LinkCardData(
-      title = "加入交流群",
-      lines = emptyList(),
-      url = QQ_GROUP_URL,
-      icon = SimpleIcons.Tencentqq
-    ),
-    LinkCardData(
-      title = "Discord",
-      lines = emptyList(),
-      url = DISCORD_URL,
-      icon = SimpleIcons.Discord
-    ),
-    LinkCardData(
-      title = "官方博客",
-      lines = emptyList(),
-      url = BLOG_URL,
-      icon = FeatherIcons.Rss
-    )
-  )
-
-  Column(
-    modifier = Modifier.fillMaxSize().padding(16.dp).verticalScroll(scrollState),
-    verticalArrangement = Arrangement.spacedBy(12.dp)
-  ) {
-    Text("关于软件", style = MaterialTheme.typography.h5)
-    ZCard(
-      shadow = ZCardShadow.NEVER,
-      modifier = Modifier.fillMaxWidth(),
-      contentPadding = PaddingValues(16.dp)
-    ) {
-      Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-          Column(modifier = Modifier.weight(1f)) {
-            Text(
-              text = "ZUtil 工具箱",
-              style = MaterialTheme.typography.subtitle1,
-              modifier = Modifier.clickable { openUrl(GITHUB_REPO_URL) }
-            )
-          }
-          // 版本号展示
-          Text("版本号：$APP_VERSION")
-          Spacer(modifier = Modifier.width(8.dp))
-          ZButton(
-            type = ZColorType.DEFAULT,
-            plain = true,
-            enabled = false,
-            onClick = {}
-          ) {
-            Text("检查更新")
-          }
-        }
-      }
-    }
-
-    Text("开发人员", style = MaterialTheme.typography.h5)
-    LinkCardGrid(items = developerCards, columns = 2)
-
-    Text("特别鸣谢", style = MaterialTheme.typography.h5)
-    LinkCardGrid(items = thanksCards, columns = 2)
-
-    Text("社区", style = MaterialTheme.typography.h5)
-    LinkCardGrid(items = communityCards, columns = 3)
-  }
-}
-
-/**
- * 工具网格：根据分类与搜索词渲染工具按钮列表。
- */
-@Composable
-fun ToolListGrid(
-  category: ToolCategory,
-  filterText: String,
-  onToolClick: (ToolItem) -> Unit
-) {
-  // 使用枚举 name 进行比较，规避 Live Edit/热重载时枚举类加载器不一致导致的过滤失效
-  val categoryName = category.name
-  val normalizedFilterText = filterText.trim()
-  val tools = ToolItem.entries.filter { tool ->
-    tool.category.name == categoryName &&
-      (normalizedFilterText.isEmpty() || tool.toolName.contains(normalizedFilterText, ignoreCase = true))
-  }
-
-  LazyVerticalGrid(
-    columns = GridCells.Adaptive(minSize = 200.dp),
-    modifier = Modifier.fillMaxSize(),
-    verticalArrangement = Arrangement.spacedBy(10.dp),
-    horizontalArrangement = Arrangement.spacedBy(10.dp)
-  ) {
-    items(items = tools, key = { it.name }) { tool ->
-      ZButton(
-        type = ZColorType.PRIMARY,
-        contentPadding = PaddingValues(15.dp),
-        contentAlignment = Alignment.CenterStart,
-        onClick = { onToolClick(tool) }
-      ) {
-        // 根据工具类型动态显示图标
-        val iconModifier = Modifier.size(24.dp).padding(end = 8.dp)
-        if (tool.category.name == ToolCategory.AI.name) {
-          Icon(FeatherIcons.Cpu, null, modifier = iconModifier)
-        } else {
-          Icon(painterResource(Res.drawable.commonly_used), null, modifier = iconModifier)
-        }
-
-        Text(tool.toolName)
-      }
-    }
-  }
-}
-
-/**
- * 链接卡片数据模型。
- */
-private data class LinkCardData(
-  val title: String,
-  val lines: List<String>,
-  val url: String,
-  val icon: ImageVector? = null
-)
-
-/**
- * 链接卡片网格：按指定列数排布。
- */
-@Composable
-private fun LinkCardGrid(
-  items: List<LinkCardData>,
-  columns: Int
-) {
-  Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-    items.chunked(columns).forEach { rowItems ->
-      Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(10.dp)
-      ) {
-        rowItems.forEach { item ->
-          LinkCard(item, Modifier.weight(1f))
-        }
-        // 补齐空列，保证每行等宽
-        repeat(columns - rowItems.size) {
-          Spacer(modifier = Modifier.weight(1f))
-        }
-      }
-    }
-  }
-}
-
-/**
- * 单个链接卡片：标题 + 可选图标 + 说明行。
- */
-@Composable
-private fun LinkCard(
-  data: LinkCardData,
-  modifier: Modifier = Modifier
-) {
-  ZCard(
-    shadow = ZCardShadow.NEVER,
-    modifier = modifier.clickable { openUrl(data.url) },
-    contentPadding = PaddingValues(16.dp)
-  ) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-      if (data.icon != null) {
-        Icon(data.icon, contentDescription = data.title, modifier = Modifier.size(18.dp))
-        Spacer(modifier = Modifier.width(8.dp))
-      }
-      Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        Text(data.title, style = MaterialTheme.typography.subtitle1)
-        data.lines.forEach { line ->
-          Text(line, style = MaterialTheme.typography.caption)
-        }
-      }
-    }
-  }
-}
-
-/**
- * 在系统浏览器中打开链接。
- * 优先使用 Desktop API，失败时使用命令行兜底。
- */
-private fun openUrl(url: String) {
-  val uri = runCatching { URI(url) }.getOrNull() ?: return
-  val opened = runCatching {
-    if (Desktop.isDesktopSupported()) {
-      val desktop = Desktop.getDesktop()
-      if (desktop.isSupported(Desktop.Action.BROWSE)) {
-        desktop.browse(uri)
-        return@runCatching true
-      }
-    }
-    false
-  }.getOrDefault(false)
-
-  if (!opened) {
-    openUrlFallback(uri)
-  }
-}
-
-/**
- * 兜底方案：根据操作系统选择外部命令打开链接。
- */
-private fun openUrlFallback(uri: URI) {
-  val os = System.getProperty("os.name")?.lowercase().orEmpty()
-  val command = when {
-    os.contains("mac") -> listOf("open", uri.toString())
-    os.contains("win") -> listOf("rundll32", "url.dll,FileProtocolHandler", uri.toString())
-    else -> listOf("xdg-open", uri.toString())
-  }
-  runCatching {
-    ProcessBuilder(command)
-      .redirectErrorStream(true)
-      .start()
-  }
-}
-
-/**
- * 在系统文件管理器中打开目录。
- */
-private fun openDirectory(path: String) {
-  val target = File(path)
-  if (!target.exists()) return
-  val opened = runCatching {
-    if (Desktop.isDesktopSupported()) {
-      val desktop = Desktop.getDesktop()
-      if (desktop.isSupported(Desktop.Action.OPEN)) {
-        desktop.open(target)
-        return@runCatching true
-      }
-    }
-    false
-  }.getOrDefault(false)
-
-  if (!opened) {
-    openDirectoryFallback(target)
-  }
-}
-
-/**
- * 兜底方案：根据操作系统选择外部命令打开目录。
- */
-private fun openDirectoryFallback(target: File) {
-  val os = System.getProperty("os.name")?.lowercase().orEmpty()
-  val command = when {
-    os.contains("mac") -> listOf("open", target.absolutePath)
-    os.contains("win") -> listOf("explorer", target.absolutePath)
-    else -> listOf("xdg-open", target.absolutePath)
-  }
-  runCatching {
-    ProcessBuilder(command)
-      .redirectErrorStream(true)
-      .start()
-  }
-}
-
-// 应用基础信息
-private const val APP_VERSION = "1.0.0"
-private const val GITHUB_REPO_URL = "https://github.com/duanluan/zutil-desktop"
-private const val GITHUB_OWNER_URL = "https://github.com/duanluan"
-private const val GITHUB_CONTRIBUTORS_URL = "https://github.com/duanluan/zutil-desktop/graphs/contributors"
-private const val ZUTIL_PROJECT_URL = "https://github.com/duanluan/zutil"
-private const val QQ_GROUP_URL =
-  "http://qm.qq.com/cgi-bin/qm/qr?_wv=1027&k=vlo9IzNeTEqtUk2cO1Ubiasyl3N5RdMA&authKey=XNuH4tmWfVx3%2Fs%2FcXXfC6QpJdyJ3P0itndvDoud0iTwzBffIAo3o1KChqDcR422B&noverify=0&group_code=273743748"
-private const val DISCORD_URL = "https://discord.gg/N39y9EvYC9"
-private const val BLOG_URL = "https://blog.zhjh.top"
-
-/**
  * 缩放检测结果。
  * scale: 实际缩放比例
  * source: 取值来源说明（便于排查与提示）
@@ -912,4 +632,3 @@ private fun scalePercentToScale(percent: Int): Float {
 private fun sanitizeScalePercent(value: Int): Int {
   return value.coerceIn(SCALE_MIN_PERCENT, SCALE_MAX_PERCENT)
 }
-

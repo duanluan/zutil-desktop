@@ -69,6 +69,12 @@ compose.desktop {
   application {
     mainClass = "top.zhjh.MainKt"
 
+    // Release 包关闭 ProGuard，避免可选依赖缺失导致打包失败。
+    // 当前主要目标是验证更新流程，后续如需瘦身/混淆再单独补完整规则。
+    buildTypes.release.proguard {
+      isEnabled.set(false)
+    }
+
     nativeDistributions {
       targetFormats(
         TargetFormat.Dmg,
@@ -88,7 +94,7 @@ compose.desktop {
       // 显式包含需要的模块
       modules(
         // gradlew suggestRuntimeModules
-        "java.instrument", "java.scripting", "java.sql", "jdk.unsupported"
+        "java.instrument", "java.scripting", "java.sql", "java.net.http", "jdk.unsupported"
         // 报错 Failed to launch JVM，异常写入日志查询到
         , "jdk.accessibility"
       )
