@@ -33,11 +33,79 @@ import top.zhjh.zui.theme.ZTheme
 import zutil_desktop.composeapp.generated.resources.Res
 import zutil_desktop.composeapp.generated.resources.commonly_used
 import zutil_desktop.composeapp.generated.resources.icon
+import java.awt.Dimension
 import java.awt.GraphicsEnvironment
 import java.awt.Toolkit
 import java.util.prefs.Preferences
 import kotlin.math.max
 import kotlin.math.roundToInt
+
+/**
+ * 单个窗口的尺寸配置。
+ *
+ * @property defaultWidth 默认宽度
+ * @property defaultHeight 默认高度
+ * @property minWidth 最小宽度（运行时约束 + 持久化恢复下限）
+ * @property minHeight 最小高度（运行时约束 + 持久化恢复下限）
+ */
+data class WindowSizeConfig(
+  val defaultWidth: Dp,
+  val defaultHeight: Dp,
+  val minWidth: Dp = WINDOW_MIN_SIZE_DP.dp,
+  val minHeight: Dp = WINDOW_MIN_SIZE_DP.dp
+)
+
+/**
+ * 应用窗口布局配置。
+ *
+ * 支持外部在启动时传入每个工具窗口的默认尺寸和最小尺寸限制。
+ */
+data class WindowLayoutConfig(
+  val mainWindow: WindowSizeConfig = WindowSizeConfig(
+    defaultWidth = 1200.dp,
+    defaultHeight = 800.dp,
+    minWidth = 860.dp,
+    minHeight = 620.dp
+  ),
+  val toolWindows: Map<ToolItem, WindowSizeConfig> = defaultToolWindowConfigs()
+) {
+  fun resolveToolWindowConfig(tool: ToolItem): WindowSizeConfig {
+    return toolWindows[tool] ?: defaultToolWindowConfig(tool)
+  }
+}
+
+private fun defaultToolWindowConfigs(): Map<ToolItem, WindowSizeConfig> {
+  return ToolItem.entries.associateWith { tool -> defaultToolWindowConfig(tool) }
+}
+
+private fun defaultToolWindowConfig(tool: ToolItem): WindowSizeConfig {
+  return when (tool) {
+    ToolItem.TIMESTAMP -> WindowSizeConfig(
+      defaultWidth = 800.dp,
+      defaultHeight = 720.dp,
+      minWidth = 720.dp,
+      minHeight = 565.dp
+    )
+    ToolItem.JSON -> WindowSizeConfig(
+      defaultWidth = 1100.dp,
+      defaultHeight = 800.dp,
+      minWidth = 930.dp,
+      minHeight = 697.dp
+    )
+    ToolItem.UUID -> WindowSizeConfig(
+      defaultWidth = 1000.dp,
+      defaultHeight = 760.dp,
+      minWidth = 950.dp,
+      minHeight = 712.dp
+    )
+    ToolItem.SPEECH_TO_TEXT -> WindowSizeConfig(
+      defaultWidth = 900.dp,
+      defaultHeight = 800.dp,
+      minWidth = 950.dp,
+      minHeight = 720.dp
+    )
+  }
+}
 
 /**
  * 应用根入口。
@@ -47,7 +115,10 @@ import kotlin.math.roundToInt
  * 3. 统一主题与缩放容器。
  */
 @Composable
-fun ApplicationScope.AppRoot(onExitRequest: () -> Unit) {
+fun ApplicationScope.AppRoot(
+  onExitRequest: () -> Unit,
+  windowLayoutConfig: WindowLayoutConfig = WindowLayoutConfig()
+) {
   // 系统缩放检测（只初始化一次）
   val autoScale = remember { detectSystemScale() }
   // 基于系统缩放得到默认百分比
@@ -100,8 +171,10 @@ fun ApplicationScope.AppRoot(onExitRequest: () -> Unit) {
   val mainWindowState = rememberPersistentWindowState(
     enabled = rememberWindowBoundsEnabled,
     windowId = WINDOW_ID_MAIN,
-    defaultWidth = 1200.dp,
-    defaultHeight = 800.dp,
+    defaultWidth = windowLayoutConfig.mainWindow.defaultWidth,
+    defaultHeight = windowLayoutConfig.mainWindow.defaultHeight,
+    minWidth = windowLayoutConfig.mainWindow.minWidth,
+    minHeight = windowLayoutConfig.mainWindow.minHeight,
     defaultPosition = WindowPosition(Alignment.Center)
   )
   Window(
@@ -110,6 +183,10 @@ fun ApplicationScope.AppRoot(onExitRequest: () -> Unit) {
     state = mainWindowState,
     icon = painterResource(Res.drawable.icon)
   ) {
+    ApplyWindowMinimumSize(
+      minWidth = windowLayoutConfig.mainWindow.minWidth,
+      minHeight = windowLayoutConfig.mainWindow.minHeight
+    )
     // 统一缩放与主题入口
     ScaledContent(autoScale, scalePercent) {
       ZTheme {
@@ -130,37 +207,17 @@ fun ApplicationScope.AppRoot(onExitRequest: () -> Unit) {
   // 为每个已打开工具创建独立窗口
   for (tool in openWindows) {
     key(tool) {
-      // 针对不同工具配置默认窗口尺寸
-      val windowState = when (tool) {
-        ToolItem.TIMESTAMP -> rememberPersistentWindowState(
-          enabled = rememberWindowBoundsEnabled,
-          windowId = "$WINDOW_ID_TOOL_PREFIX.${tool.name}",
-          defaultWidth = 800.dp,
-          defaultHeight = 720.dp,
-          defaultPosition = WindowPosition(Alignment.Center)
-        )
-        ToolItem.JSON -> rememberPersistentWindowState(
-          enabled = rememberWindowBoundsEnabled,
-          windowId = "$WINDOW_ID_TOOL_PREFIX.${tool.name}",
-          defaultWidth = 1100.dp,
-          defaultHeight = 800.dp,
-          defaultPosition = WindowPosition(Alignment.Center)
-        )
-        ToolItem.UUID -> rememberPersistentWindowState(
-          enabled = rememberWindowBoundsEnabled,
-          windowId = "$WINDOW_ID_TOOL_PREFIX.${tool.name}",
-          defaultWidth = 1000.dp,
-          defaultHeight = 760.dp,
-          defaultPosition = WindowPosition(Alignment.Center)
-        )
-        ToolItem.SPEECH_TO_TEXT -> rememberPersistentWindowState(
-          enabled = rememberWindowBoundsEnabled,
-          windowId = "$WINDOW_ID_TOOL_PREFIX.${tool.name}",
-          defaultWidth = 900.dp,
-          defaultHeight = 800.dp,
-          defaultPosition = WindowPosition(Alignment.Center)
-        )
-      }
+      // 每个工具窗口都支持外部传入默认尺寸与最小尺寸
+      val toolWindowConfig = windowLayoutConfig.resolveToolWindowConfig(tool)
+      val windowState = rememberPersistentWindowState(
+        enabled = rememberWindowBoundsEnabled,
+        windowId = "$WINDOW_ID_TOOL_PREFIX.${tool.name}",
+        defaultWidth = toolWindowConfig.defaultWidth,
+        defaultHeight = toolWindowConfig.defaultHeight,
+        minWidth = toolWindowConfig.minWidth,
+        minHeight = toolWindowConfig.minHeight,
+        defaultPosition = WindowPosition(Alignment.Center)
+      )
 
       Window(
         onCloseRequest = { openWindows.remove(tool) },
@@ -168,6 +225,10 @@ fun ApplicationScope.AppRoot(onExitRequest: () -> Unit) {
         state = windowState,
         icon = painterResource(Res.drawable.icon)
       ) {
+        ApplyWindowMinimumSize(
+          minWidth = toolWindowConfig.minWidth,
+          minHeight = toolWindowConfig.minHeight
+        )
         // 子窗口同样应用缩放与主题
         ScaledContent(autoScale, scalePercent) {
           ZTheme {
@@ -201,10 +262,20 @@ private fun rememberPersistentWindowState(
   windowId: String,
   defaultWidth: Dp,
   defaultHeight: Dp,
+  minWidth: Dp = WINDOW_MIN_SIZE_DP.dp,
+  minHeight: Dp = WINDOW_MIN_SIZE_DP.dp,
   defaultPosition: WindowPosition
 ): WindowState {
-  val loaded = remember(enabled, windowId, defaultWidth, defaultHeight, defaultPosition) {
-    loadWindowState(enabled, windowId, defaultWidth, defaultHeight, defaultPosition)
+  val loaded = remember(enabled, windowId, defaultWidth, defaultHeight, minWidth, minHeight, defaultPosition) {
+    loadWindowState(
+      enabled = enabled,
+      windowId = windowId,
+      defaultWidth = defaultWidth,
+      defaultHeight = defaultHeight,
+      minWidth = minWidth,
+      minHeight = minHeight,
+      defaultPosition = defaultPosition
+    )
   }
   val windowState = rememberWindowState(
     width = loaded.width,
@@ -227,20 +298,27 @@ private fun loadWindowState(
   windowId: String,
   defaultWidth: Dp,
   defaultHeight: Dp,
+  minWidth: Dp,
+  minHeight: Dp,
   defaultPosition: WindowPosition
 ): LoadedWindowState {
+  val safeMinWidth = if (minWidth.value > 0f) minWidth else WINDOW_MIN_SIZE_DP.dp
+  val safeMinHeight = if (minHeight.value > 0f) minHeight else WINDOW_MIN_SIZE_DP.dp
+  val safeDefaultWidth = if (defaultWidth < safeMinWidth) safeMinWidth else defaultWidth
+  val safeDefaultHeight = if (defaultHeight < safeMinHeight) safeMinHeight else defaultHeight
+
   if (!enabled) {
     return LoadedWindowState(
-      width = defaultWidth,
-      height = defaultHeight,
+      width = safeDefaultWidth,
+      height = safeDefaultHeight,
       position = defaultPosition
     )
   }
-  val width = windowPrefs.getFloat(windowKey(windowId, WINDOW_KEY_WIDTH), defaultWidth.value)
-    .coerceAtLeast(WINDOW_MIN_SIZE_DP)
+  val width = windowPrefs.getFloat(windowKey(windowId, WINDOW_KEY_WIDTH), safeDefaultWidth.value)
+    .coerceAtLeast(safeMinWidth.value)
     .dp
-  val height = windowPrefs.getFloat(windowKey(windowId, WINDOW_KEY_HEIGHT), defaultHeight.value)
-    .coerceAtLeast(WINDOW_MIN_SIZE_DP)
+  val height = windowPrefs.getFloat(windowKey(windowId, WINDOW_KEY_HEIGHT), safeDefaultHeight.value)
+    .coerceAtLeast(safeMinHeight.value)
     .dp
 
   val hasPosition = windowPrefs.getBoolean(windowKey(windowId, WINDOW_KEY_HAS_POSITION), false)
@@ -252,6 +330,26 @@ private fun loadWindowState(
     defaultPosition
   }
   return LoadedWindowState(width = width, height = height, position = position)
+}
+
+/**
+ * 对窗口施加最小尺寸约束。
+ * 该约束在运行时生效，防止用户把窗口拉到不可用尺寸。
+ */
+@Composable
+private fun WindowScope.ApplyWindowMinimumSize(
+  minWidth: Dp,
+  minHeight: Dp
+) {
+  val density = LocalDensity.current
+  val minWidthPx = with(density) { minWidth.roundToPx().coerceAtLeast(1) }
+  val minHeightPx = with(density) { minHeight.roundToPx().coerceAtLeast(1) }
+
+  SideEffect {
+    if (window.minimumSize.width != minWidthPx || window.minimumSize.height != minHeightPx) {
+      window.minimumSize = Dimension(minWidthPx, minHeightPx)
+    }
+  }
 }
 
 private fun captureWindowState(windowState: WindowState): SavedWindowState {
