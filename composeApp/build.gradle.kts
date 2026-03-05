@@ -137,12 +137,6 @@ compose.desktop {
 
 // https://github.com/JetBrains/compose-hot-reload?tab=readme-ov-file#configure-the-main-class
 tasks.withType<ComposeHotRun>().configureEach {
-  javaLauncher.set(
-    javaToolchains.launcherFor {
-      languageVersion.set(JavaLanguageVersion.of(17))
-    }
-  )
-
   // Hot Reload 启动的应用入口类。这里保持和 compose.desktop.application.mainClass 一致，
   // 避免任务之间配置不一致导致“能运行但热重载失效”。
   mainClass.set("top.zhjh.MainKt")

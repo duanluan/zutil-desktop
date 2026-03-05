@@ -343,17 +343,7 @@ private fun App(
       // 把设置与关于放到底部
       Spacer(Modifier.weight(1f))
 
-      // 3. 设置 (通常设置在最底部)
-      val settingsSelected = selectedCategory == ToolCategory.SETTINGS
-      val settingsColor = if (settingsSelected) selectedColor else unselectedColor
-      NavigationRailItem(
-        icon = { Icon(FeatherIcons.Settings, null, tint = settingsColor) },
-        label = { Text(ToolCategory.SETTINGS.label, color = settingsColor) },
-        selected = settingsSelected,
-        onClick = { selectedCategory = ToolCategory.SETTINGS }
-      )
-
-      // 4. ZUI
+      // 3. ZUI
       val zuiSelected = selectedCategory == ToolCategory.ZUI
       val zuiColor = if (zuiSelected) selectedColor else unselectedColor
       NavigationRailItem(
@@ -363,7 +353,17 @@ private fun App(
         onClick = { selectedCategory = ToolCategory.ZUI }
       )
 
-      // 4. 关于
+      // 4. 设置
+      val settingsSelected = selectedCategory == ToolCategory.SETTINGS
+      val settingsColor = if (settingsSelected) selectedColor else unselectedColor
+      NavigationRailItem(
+        icon = { Icon(FeatherIcons.Settings, null, tint = settingsColor) },
+        label = { Text(ToolCategory.SETTINGS.label, color = settingsColor) },
+        selected = settingsSelected,
+        onClick = { selectedCategory = ToolCategory.SETTINGS }
+      )
+
+      // 5. 关于
       val aboutSelected = selectedCategory == ToolCategory.ABOUT
       val aboutColor = if (aboutSelected) selectedColor else unselectedColor
       NavigationRailItem(
