@@ -1682,7 +1682,7 @@ private fun comparePreReleaseIdentifier(left: String, right: String): Int {
 }
 
 // 应用基础信息
-private const val APP_VERSION = "1.0.0"
+private const val APP_VERSION = "1.0.0-rc.1"
 private const val GITHUB_REPO_URL = "https://github.com/duanluan/zutil-desktop"
 private const val GITHUB_RELEASES_URL = "https://github.com/duanluan/zutil-desktop/releases"
 private const val GITHUB_RELEASES_API_URL = "https://api.github.com/repos/duanluan/zutil-desktop/releases?per_page=100"

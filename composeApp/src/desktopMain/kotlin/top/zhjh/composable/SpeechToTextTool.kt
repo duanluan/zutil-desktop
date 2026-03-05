@@ -1,31 +1,11 @@
 package top.zhjh.composable
 
-import androidx.compose.foundation.VerticalScrollbar
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.rememberScrollbarAdapter
+import androidx.compose.foundation.*
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Icon
 import androidx.compose.material.MaterialTheme
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -33,26 +13,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import compose.icons.FeatherIcons
-import compose.icons.feathericons.AlertCircle
-import compose.icons.feathericons.CheckCircle
-import compose.icons.feathericons.Copy
-import compose.icons.feathericons.DownloadCloud
-import compose.icons.feathericons.File
-import compose.icons.feathericons.Folder
-import compose.icons.feathericons.Play
-import compose.icons.feathericons.Trash2
+import compose.icons.feathericons.*
 import top.zhjh.common.composable.ToastContainer
 import top.zhjh.util.FilePickerUtil
 import top.zhjh.viewmodel.SpeechToTextViewModel
-import top.zhjh.zui.composable.ZButton
-import top.zhjh.zui.composable.ZCard
-import top.zhjh.zui.composable.ZForm
-import top.zhjh.zui.composable.ZFormItem
-import top.zhjh.zui.composable.ZFormLabelPosition
-import top.zhjh.zui.composable.ZParagraph
-import top.zhjh.zui.composable.ZText
-import top.zhjh.zui.composable.ZTextField
-import top.zhjh.zui.composable.ZTextFieldType
+import top.zhjh.zui.composable.*
 import top.zhjh.zui.enums.ZCardShadow
 import top.zhjh.zui.enums.ZColorType
 import top.zhjh.zui.theme.isAppInDarkTheme
@@ -266,13 +231,6 @@ fun SpeechToTextTool() {
             placeholder = "识别结果将显示在这里"
           )
         }
-      }
-
-      ZCard(shadow = ZCardShadow.NEVER, modifier = Modifier.fillMaxWidth()) {
-        ZText("说明", fontWeight = FontWeight.Bold)
-        ZParagraph("支持常见音频格式：WAV / MP3 / M4A / AAC / FLAC / OGG 等。", indent = false)
-        ZParagraph("优先尝试直接解码并自动重采样到 16kHz / 16bit / 单声道。", indent = false)
-        ZParagraph("当系统无法直接解码时，会自动调用 FFmpeg 转码；若未安装 ffmpeg，请先安装并加入 PATH。", indent = false)
       }
     }
 
