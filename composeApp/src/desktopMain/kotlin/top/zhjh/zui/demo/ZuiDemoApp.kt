@@ -1,5 +1,6 @@
 package top.zhjh.zui.demo
 
+import ZLink
 import androidx.compose.foundation.VerticalScrollbar
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.layout.*
@@ -17,7 +18,10 @@ import androidx.compose.ui.unit.dp
 import top.zhjh.common.composable.ToastContainer
 import top.zhjh.zui.composable.*
 import top.zhjh.zui.demo.components.*
+import top.zhjh.zui.enums.ZCardShadow
 import top.zhjh.zui.theme.ZTheme
+
+private const val ZUI_COMPOSE_DESKTOP_REPO = "https://github.com/duanluan/zui-compose-desktop"
 
 @Composable
 @Preview
@@ -73,7 +77,7 @@ private fun ZuiComponentDemoContent(
   modifier: Modifier = Modifier,
   contentScrollState: ScrollState? = null
 ) {
-  var activeTabName by remember { mutableStateOf("text") }
+  var activeTabName by remember { mutableStateOf("zui-intro") }
   val asideScrollState = rememberScrollState()
 
   data class DemoItem(
@@ -84,6 +88,7 @@ private fun ZuiComponentDemoContent(
   )
 
   val demos = listOf(
+    DemoItem(label = "ZUI 组件库介绍", name = "zui-intro") { zuiIntroWindowContent() },
     DemoItem(label = "Text 文本", name = "text") { textDemoContent() },
     DemoItem(label = "Radio 单选框", name = "radio") { radioDemoContent() },
     DemoItem(label = "Checkbox 多选框", name = "checkbox") { checkboxDemoContent() },
@@ -110,6 +115,15 @@ private fun ZuiComponentDemoContent(
   }
   val menuItems = remember(demos) {
     listOf(
+      ZSubMenu(
+        index = "overview",
+        titleContent = {
+          Text(text = "Overview 总览", fontWeight = FontWeight.Bold)
+        },
+        children = listOf(
+          demoMenuItem("zui-intro")
+        )
+      ),
       ZSubMenu(
         index = "basic",
         titleContent = {
@@ -201,7 +215,7 @@ private fun ZuiComponentDemoContent(
                 items = menuItems,
                 mode = ZMenuMode.Vertical,
                 activeIndex = activeTabName,
-                defaultOpeneds = listOf("basic", "form", "data", "navigation", "feedback"),
+                defaultOpeneds = listOf("overview", "basic", "form", "data", "navigation", "feedback"),
                 onSelect = { activeTabName = it },
                 modifier = Modifier.fillMaxWidth()
               )
@@ -232,5 +246,29 @@ private fun ZuiComponentDemoContent(
         demos.firstOrNull { it.name == activeTabName }?.content?.invoke()
       }
     }
+  }
+}
+
+@Composable
+private fun zuiIntroWindowContent() {
+  Column(
+    modifier = Modifier.fillMaxWidth(),
+    verticalArrangement = Arrangement.spacedBy(12.dp)
+  ) {
+    ZText("ZUI Compose Desktop", fontWeight = FontWeight.Bold)
+    ZText("用于 Compose Desktop 的组件库，提供统一风格与常用交互能力。")
+
+    ZCard(
+      shadow = ZCardShadow.NEVER,
+      modifier = Modifier.fillMaxWidth()
+    ) {
+      Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        ZText("项目仓库")
+        ZLink(text = ZUI_COMPOSE_DESKTOP_REPO, url = ZUI_COMPOSE_DESKTOP_REPO)
+      }
+    }
+
+    ZText("当前示例覆盖：Text / Button / Form / Menu / Card / Link 等组件。")
+    ZText("你可以通过左侧菜单切换组件示例，快速验证样式与交互行为。")
   }
 }
