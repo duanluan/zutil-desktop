@@ -1,6 +1,8 @@
 package top.zhjh
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -8,12 +10,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.ApplicationScope
-import androidx.compose.ui.window.Window
-import androidx.compose.ui.window.WindowPosition
-import androidx.compose.ui.window.rememberWindowState
+import androidx.compose.ui.window.*
 import compose.icons.FeatherIcons
 import compose.icons.feathericons.*
 import org.jetbrains.compose.resources.painterResource
@@ -25,10 +25,9 @@ import top.zhjh.enums.ToolItem
 import top.zhjh.util.FilePickerUtil
 import top.zhjh.util.ModelDownloadSettings
 import top.zhjh.zui.composable.ZButton
-import top.zhjh.zui.composable.ZCard
+import top.zhjh.zui.composable.ZSwitch
 import top.zhjh.zui.composable.ZTextField
 import top.zhjh.zui.demo.ZuiComponentShowcase
-import top.zhjh.zui.enums.ZCardShadow
 import top.zhjh.zui.enums.ZColorType
 import top.zhjh.zui.theme.ZTheme
 import zutil_desktop.composeapp.generated.resources.Res
@@ -57,6 +56,8 @@ fun ApplicationScope.AppRoot(onExitRequest: () -> Unit) {
   }
   // 当前 UI 缩放百分比（持久化存储）
   var scalePercent by remember { mutableStateOf(loadUiScalePercent(defaultScalePercent)) }
+  // 是否记住窗口大小与位置（持久化存储）
+  var rememberWindowBoundsEnabled by remember { mutableStateOf(loadRememberWindowBoundsEnabled()) }
   // 当前已打开的工具窗口（避免重复打开）
   val openWindows = remember { mutableStateListOf<ToolItem>() }
   // 退出后待启动命令（用于 Linux portable/AppImage 更新）
@@ -67,6 +68,13 @@ fun ApplicationScope.AppRoot(onExitRequest: () -> Unit) {
     val clamped = sanitizeScalePercent(percent)
     scalePercent = clamped
     saveUiScalePercent(clamped)
+  }
+  val onRememberWindowBoundsChange: (Boolean) -> Unit = { enabled ->
+    rememberWindowBoundsEnabled = enabled
+    saveRememberWindowBoundsEnabled(enabled)
+    if (!enabled) {
+      clearSavedWindowStates()
+    }
   }
   // 打开工具窗口：去重后加入列表
   val onToolOpen: (ToolItem) -> Unit = { tool ->
@@ -89,14 +97,17 @@ fun ApplicationScope.AppRoot(onExitRequest: () -> Unit) {
   }
 
   // 主窗口
+  val mainWindowState = rememberPersistentWindowState(
+    enabled = rememberWindowBoundsEnabled,
+    windowId = WINDOW_ID_MAIN,
+    defaultWidth = 1200.dp,
+    defaultHeight = 800.dp,
+    defaultPosition = WindowPosition(Alignment.Center)
+  )
   Window(
     onCloseRequest = requestAppExit,
     title = "ZUtil 工具箱",
-    state = rememberWindowState(
-      width = 1200.dp,
-      height = 800.dp,
-      position = WindowPosition(Alignment.Center)
-    ),
+    state = mainWindowState,
     icon = painterResource(Res.drawable.icon)
   ) {
     // 统一缩放与主题入口
@@ -106,6 +117,8 @@ fun ApplicationScope.AppRoot(onExitRequest: () -> Unit) {
           autoScale = autoScale,
           scalePercent = scalePercent,
           onScalePercentChange = onScalePercentChange,
+          rememberWindowBoundsEnabled = rememberWindowBoundsEnabled,
+          onRememberWindowBoundsChange = onRememberWindowBoundsChange,
           onToolOpen = onToolOpen,
           onExitRequest = requestAppExit,
           onSchedulePostExitLaunch = { plan -> pendingPostExitLaunchPlan = plan }
@@ -119,10 +132,34 @@ fun ApplicationScope.AppRoot(onExitRequest: () -> Unit) {
     key(tool) {
       // 针对不同工具配置默认窗口尺寸
       val windowState = when (tool) {
-        ToolItem.TIMESTAMP -> rememberWindowState(width = 800.dp, height = 720.dp, position = WindowPosition(Alignment.Center))
-        ToolItem.JSON -> rememberWindowState(width = 1100.dp, height = 800.dp, position = WindowPosition(Alignment.Center))
-        ToolItem.UUID -> rememberWindowState(width = 1000.dp, height = 760.dp, position = WindowPosition(Alignment.Center))
-        ToolItem.SPEECH_TO_TEXT -> rememberWindowState(width = 900.dp, height = 800.dp, position = WindowPosition(Alignment.Center))
+        ToolItem.TIMESTAMP -> rememberPersistentWindowState(
+          enabled = rememberWindowBoundsEnabled,
+          windowId = "$WINDOW_ID_TOOL_PREFIX.${tool.name}",
+          defaultWidth = 800.dp,
+          defaultHeight = 720.dp,
+          defaultPosition = WindowPosition(Alignment.Center)
+        )
+        ToolItem.JSON -> rememberPersistentWindowState(
+          enabled = rememberWindowBoundsEnabled,
+          windowId = "$WINDOW_ID_TOOL_PREFIX.${tool.name}",
+          defaultWidth = 1100.dp,
+          defaultHeight = 800.dp,
+          defaultPosition = WindowPosition(Alignment.Center)
+        )
+        ToolItem.UUID -> rememberPersistentWindowState(
+          enabled = rememberWindowBoundsEnabled,
+          windowId = "$WINDOW_ID_TOOL_PREFIX.${tool.name}",
+          defaultWidth = 1000.dp,
+          defaultHeight = 760.dp,
+          defaultPosition = WindowPosition(Alignment.Center)
+        )
+        ToolItem.SPEECH_TO_TEXT -> rememberPersistentWindowState(
+          enabled = rememberWindowBoundsEnabled,
+          windowId = "$WINDOW_ID_TOOL_PREFIX.${tool.name}",
+          defaultWidth = 900.dp,
+          defaultHeight = 800.dp,
+          defaultPosition = WindowPosition(Alignment.Center)
+        )
       }
 
       Window(
@@ -142,6 +179,108 @@ fun ApplicationScope.AppRoot(onExitRequest: () -> Unit) {
   }
 }
 
+private data class SavedWindowState(
+  val widthDp: Float,
+  val heightDp: Float,
+  val xDp: Float?,
+  val yDp: Float?
+)
+
+private data class LoadedWindowState(
+  val width: Dp,
+  val height: Dp,
+  val position: WindowPosition
+)
+
+/**
+ * 记住并持久化窗口大小与位置。
+ */
+@Composable
+private fun rememberPersistentWindowState(
+  enabled: Boolean,
+  windowId: String,
+  defaultWidth: Dp,
+  defaultHeight: Dp,
+  defaultPosition: WindowPosition
+): WindowState {
+  val loaded = remember(enabled, windowId, defaultWidth, defaultHeight, defaultPosition) {
+    loadWindowState(enabled, windowId, defaultWidth, defaultHeight, defaultPosition)
+  }
+  val windowState = rememberWindowState(
+    width = loaded.width,
+    height = loaded.height,
+    position = loaded.position
+  )
+
+  LaunchedEffect(enabled, windowId, windowState) {
+    if (!enabled) return@LaunchedEffect
+    snapshotFlow { captureWindowState(windowState) }
+      .collect { snapshot ->
+        saveWindowState(windowId, snapshot)
+      }
+  }
+  return windowState
+}
+
+private fun loadWindowState(
+  enabled: Boolean,
+  windowId: String,
+  defaultWidth: Dp,
+  defaultHeight: Dp,
+  defaultPosition: WindowPosition
+): LoadedWindowState {
+  if (!enabled) {
+    return LoadedWindowState(
+      width = defaultWidth,
+      height = defaultHeight,
+      position = defaultPosition
+    )
+  }
+  val width = windowPrefs.getFloat(windowKey(windowId, WINDOW_KEY_WIDTH), defaultWidth.value)
+    .coerceAtLeast(WINDOW_MIN_SIZE_DP)
+    .dp
+  val height = windowPrefs.getFloat(windowKey(windowId, WINDOW_KEY_HEIGHT), defaultHeight.value)
+    .coerceAtLeast(WINDOW_MIN_SIZE_DP)
+    .dp
+
+  val hasPosition = windowPrefs.getBoolean(windowKey(windowId, WINDOW_KEY_HAS_POSITION), false)
+  val position = if (hasPosition) {
+    val x = windowPrefs.getFloat(windowKey(windowId, WINDOW_KEY_X), 0f).dp
+    val y = windowPrefs.getFloat(windowKey(windowId, WINDOW_KEY_Y), 0f).dp
+    WindowPosition.Absolute(x, y)
+  } else {
+    defaultPosition
+  }
+  return LoadedWindowState(width = width, height = height, position = position)
+}
+
+private fun captureWindowState(windowState: WindowState): SavedWindowState {
+  val position = windowState.position as? WindowPosition.Absolute
+  return SavedWindowState(
+    widthDp = windowState.size.width.value,
+    heightDp = windowState.size.height.value,
+    xDp = position?.x?.value,
+    yDp = position?.y?.value
+  )
+}
+
+private fun saveWindowState(windowId: String, state: SavedWindowState) {
+  windowPrefs.putFloat(windowKey(windowId, WINDOW_KEY_WIDTH), state.widthDp)
+  windowPrefs.putFloat(windowKey(windowId, WINDOW_KEY_HEIGHT), state.heightDp)
+
+  val hasPosition = state.xDp != null && state.yDp != null
+  windowPrefs.putBoolean(windowKey(windowId, WINDOW_KEY_HAS_POSITION), hasPosition)
+  if (hasPosition) {
+    windowPrefs.putFloat(windowKey(windowId, WINDOW_KEY_X), state.xDp!!)
+    windowPrefs.putFloat(windowKey(windowId, WINDOW_KEY_Y), state.yDp!!)
+  } else {
+    windowPrefs.remove(windowKey(windowId, WINDOW_KEY_X))
+    windowPrefs.remove(windowKey(windowId, WINDOW_KEY_Y))
+  }
+}
+
+private fun windowKey(windowId: String, suffix: String): String = "window.$windowId.$suffix"
+
 /**
  * 主界面：左侧导航 + 右侧内容区。
  * 负责分类切换、搜索过滤与页面内容渲染。
@@ -151,6 +290,8 @@ private fun App(
   autoScale: ScaleDetection,
   scalePercent: Int,
   onScalePercentChange: (Int) -> Unit,
+  rememberWindowBoundsEnabled: Boolean,
+  onRememberWindowBoundsChange: (Boolean) -> Unit,
   onToolOpen: (ToolItem) -> Unit,
   onExitRequest: () -> Unit,
   onSchedulePostExitLaunch: (PostExitLaunchPlan?) -> Unit
@@ -258,7 +399,9 @@ private fun App(
             SettingsPage(
               autoScale = autoScale,
               scalePercent = scalePercent,
-              onScalePercentChange = onScalePercentChange
+              onScalePercentChange = onScalePercentChange,
+              rememberWindowBoundsEnabled = rememberWindowBoundsEnabled,
+              onRememberWindowBoundsChange = onRememberWindowBoundsChange
             )
           } else if (selectedCategory == ToolCategory.ZUI) {
             ZuiComponentShowcase(
@@ -323,8 +466,13 @@ private fun ScaledContent(
 private fun SettingsPage(
   autoScale: ScaleDetection,
   scalePercent: Int,
-  onScalePercentChange: (Int) -> Unit
+  onScalePercentChange: (Int) -> Unit,
+  rememberWindowBoundsEnabled: Boolean,
+  onRememberWindowBoundsChange: (Boolean) -> Unit
 ) {
+  val defaultScalePercent = remember(autoScale) {
+    sanitizeScalePercent(scaleToPercent(autoScale.scale))
+  }
   var percentText by remember { mutableStateOf(scalePercent.toString()) }
   var downloadDirText by remember { mutableStateOf(ModelDownloadSettings.loadOrDefault()) }
   LaunchedEffect(scalePercent) {
@@ -336,22 +484,35 @@ private fun SettingsPage(
   }
 
   Column(
-    modifier = Modifier.fillMaxSize().padding(16.dp),
-    verticalArrangement = Arrangement.spacedBy(12.dp)
+    modifier = Modifier
+      .fillMaxSize()
+      .verticalScroll(rememberScrollState())
+      .padding(horizontal = 24.dp, vertical = 18.dp),
+    verticalArrangement = Arrangement.spacedBy(14.dp)
   ) {
-    Text("常规设置", style = MaterialTheme.typography.h5)
-
-    ZCard(
-      shadow = ZCardShadow.NEVER,
-      modifier = Modifier.fillMaxWidth(),
-      contentPadding = PaddingValues(16.dp)
+    Column(
+      modifier = Modifier.widthIn(max = 920.dp).fillMaxWidth(),
+      verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
-      Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Text("界面缩放", style = MaterialTheme.typography.subtitle1)
+      Text("常规设置", style = MaterialTheme.typography.h5)
+    }
 
-        Row(verticalAlignment = Alignment.CenterVertically) {
+    Column(
+      modifier = Modifier
+        .widthIn(max = 920.dp)
+        .fillMaxWidth()
+        .padding(horizontal = 2.dp, vertical = 2.dp),
+      verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+      SettingsSection(
+        title = "界面缩放",
+        hint = "默认缩放${formatPercent(autoScale.scale)}，来源：${autoScale.source}"
+      ) {
+        Row(
+          horizontalArrangement = Arrangement.spacedBy(8.dp),
+          verticalAlignment = Alignment.CenterVertically
+        ) {
           Text("缩放比例：")
-          Spacer(modifier = Modifier.width(8.dp))
           ZTextField(
             value = percentText,
             onValueChange = { value ->
@@ -393,25 +554,47 @@ private fun SettingsPage(
             trailingIcon = { Text("%", fontSize = 12.sp) },
             modifier = Modifier.width(120.dp)
           )
+          ZButton(
+            type = ZColorType.DEFAULT,
+            onClick = {
+              percentText = defaultScalePercent.toString()
+              onScalePercentChange(defaultScalePercent)
+            }
+          ) {
+            Text("恢复默认")
+          }
         }
-
-        Text(
-          // 显示默认缩放与来源，便于用户理解当前基准
-          "默认缩放${formatPercent(autoScale.scale)}，来源：${autoScale.source}",
-          style = MaterialTheme.typography.caption
-        )
       }
-    }
 
-    ZCard(
-      shadow = ZCardShadow.NEVER,
-      modifier = Modifier.fillMaxWidth(),
-      contentPadding = PaddingValues(16.dp)
-    ) {
-      Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Text("模型下载目录", style = MaterialTheme.typography.subtitle1)
+      SettingsSectionDivider()
 
-        Row(verticalAlignment = Alignment.CenterVertically) {
+      SettingsSection(
+        title = "窗口设置",
+        hint = "关闭后将恢复默认窗口尺寸与位置"
+      ) {
+        Row(
+          horizontalArrangement = Arrangement.spacedBy(8.dp),
+          verticalAlignment = Alignment.CenterVertically
+        ) {
+          Text("记住窗口大小和位置")
+          ZSwitch(
+            checked = rememberWindowBoundsEnabled,
+            onCheckedChange = { checked -> onRememberWindowBoundsChange(checked) }
+          )
+        }
+      }
+
+      SettingsSectionDivider()
+
+      SettingsSection(
+        title = "模型下载目录",
+        hint = "用于语音模型下载与缓存"
+      ) {
+        Row(
+          modifier = Modifier.fillMaxWidth(),
+          horizontalArrangement = Arrangement.spacedBy(8.dp),
+          verticalAlignment = Alignment.CenterVertically
+        ) {
           ZTextField(
             value = downloadDirText,
             onValueChange = { downloadDirText = it },
@@ -426,7 +609,6 @@ private fun SettingsPage(
             },
             modifier = Modifier.weight(1f)
           )
-          Spacer(modifier = Modifier.width(8.dp))
           ZButton(
             type = ZColorType.DEFAULT,
             onClick = {
@@ -443,7 +625,6 @@ private fun SettingsPage(
           ) {
             Text("浏览")
           }
-          Spacer(modifier = Modifier.width(6.dp))
           ZButton(
             type = ZColorType.DEFAULT,
             onClick = { openDirectory(downloadDirText) }
@@ -451,14 +632,31 @@ private fun SettingsPage(
             Text("打开")
           }
         }
-
-        Text(
-          "用于语音模型下载与缓存",
-          style = MaterialTheme.typography.caption
-        )
       }
     }
   }
+}
+
+@Composable
+private fun SettingsSection(
+  title: String,
+  hint: String,
+  content: @Composable ColumnScope.() -> Unit
+) {
+  Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Text(title, style = MaterialTheme.typography.subtitle1)
+    content()
+    Text(
+      hint,
+      style = MaterialTheme.typography.caption,
+      color = MaterialTheme.colors.onSurface.copy(alpha = ContentAlpha.medium)
+    )
+  }
+}
+
+@Composable
+private fun SettingsSectionDivider() {
+  Divider(color = MaterialTheme.colors.onSurface.copy(alpha = 0.08f), thickness = 1.dp)
 }
 
 /**
@@ -473,14 +671,25 @@ private data class ScaleDetection(
 
 // 缩放相关常量
 private const val PREF_UI_SCALE_PERCENT = "uiScale.percent"
+private const val PREF_REMEMBER_WINDOW_BOUNDS = "window.rememberBounds"
 private const val SCALE_MIN = 0.5f
 private const val SCALE_MAX = 3.0f
 private const val SCALE_MIN_PERCENT = 50
 private const val SCALE_MAX_PERCENT = 300
 private const val SCALE_WHEEL_STEP = 1
+private const val WINDOW_ID_MAIN = "main"
+private const val WINDOW_ID_TOOL_PREFIX = "tool"
+private const val WINDOW_KEY_WIDTH = "width"
+private const val WINDOW_KEY_HEIGHT = "height"
+private const val WINDOW_KEY_X = "x"
+private const val WINDOW_KEY_Y = "y"
+private const val WINDOW_KEY_HAS_POSITION = "hasPosition"
+private const val WINDOW_MIN_SIZE_DP = 200f
 
 // 用于持久化保存 UI 缩放配置
 private val uiScalePrefs: Preferences = Preferences.userNodeForPackage(ScaleDetection::class.java)
+private object WindowPrefsMarker
+private val windowPrefs: Preferences = Preferences.userNodeForPackage(WindowPrefsMarker::class.java)
 
 /**
  * 读取 UI 缩放百分比配置，若不存在则返回默认值。
@@ -495,6 +704,42 @@ private fun loadUiScalePercent(defaultPercent: Int): Int {
  */
 private fun saveUiScalePercent(percent: Int) {
   uiScalePrefs.putInt(PREF_UI_SCALE_PERCENT, percent)
+}
+
+/**
+ * 读取是否记住窗口大小与位置。
+ */
+private fun loadRememberWindowBoundsEnabled(): Boolean {
+  return uiScalePrefs.getBoolean(PREF_REMEMBER_WINDOW_BOUNDS, true)
+}
+
+/**
+ * 保存是否记住窗口大小与位置。
+ */
+private fun saveRememberWindowBoundsEnabled(enabled: Boolean) {
+  uiScalePrefs.putBoolean(PREF_REMEMBER_WINDOW_BOUNDS, enabled)
+}
+
+/**
+ * 清理所有已保存的窗口大小与位置。
+ */
+private fun clearSavedWindowStates() {
+  val windowIds = buildList {
+    add(WINDOW_ID_MAIN)
+    ToolItem.entries.forEach { tool -> add("$WINDOW_ID_TOOL_PREFIX.${tool.name}") }
+  }
+  val suffixes = listOf(
+    WINDOW_KEY_WIDTH,
+    WINDOW_KEY_HEIGHT,
+    WINDOW_KEY_X,
+    WINDOW_KEY_Y,
+    WINDOW_KEY_HAS_POSITION
+  )
+  windowIds.forEach { windowId ->
+    suffixes.forEach { suffix ->
+      windowPrefs.remove(windowKey(windowId, suffix))
+    }
+  }
 }
 
 /**
