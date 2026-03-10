@@ -38,6 +38,15 @@ fun buttonDemoContent() {
     }
 
     Row(horizontalArrangement = Arrangement.spacedBy(5.dp), modifier = Modifier.padding(top = 5.dp, bottom = 5.dp)) {
+      ZButton(buttonType = ZButtonType.Text, onClick = { ToastManager.success("Text Default") }) { Text("Default") }
+      ZButton(type = ZColorType.PRIMARY, buttonType = ZButtonType.Text, onClick = { ToastManager.success("Text Primary") }) { Text("Primary") }
+      ZButton(type = ZColorType.SUCCESS, buttonType = ZButtonType.Text, onClick = { ToastManager.success("Text Success") }) { Text("Success") }
+      ZButton(type = ZColorType.INFO, buttonType = ZButtonType.Text, onClick = { ToastManager.success("Text Info") }) { Text("Info") }
+      ZButton(type = ZColorType.WARNING, buttonType = ZButtonType.Text, onClick = { ToastManager.success("Text Warning") }) { Text("Warning") }
+      ZButton(type = ZColorType.DANGER, buttonType = ZButtonType.Text, onClick = { ToastManager.success("Text Danger") }) { Text("Danger") }
+    }
+
+    Row(horizontalArrangement = Arrangement.spacedBy(5.dp), modifier = Modifier.padding(top = 5.dp, bottom = 5.dp)) {
       ZButton(round = true, onClick = { ToastManager.success("Round") }) { Text("Round") }
       ZButton(type = ZColorType.PRIMARY, round = true, onClick = { ToastManager.success("Primary") }) { Text("Primary") }
       ZButton(type = ZColorType.SUCCESS, round = true, onClick = { ToastManager.success("Success") }) { Text("Success") }

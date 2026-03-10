@@ -100,7 +100,9 @@ private fun ZuiComponentDemoContent(
     DemoItem(label = "Menu 菜单", name = "menu") { menuDemoContent(isDarkTheme) },
     DemoItem(label = "Form 表单", name = "form") { formDemoContent() },
     DemoItem(label = "Card 卡片", name = "card") { cardDemoContent() },
-    DemoItem(label = "Link 链接", name = "link") { linkDemoContent() }
+    DemoItem(label = "Link 链接", name = "link") { linkDemoContent() },
+    DemoItem(label = "Popconfirm 气泡确认框", name = "popconfirm") { popconfirmDemoContent() },
+    DemoItem(label = "Tooltip 文字提示", name = "tooltip") { tooltipDemoContent() }
   )
   val demoByName = remember(demos) {
     demos.associateBy { it.name }
@@ -174,7 +176,8 @@ private fun ZuiComponentDemoContent(
           Text(text = "Feedback 反馈组件", fontWeight = FontWeight.Bold)
         },
         children = listOf(
-          ZMenuItem(index = "feedback-empty", title = "暂无", enabled = false)
+          demoMenuItem("popconfirm"),
+          demoMenuItem("tooltip")
         )
       )
     )
